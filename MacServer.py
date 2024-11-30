@@ -29,7 +29,6 @@ class MacServer:
     def get_data(self):
         if self.jetson_socket:
             data = self.jetson_socket.recv(1024).decode()
-            print("Data received:", data)
             return data
         else:
             print("No client connection established.")
