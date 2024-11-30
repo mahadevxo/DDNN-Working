@@ -1,2 +1,2 @@
-# ddnn_working
+# DDNN Working Directory
 DDNN Working Directory
