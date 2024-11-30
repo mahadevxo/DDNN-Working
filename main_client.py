@@ -10,7 +10,6 @@ def send_data(client, data):
     if data == 'exit':
         client.close_connection()
         
-        
 def main():
     mac_ip = input("Enter Server IP: ").strip()
     mac_port = int(input("Enter Server Port: ").strip())
@@ -26,10 +25,13 @@ def main():
     svcnn = load_model(path_to_weights)
     print("Model Loaded")
 
+    print("Starting image preprocessing")
     images = preprocess_images()
     print("Image Preprocess Done.")
 
     svcnn.eval()
+    
+    print("Starting Inference")
     
     with torch.no_grad():
         for image in images:
