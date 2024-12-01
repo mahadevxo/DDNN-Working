@@ -11,7 +11,17 @@ def preprocess_images():
         Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
     ])
         
-
+    import sys
+    sys.module.pop('Compose')
+    sys.module.pop('Resize')
+    sys.module.pop('ToTensor')
+    sys.module.pop('Normalize')
+    
+    del Compose
+    del Resize
+    del ToTensor
+    del Normalize
+    
     image_folder = '/home/mahadev/Desktop/DDNN/work/test_set'
 
     count = 0

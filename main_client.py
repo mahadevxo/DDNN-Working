@@ -1,9 +1,9 @@
 from load_model import load_model
 from preprocess_images import preprocess_images
 from JetsonClient import JetsonClient
+import sys
 
 import time
-from torch import no_grad
 
 def send_data(client, data):
     client.send_data(data)
@@ -15,6 +15,9 @@ def main():
     mac_port = int(input("Enter Server Port: ").strip())
     
     client = JetsonClient(mac_ip, mac_port)
+    
+    sys.modules.pop('JetsonClient')
+    del JetsonClient
     
     try:
         client.connect_to_server()
@@ -28,11 +31,14 @@ def main():
     print("Starting image preprocessing")
     images = preprocess_images()
     print("Image Preprocess Done.")
+    
+    sys.modules.pop('preprocess_images')
+    del preprocess_images
 
     svcnn.eval()
     
     print("Starting Inference")
-    
+    from torch import no_grad
     with no_grad():
         for image in images:
             start_time = time.time()

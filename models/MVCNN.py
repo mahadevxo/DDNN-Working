@@ -1,29 +1,29 @@
-import numpy as np
-import os
 from torch import FloatTensor
-from torch import arange
-from torch import max
-
+import sys
 import torch.nn as nn
-from torchvision.models import vgg11
 from .Model import Model
 
 mean = FloatTensor([0.485, 0.456, 0.406]).cuda()
 std = FloatTensor([0.229, 0.224, 0.225]).cuda()
 
 def flip(x, dim):
+    from torch import arange
     xsize = x.size()
     dim = x.dim() + dim if dim < 0 else dim
     x = x.view(-1, *xsize[dim:])
     x = x.view(x.size(0), x.size(1), -1)[:, getattr(arange(x.size(1)-1, 
                       -1, -1), ('cpu','cuda')[x.is_cuda])().long(), :]
+    
+    sys.modules.pop('arange')
+    del arange
+    
     return x.view(xsize)
 
 
 class SVCNN(Model):
-
     def __init__(self, name, nclasses=40, pretraining=True, cnn_name='vgg11'):
         super(SVCNN, self).__init__(name)
+        from torchvision.models import vgg11
 
         self.classnames=['airplane','bathtub','bed','bench','bookshelf','bottle','bowl','car','chair',
                          'cone','cup','curtain','desk','door','dresser','flower_pot','glass_box',
@@ -41,6 +41,9 @@ class SVCNN(Model):
         self.net_2 = vgg11(pretrained=self.pretraining).classifier
             
         self.net_2._modules['6'] = nn.Linear(4096,40)
+        
+        sys.modules.pop('vgg11')
+        del vgg11
 
     def forward(self, x):
         if self.use_resnet:
@@ -69,7 +72,13 @@ class MVCNN(Model):
         self.net_2 = model.net_2
 
     def forward(self, x):
+        from torch import max
+        
         y = self.net_1(x)
         y = y.view((int(x.shape[0]/self.num_views),self.num_views,y.shape[-3],y.shape[-2],y.shape[-1])) #(8,12,512,7,7)
+        
+        sys.modules.pop('max')
+        del max
+        
         return self.net_2(max(y,1)[0].view(y.shape[0],-1))
 
