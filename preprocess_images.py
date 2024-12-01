@@ -1,5 +1,4 @@
 # SVCNN
-
 def preprocess_images():
 
     import torchvision.transforms as transforms
