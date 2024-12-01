@@ -7,7 +7,7 @@ def send_data(client, data):
         client.close_connection()
         
 def main():    
-    address = input("Enter Server Address: ").strip().split(':')
+    address =['100.86.4.56', 4044]
     
     from JetsonClient import JetsonClient
     client = JetsonClient(address[0], int(address[1]))

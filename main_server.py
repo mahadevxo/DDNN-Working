@@ -7,7 +7,7 @@ def main():
     time_sent = []
     process_time = []
     
-    address = input("Enter Server Address: ").strip().split(':')
+    address =['100.86.4.56', 4044]
     
     server = MacServer(address[0], int(address[1]))
     
