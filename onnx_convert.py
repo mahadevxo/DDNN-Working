@@ -4,7 +4,7 @@ from models import MVCNN
 svcnn = MVCNN.SVCNN("svcnn").to("cuda")
 svcnn.load_state_dict(torch.load("model-00001.pth"))
 
-dummy_input = torch.randn(1, 3, 244, 244).to("cuda")
+dummy_input = torch.randn(1, 3, 244, 244, dtype=torch.float32).to("cuda")
 onnx_model_path = 'model-00001.onnx'
 
 torch.onnx.export(
