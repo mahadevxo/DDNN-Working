@@ -3,7 +3,7 @@ from preprocess_images import preprocess_images
 from JetsonClient import JetsonClient
 
 import time
-import torch
+from torch import no_grad
 
 def send_data(client, data):
     client.send_data(data)
@@ -33,7 +33,7 @@ def main():
     
     print("Starting Inference")
     
-    with torch.no_grad():
+    with no_grad():
         for image in images:
             start_time = time.time()
             pred = svcnn(image.unqueeze(0))

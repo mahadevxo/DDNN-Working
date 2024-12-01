@@ -1,4 +1,5 @@
-import torch
+from torch import save
+from torch import load
 import torch.nn as nn
 import os
 import glob
@@ -15,7 +16,7 @@ class Model(nn.Module):
         complete_path = os.path.join(path, self.name)
         if not os.path.exists(complete_path):
             os.makedirs(complete_path)
-        torch.save(self.state_dict(), 
+        save(self.state_dict(), 
                 os.path.join(complete_path, 
                     "model-{}.pth".format(str(epoch).zfill(5))))
 
@@ -35,6 +36,6 @@ class Model(nn.Module):
         else:
             mf = os.path.join(complete_path, modelfile)
 
-        self.load_state_dict(torch.load(mf))
+        self.load_state_dict(load(mf))
 
 

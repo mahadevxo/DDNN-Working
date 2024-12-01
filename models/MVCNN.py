@@ -1,18 +1,21 @@
 import numpy as np
 import os
-import torch
+from torch import FloatTensor
+from torch import arange
+from torch import max
+
 import torch.nn as nn
 from torchvision.models import vgg11
 from .Model import Model
 
-mean = torch.FloatTensor([0.485, 0.456, 0.406]).cuda()
-std = torch.FloatTensor([0.229, 0.224, 0.225]).cuda()
+mean = FloatTensor([0.485, 0.456, 0.406]).cuda()
+std = FloatTensor([0.229, 0.224, 0.225]).cuda()
 
 def flip(x, dim):
     xsize = x.size()
     dim = x.dim() + dim if dim < 0 else dim
     x = x.view(-1, *xsize[dim:])
-    x = x.view(x.size(0), x.size(1), -1)[:, getattr(torch.arange(x.size(1)-1, 
+    x = x.view(x.size(0), x.size(1), -1)[:, getattr(arange(x.size(1)-1, 
                       -1, -1), ('cpu','cuda')[x.is_cuda])().long(), :]
     return x.view(xsize)
 
@@ -32,8 +35,8 @@ class SVCNN(Model):
         self.pretraining = pretraining
         self.cnn_name = cnn_name
         self.use_resnet = cnn_name.startswith('resnet')
-        self.mean = torch.FloatTensor([0.485, 0.456, 0.406]).cuda()
-        self.std = torch.FloatTensor([0.229, 0.224, 0.225]).cuda()
+        self.mean = FloatTensor([0.485, 0.456, 0.406]).cuda()
+        self.std = FloatTensor([0.229, 0.224, 0.225]).cuda()
         self.net_1 = vgg11(pretrained=self.pretraining).features
         self.net_2 = vgg11(pretrained=self.pretraining).classifier
             
@@ -60,13 +63,13 @@ class MVCNN(Model):
 
         self.nclasses = nclasses
         self.num_views = num_views
-        self.mean = torch.FloatTensor([0.485, 0.456, 0.406]).cuda()
-        self.std = torch.FloatTensor([0.229, 0.224, 0.225]).cuda()
+        self.mean = FloatTensor([0.485, 0.456, 0.406]).cuda()
+        self.std = FloatTensor([0.229, 0.224, 0.225]).cuda()
         self.net_1 = model.net_1
         self.net_2 = model.net_2
 
     def forward(self, x):
         y = self.net_1(x)
         y = y.view((int(x.shape[0]/self.num_views),self.num_views,y.shape[-3],y.shape[-2],y.shape[-1])) #(8,12,512,7,7)
-        return self.net_2(torch.max(y,1)[0].view(y.shape[0],-1))
+        return self.net_2(max(y,1)[0].view(y.shape[0],-1))
 

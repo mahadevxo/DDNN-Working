@@ -1,14 +1,14 @@
 # SVCNN
 def preprocess_images():
 
-    import torchvision.transforms as transforms
+    from torchvision.transforms import Compose, Resize, ToTensor, Normalize
     import os
     import PIL.Image as Image
 
-    preprocess = transforms.Compose([
-        transforms.Resize((224, 224)),
-        transforms.ToTensor(),
-        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+    preprocess = Compose([
+        Resize((224, 224)),
+        ToTensor(),
+        Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
     ])
         
 

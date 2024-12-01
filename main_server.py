@@ -1,6 +1,6 @@
 from MacServer import MacServer
 import time
-import pandas as pd
+from pandas import DataFrame
 
 def main():    
     time_received = []
@@ -38,7 +38,7 @@ def main():
                 server.close_sockets()
                 break
         
-        df = pd.DataFrame({"Time Send": time_sent, "Time Received": time_received})
+        df = DataFrame({"Time Send": time_sent, "Time Received": time_received})
         df.to_csv("data.csv", index = False)
         print("Data Written")
         exit()
