@@ -14,7 +14,6 @@ def load_model(weights_path):
     
     sys.modules.pop('MVCNN')
     del MVCNN
-    sys.modules.pop('load')
     del load
     
     

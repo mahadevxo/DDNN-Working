@@ -14,7 +14,6 @@ def flip(x, dim):
     x = x.view(x.size(0), x.size(1), -1)[:, getattr(arange(x.size(1)-1, 
                       -1, -1), ('cpu','cuda')[x.is_cuda])().long(), :]
     
-    sys.modules.pop('arange')
     del arange
     
     return x.view(xsize)
@@ -42,7 +41,6 @@ class SVCNN(Model):
             
         self.net_2._modules['6'] = nn.Linear(4096,40)
         
-        sys.modules.pop('vgg11')
         del vgg11
 
     def forward(self, x):
@@ -77,7 +75,6 @@ class MVCNN(Model):
         y = self.net_1(x)
         y = y.view((int(x.shape[0]/self.num_views),self.num_views,y.shape[-3],y.shape[-2],y.shape[-1])) #(8,12,512,7,7)
         
-        sys.modules.pop('max')
         del max
         
         return self.net_2(max(y,1)[0].view(y.shape[0],-1))

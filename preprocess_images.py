@@ -10,13 +10,7 @@ def preprocess_images():
         ToTensor(),
         Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
     ])
-        
-    import sys
-    sys.module.pop('Compose')
-    sys.module.pop('Resize')
-    sys.module.pop('ToTensor')
-    sys.module.pop('Normalize')
-    
+       
     del Compose
     del Resize
     del ToTensor
@@ -27,7 +21,7 @@ def preprocess_images():
     count = 0
     test_images = []
 
-    for root, dirs, files in os.walk(image_folder):
+    for root, _, files in os.walk(image_folder):
         for file in files:
             if file.endswith('.png'):
                 # Load the image
