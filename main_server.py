@@ -7,10 +7,9 @@ def main():
     time_sent = []
     process_time = []
     
-    mac_ip = input("Enter Server IP: ").strip()
-    mac_port = int(input("Enter Server Port: ").strip())
+    address = input("Enter Server Address: ").strip().split(':')
     
-    server = MacServer(mac_ip, mac_port)
+    server = MacServer(address[0], address[1])
     
     try:
         server.create_server()

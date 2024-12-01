@@ -6,11 +6,11 @@ def send_data(client, data):
     if data == 'exit':
         client.close_connection()
         
-def main():
-    mac_ip = input("Enter Server IP: ").strip()
-    mac_port = int(input("Enter Server Port: ").strip())
+def main():    
+    address = input("Enter Server Address: ").strip().split(':')
+    
     from JetsonClient import JetsonClient
-    client = JetsonClient(mac_ip, mac_port)
+    client = JetsonClient(address[0], address[1])
     
     sys.modules.pop('JetsonClient')
     del JetsonClient
