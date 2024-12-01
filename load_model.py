@@ -4,7 +4,6 @@ def load_model(weights_path):
     from torch import cuda as tcuda
     from torch import device as tdevice
     device = tdevice("cuda" if tcuda.is_available() else "cpu")
-    sys.modules.pop('device')
     del tdevice
     
     from torch import load
