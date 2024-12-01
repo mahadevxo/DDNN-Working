@@ -1,11 +1,16 @@
-from torch import device as tdevice
-from torch import load
-from torch import cuda as tcuda
-from models import MVCNN
 import sys
 
 def load_model(weights_path):
+    from torch import cuda as tcuda
+    from torch import device as tdevice
     device = tdevice("cuda" if tcuda.is_available() else "cpu")
+    sys.modules.pop('cuda')
+    del tcuda
+    sys.modules.pop('device')
+    del tdevice
+    
+    from torch import load
+    from models import MVCNN
     
     svcnn_model = MVCNN.SVCNN('svcnn').to(device)
     svcnn_weights = load(weights_path)
@@ -14,10 +19,8 @@ def load_model(weights_path):
     del MVCNN
     sys.modules.pop('load')
     del load
-    sys.modules.pop('cuda')
-    del tcuda
-    sys.modules.pop('device')
-    del tdevice
+    
+    
     
     svcnn_model.load_state_dict(svcnn_weights)
     

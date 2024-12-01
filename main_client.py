@@ -1,8 +1,4 @@
-from load_model import load_model
-from preprocess_images import preprocess_images
-from JetsonClient import JetsonClient
 import sys
-
 import time
 
 def send_data(client, data):
@@ -13,7 +9,7 @@ def send_data(client, data):
 def main():
     mac_ip = input("Enter Server IP: ").strip()
     mac_port = int(input("Enter Server Port: ").strip())
-    
+    from JetsonClient import JetsonClient
     client = JetsonClient(mac_ip, mac_port)
     
     sys.modules.pop('JetsonClient')
@@ -25,9 +21,16 @@ def main():
         print("Error")
     
     path_to_weights = input("Enter Path to weights: ").strip()
+    
+    from load_model import load_model
     svcnn = load_model(path_to_weights)
+    
+    sys.modules.pop('load_model')
+    del load_model
+    
     print("Model Loaded")
-
+    
+    from preprocess_images import preprocess_images
     print("Starting image preprocessing")
     images = preprocess_images()
     print("Image Preprocess Done.")
