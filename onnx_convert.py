@@ -14,10 +14,7 @@ torch.onnx.export(
     export_params=True,
     opset_version=11,
     do_constant_folding=True,
+    verbose=True,
     input_names=['input'],
     output_names=['output'],
-    dynamic_axes={
-        'input': {0: 'batch_size'}, 
-        'output': {0: 'batch_size'}
-    }
 )
