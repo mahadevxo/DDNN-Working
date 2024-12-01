@@ -9,7 +9,7 @@ def main():
     
     address = input("Enter Server Address: ").strip().split(':')
     
-    server = MacServer(address[0], address[1])
+    server = MacServer(address[0], int(address[1]))
     
     try:
         server.create_server()

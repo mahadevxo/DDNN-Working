@@ -10,7 +10,7 @@ def main():
     address = input("Enter Server Address: ").strip().split(':')
     
     from JetsonClient import JetsonClient
-    client = JetsonClient(address[0], address[1])
+    client = JetsonClient(address[0], int(address[1]))
     
     sys.modules.pop('JetsonClient')
     del JetsonClient
