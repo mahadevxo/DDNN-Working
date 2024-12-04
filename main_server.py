@@ -25,6 +25,9 @@ def main():
         '''
         
         data = data.split("|")
+        
+        print(f"Received {time.time()}")
+        
         time_received.append(time.time())
         time_sent.append(data[0])
         process_time.append(data[1])
