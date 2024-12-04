@@ -65,7 +65,7 @@ class SVCNN(Model):
         
         print(f"SVCNN\n{self.net.fc}")
         
-        _ = input("Press Enter to continue...")
+        # _ = input("Press Enter to continue...")
 
     def forward(self, x):
         # if self.use_resnet:
@@ -107,7 +107,7 @@ class MVCNN(Model):
         
         print(f"MVCNN\n{self.net_2}")
         
-        _ = input("Press Enter to continue...")
+        # _ = input("Press Enter to continue...")
         
     def forward(self, x):
         y = self.net_1(x)
