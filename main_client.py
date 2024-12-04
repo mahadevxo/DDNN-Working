@@ -61,7 +61,6 @@ def main():
     try:
         with no_grad():
             for image in images:
-                
                 image = image.to("cuda")
                 
                 start_time = time.time()
@@ -73,6 +72,8 @@ def main():
                 send_time = time.time()
                 
                 data = f"{send_time}|{time_process}|{pred}"
+                
+                print(f"send time: {send_time}")
                 
                 data_queue.put(data)
     except Exception as e:
