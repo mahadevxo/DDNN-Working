@@ -60,6 +60,7 @@ def main():
     
     try:
         with no_grad():
+            image_count = 0
             for image in images:
                 image = image.to("cuda")
                 
@@ -71,8 +72,8 @@ def main():
                 
                 send_time = time.time()
                 
-                data = f"{send_time},{time_process},{pred}"
-                
+                data = f"{send_time},{time_process},{image_count}"
+                image_count += 1                
                 print(f"send time: {send_time}")
                 
                 data_queue.put(data)

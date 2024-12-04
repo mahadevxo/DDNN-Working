@@ -14,27 +14,27 @@ def main():
     server.server_listen()
     server.connect()
     
-    file_write = open("data.csv", "a")
+    file_write = open("data.csv", "w")
+    file_write.write("send_time, time_process, image_count, time_received\n")
     
     while True:
         try:
             data = server.get_data()
+            recieved_time = time.time()
         except Exception as e:
             print(f"Error: {e}")
             break
         
         if data is not None:
             
-            print(f"Received {time.time()}")
-            
-            file_write.write(f"{data}\n")
+            print(f"Received {recieved_time}")
+            ''''
+            data->
+            send_time, time_process, image_count, time_received
+            '''
+            file_write.write(f"{data},{recieved_time}\n")
             
             time_received.append(time.time())
-            
-            if data[1] == "exit_server":
-                print("Exiting...")
-                server.close_sockets()
-                break
     
     file_write.close()
 
