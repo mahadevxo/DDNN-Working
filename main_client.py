@@ -2,6 +2,10 @@ import sys
 import time
 from threading import Thread
 import queue
+from JetsonClient import JetsonClient
+from load_model import load_model
+from preprocess_images import preprocess_images
+from torch import no_grad
 
 data_queue = queue.Queue()
 
@@ -28,12 +32,8 @@ def worker(client):
 def main():    
     address =['100.86.4.56', 4044]
     
-    from JetsonClient import JetsonClient
+    
     client = JetsonClient(address[0], int(address[1]))
-    
-    sys.modules.pop('JetsonClient')
-    del JetsonClient
-    
     thread = Thread(target=worker, args=(client,))
     thread.start()
     
@@ -44,27 +44,19 @@ def main():
     
     path_to_weights = input("Enter Path to weights: ").strip()
     
-    from load_model import load_model
     svcnn = load_model(path_to_weights)
     
-    sys.modules.pop('load_model')
-    del load_model
     
     print("Model Loaded")
     
-    from preprocess_images import preprocess_images
+    
     print("Starting image preprocessing")
     images = preprocess_images()
     print("Image Preprocess Done.")
-    
-    sys.modules.pop('preprocess_images')
-    del preprocess_images
 
     svcnn.eval()
     
     print("Starting Inference")
-    
-    from torch import no_grad
     
     try:
         with no_grad():

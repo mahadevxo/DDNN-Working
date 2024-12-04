@@ -1,8 +1,5 @@
 import torch
 from models import MVCNN
-import gc
-
-gc.set_threshold(0)
 
 svcnn = MVCNN.SVCNN("svcnn").to("cuda")
 svcnn.load_state_dict(torch.load("model-00001.pth"))

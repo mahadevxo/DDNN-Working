@@ -10,11 +10,6 @@ def preprocess_images():
         ToTensor(),
         Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
     ])
-       
-    del Compose
-    del Resize
-    del ToTensor
-    del Normalize
     
     image_folder = '/home/mahadev/Desktop/DDNN/work/test_set'
 
