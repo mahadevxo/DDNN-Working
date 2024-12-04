@@ -61,6 +61,7 @@ class SVCNN(Model):
         #     self.net_2._modules['6'] = nn.Linear(4096,40)
         
         self.net = models.resnet18(pretrained=self.pretraining)
+        self.net.fc = nn.Linear(512,40)
 
     def forward(self, x):
         # if self.use_resnet:
