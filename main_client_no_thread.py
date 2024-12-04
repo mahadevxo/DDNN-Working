@@ -68,6 +68,7 @@ def main():
     
     print("Inference Done")
     client.close_connection()
+    exit()
 
 if __name__ == "__main__":
     main()
