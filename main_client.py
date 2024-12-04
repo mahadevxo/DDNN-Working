@@ -25,10 +25,7 @@ def worker(client):
         data_queue.task_done()
         
         
-def main():
-    thread = Thread(target=worker, args=(client,))
-    thread.start()
-    
+def main():    
     address =['100.86.4.56', 4044]
     
     from JetsonClient import JetsonClient
@@ -36,6 +33,9 @@ def main():
     
     sys.modules.pop('JetsonClient')
     del JetsonClient
+    
+    thread = Thread(target=worker, args=(client,))
+    thread.start()
     
     try:
         client.connect_to_server()
