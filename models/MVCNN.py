@@ -62,6 +62,10 @@ class SVCNN(Model):
         
         self.net = models.resnet18(pretrained=self.pretraining)
         self.net.fc = nn.Linear(512,40)
+        
+        print(f"SVCNN\n{self.net.fc}")
+        
+        _ = input("Press Enter to continue...")
 
     def forward(self, x):
         # if self.use_resnet:
@@ -100,6 +104,10 @@ class MVCNN(Model):
         
         self.net_1 = nn.Sequential(*list(model.net.children())[:-1])
         self.net_2 = model.net.fc
+        
+        print(f"MVCNN\n{self.net_2}")
+        
+        _ = input("Press Enter to continue...")
         
     def forward(self, x):
         y = self.net_1(x)
