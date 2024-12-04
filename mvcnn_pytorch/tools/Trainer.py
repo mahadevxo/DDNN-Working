@@ -28,6 +28,9 @@ class ModelNetTrainer(object):
 
 
     def train(self, n_epochs):
+        
+        print("Model using: " + self.model_name)
+        _ = input()
 
         best_acc = 0
         i_acc = 0
