@@ -43,7 +43,7 @@ def main():
     
     path_to_weights = "/home/mahadev/Desktop/DDNN/work/SVCNN-Jetson/model-00008.pth"
     
-    _ = input(f"Path to Weights >>> {path_to_weights}")
+    # _ = input(f"Path to Weights >>> {path_to_weights}")
     
     svcnn = load_model(path_to_weights).to("cuda")
     

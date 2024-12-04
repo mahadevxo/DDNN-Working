@@ -16,28 +16,32 @@ def main():
     server.connect()
     
     while True:
-        data = server.get_data()
-        
+        try:
+            data = server.get_data()
+        except Exception as e:
+            print(f"Error: {e}")
+            break
         '''
         data[0] -> sent_time
         data[1] -> processing time
         data[2] -> prediction
         '''
         
-        data = data.split("|")
-        
-        print(f"Received {time.time()}")
-        
-        time_received.append(time.time())
-        time_sent.append(data[0])
-        process_time.append(data[1])
-        
-        preds = data[2]
-        
-        if data[1] == "exit_server":
-            print("Exiting...")
-            server.close_sockets()
-            break
+        if data is not None:
+            data = data.split("|")
+            
+            print(f"Received {time.time()}")
+            
+            time_received.append(time.time())
+            time_sent.append(data[0])
+            process_time.append(data[1])
+            
+            preds = data[2]
+            
+            if data[1] == "exit_server":
+                print("Exiting...")
+                server.close_sockets()
+                break
     
     df = DataFrame({"Time Send": time_sent, "Time Received": time_received})
     df.to_csv("data.csv", index = False)
