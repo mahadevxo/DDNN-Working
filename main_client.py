@@ -45,7 +45,7 @@ def main():
     
     _ = input(f"Path to Weights >>> {path_to_weights}")
     
-    svcnn = load_model(path_to_weights)
+    svcnn = load_model(path_to_weights).to("cuda")
     
     print("Model Loaded")
     
@@ -61,6 +61,9 @@ def main():
     try:
         with no_grad():
             for image in images:
+                
+                image = image.to("cuda")
+                
                 start_time = time.time()
                 pred = svcnn(image.unsqueeze(0))
                 end_time = time.time()
