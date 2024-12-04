@@ -35,6 +35,9 @@ def main():
             file_write.write(f"{data},{recieved_time}\n")
             
             time_received.append(time.time())
+        
+        else:
+            break
     
     file_write.close()
     server.close_connection()
