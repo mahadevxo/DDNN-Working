@@ -1,7 +1,5 @@
 from MacServer import MacServer
 import time
-from pandas import DataFrame
-
 
 def main():    
     time_received = []

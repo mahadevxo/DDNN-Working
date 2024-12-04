@@ -83,6 +83,7 @@ def main():
         thread.join()
     
     print("Inference Done")
+    exit()
 
 if __name__ == "__main__":
     main()
