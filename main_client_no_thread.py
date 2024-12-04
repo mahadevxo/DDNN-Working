@@ -67,6 +67,7 @@ def main():
         print(f"Error during inference: {e}")
     
     print("Inference Done")
+    client.close_connection()
 
 if __name__ == "__main__":
     main()
