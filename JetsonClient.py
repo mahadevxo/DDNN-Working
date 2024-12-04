@@ -22,5 +22,6 @@ class JetsonClient:
         if self.jetson_socket:
             self.jetson_socket.close()
             print("Connection closed.")
+            exit()
         else:
             print("No active connection to close.")

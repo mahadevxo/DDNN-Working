@@ -1,12 +1,8 @@
 import time
-from threading import Thread
-import queue
 from JetsonClient import JetsonClient
 from load_model import load_model
 from preprocess_images import preprocess_images
 from torch import no_grad
-
-data_queue = queue.Queue()
 
 def send_data(client, data):
     try:
@@ -19,22 +15,9 @@ def send_data(client, data):
         except Exception as e:
             print(f"Error closing connection: {e}")
         
-def worker(client):
-    while True:
-        item = data_queue.get()
-        if item is None:
-            break
-        send_data(client, item)
-        data_queue.task_done()
-        
-        
 def main():    
     address =['100.86.4.56', 4044]
-    
-    
     client = JetsonClient(address[0], int(address[1]))
-    thread = Thread(target=worker, args=(client,))
-    thread.start()
     
     try:
         client.connect_to_server()
@@ -74,13 +57,14 @@ def main():
                 
                 data = f"{send_time},{time_process},{image_count}"
                 image_count += 1                
+                
+                client.send_data(data)
+                
                 print(f"send time: {send_time}")
                 
-                data_queue.put(data)
+                
     except Exception as e:
         print(f"Error during inference: {e}")
-    finally:
-        thread.join()
     
     print("Inference Done")
 
