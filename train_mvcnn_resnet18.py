@@ -7,7 +7,7 @@ import argparse
 
 from tools.Trainer import ModelNetTrainer
 from tools.ImgDataset import MultiviewImgDataset, SingleImgDataset
-from models.MVCNN import MVCNN, SVCNN
+from models import MVCNN
 
 name = "MVCNN-Jetson"
 batchSize = 8
@@ -35,7 +35,7 @@ if __name__ == '__main__':
     # STAGE 1
     log_dir = name+'_stage_1'
     create_folder(log_dir)
-    cnet = SVCNN(name, nclasses=40, pretraining=pretraining, cnn_name=cnn_name)
+    cnet = MVCNN.SVCNN(name, nclasses=40, pretraining=pretraining, cnn_name=cnn_name)
     optimizer = optim.Adam(cnet.parameters(), lr=lr, weight_decay=weight_decay)
     num_models_train = num_models*num_views
     
@@ -55,7 +55,7 @@ if __name__ == '__main__':
         # STAGE 2
     log_dir = name+'_stage_2'
     create_folder(log_dir)
-    cnet_2 = MVCNN(name, cnet, nclasses=40, cnn_name=cnn_name, num_views=num_views)
+    cnet_2 = MVCNN.MVCNN(name, cnet, nclasses=40, cnn_name=cnn_name, num_views=num_views)
     del cnet
 
     optimizer = optim.Adam(cnet_2.parameters(), lr=lr, weight_decay=weight_decay, betas=(0.9, 0.999))
