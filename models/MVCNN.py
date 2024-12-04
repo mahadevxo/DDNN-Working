@@ -61,7 +61,7 @@ class SVCNN(Model):
         #     self.net_2._modules['6'] = nn.Linear(4096,40)
         
         self.net = models.resnet18(pretrained=self.pretraining)
-        self.net.fc = nn.Linear(512,40)
+        self.net.fc = nn.Linear(512,40).cuda()
         
         print(f"SVCNN\n{self.net.fc}")
         
@@ -111,6 +111,6 @@ class MVCNN(Model):
         
     def forward(self, x):
         y = self.net_1(x)
-        y = y.view((int(x.shape[0]/self.num_views),self.num_views,y.shape[-3],y.shape[-2],y.shape[-1]))#(8,12,512,7,7)
+        y = y.view((int(x.shape[0]/self.num_views),self.num_views,y.shape[-3],y.shape[-2],y.shape[-1])).cuda()#(8,12,512,7,7)
         return self.net_2(torch.max(y,1)[0].view(y.shape[0],-1))
 
