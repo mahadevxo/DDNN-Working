@@ -17,8 +17,8 @@ weight_decay = 0.001
 no_pretraining = False
 cnn_name = "resnet18"
 num_views = 12  
-train_path = "modelnet40_images_new_12x/*/train"
-test_path = "modelnet40_images_new_12x/*/test"
+train_path = "/root/modelnet40_images_new_12*/train"
+test_path = "/root/modelnet40_images_new_12x/*/test"
 
 def create_folder(log_dir):
     # make summary folder
