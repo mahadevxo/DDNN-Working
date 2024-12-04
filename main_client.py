@@ -41,10 +41,11 @@ def main():
     except:
         print("Error")
     
-    path_to_weights = input("Enter Path to weights: ").strip()
+    path_to_weights = "/home/mahadev/Desktop/DDNN/work/SVCNN-Jetson/model-00008.pth"
+    
+    _ = input(f"Path to Weights: {path_to_weights}")
     
     svcnn = load_model(path_to_weights)
-    
     
     print("Model Loaded")
     
