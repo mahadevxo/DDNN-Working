@@ -2,10 +2,9 @@ from MacServer import MacServer
 import time
 from pandas import DataFrame
 
+
 def main():    
     time_received = []
-    time_sent = []
-    process_time = []
     
     address =['100.86.4.56', 4044]
     
@@ -15,38 +14,29 @@ def main():
     server.server_listen()
     server.connect()
     
+    file_write = open("data.csv", "a")
+    
     while True:
         try:
             data = server.get_data()
         except Exception as e:
             print(f"Error: {e}")
             break
-        '''
-        data[0] -> sent_time
-        data[1] -> processing time
-        data[2] -> prediction
-        '''
         
         if data is not None:
-            data = data.split("|")
             
             print(f"Received {time.time()}")
             
-            time_received.append(time.time())
-            time_sent.append(data[0])
-            process_time.append(data[1])
+            file_write.write(f"{data}\n")
             
-            preds = data[2]
+            time_received.append(time.time())
             
             if data[1] == "exit_server":
                 print("Exiting...")
                 server.close_sockets()
                 break
     
-    df = DataFrame({"Time Send": time_sent, "Time Received": time_received})
-    df.to_csv("data.csv", index = False)
-    print("Data Written")
-
+    file_write.close()
 
 if __name__ == "__main__":
     main()

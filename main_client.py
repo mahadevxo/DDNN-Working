@@ -71,7 +71,7 @@ def main():
                 
                 send_time = time.time()
                 
-                data = f"{send_time}|{time_process}|{pred}"
+                data = f"{send_time},{time_process},{pred}"
                 
                 print(f"send time: {send_time}")
                 
