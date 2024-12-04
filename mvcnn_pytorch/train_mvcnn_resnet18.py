@@ -2,7 +2,7 @@ import numpy as np
 import torch
 import torch.optim as optim
 import torch.nn as nn
-import os,shutil,json
+import os,shutil
 import argparse
 
 from tools.Trainer import ModelNetTrainer
