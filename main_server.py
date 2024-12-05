@@ -21,6 +21,8 @@ def main():
             
             if data is None:
                 break
+            if data == "EXIT":
+                break
             
             recieved_time = time.time()
         except Exception as e:

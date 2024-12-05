@@ -34,7 +34,7 @@ def main():
     
     
     print("Starting image preprocessing")
-    images = preprocess_images()
+    images = preprocess_images(10)
     print("Image Preprocess Done.")
 
     svcnn.eval()
@@ -62,7 +62,7 @@ def main():
                 
                 print(f"send time: {send_time}")
             print("Inference Done")
-            client.send_data(None)
+            client.send_data("EXIT")
             client.close_connection()
             print("Closed Connection")
             exit()

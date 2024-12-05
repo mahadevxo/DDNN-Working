@@ -1,5 +1,5 @@
 # SVCNN
-def preprocess_images():
+def preprocess_images(count_arg=400):
 
     from torchvision.transforms import Compose, Resize, ToTensor, Normalize
     import os
@@ -19,6 +19,8 @@ def preprocess_images():
     for root, _, files in os.walk(image_folder):
         for file in files:
             if file.endswith('.png'):
+                if count_arg == 400:
+                    break 
                 # Load the image
                 image_path = os.path.join(root, file)
                 image = Image.open(image_path).convert('RGB')
