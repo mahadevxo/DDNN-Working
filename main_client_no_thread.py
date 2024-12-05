@@ -52,12 +52,11 @@ def main():
                 _ = svcnn(image.unsqueeze(0))
                 end_time = time.time()
                 
-                # time_process = end_time - start_time
+                time_process = end_time - start_time
                 
                 send_time = time.time()
                 
-                # data = f"{send_time},{time_process},{image_count},"
-                data = send_time
+                data = f"{send_time},{time_process},{image_count},"
                 print(data)
                 image_count += 1                
                 
@@ -65,7 +64,7 @@ def main():
                 
                 # print(f"send time: {send_time}")
             print("Inference Done")
-            # client.send_data("EXIT")
+            client.send_data("EXIT")
             client.close_connection()
             print("Closed Connection")
             os._exit(0)
