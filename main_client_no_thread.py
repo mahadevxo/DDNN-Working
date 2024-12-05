@@ -62,7 +62,7 @@ def main():
                 
                 print(f"send time: {send_time}")
             print("Inference Done")
-            send_data(None)
+            send_data("EXIT")
             client.close_connection()
             exit()
                 

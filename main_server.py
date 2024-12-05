@@ -23,7 +23,7 @@ def main():
             print(f"Error: {e}")
             break
         
-        if data is None:
+        if data == "EXIT":
             break
         else:
             
