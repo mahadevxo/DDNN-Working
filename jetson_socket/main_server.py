@@ -14,7 +14,7 @@ def main():
     server.connect()
     
     # Open the CSV file for writing
-    with open("data.csv", "w", newline="") as csvfile:
+    with open("/home/mahadev/Desktop/DDNN/work/data.csv", "w", newline="") as csvfile:
         csv_writer = csv.writer(csvfile)
         csv_writer.writerow(["send_time", "time_process", "image_count", "time_received"])
 

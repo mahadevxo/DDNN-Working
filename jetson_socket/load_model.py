@@ -9,9 +9,6 @@ def load_model(weights_path):
     
     svcnn_model = MVCNN.SVCNN('svcnn').to(device)
     svcnn_weights = load(weights_path)
-    
-    
-    
     svcnn_model.load_state_dict(svcnn_weights)
     
     return svcnn_model
