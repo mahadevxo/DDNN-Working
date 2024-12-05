@@ -23,16 +23,15 @@ def main():
             print(f"Error: {e}")
             break
         
-        if data is None:
-            break
-        print(f"{data}\n")
-        ''''
-        data->
-        send_time, time_process, image_count, time_received
-        '''
-        file_write.write(f"{data},{recieved_time}\n")
-        
-        time_received.append(time.time())
+        if data is not None:
+            print(f"{data}\n")
+            ''''
+            data->
+            send_time, time_process, image_count, time_received
+            '''
+            file_write.write(f"{data},{recieved_time}\n")
+            
+            time_received.append(time.time())
     
     file_write.close()
     server.close_sockets()
