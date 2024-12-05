@@ -13,7 +13,7 @@ class JetsonClient:
 
     def send_data(self, message):
         if self.jetson_socket:
-            self.jetson_socket.send(message)
+            self.jetson_socket.send(message.encode())
             # print("Data sent")
         else:
             print("Not connected to the server.")
