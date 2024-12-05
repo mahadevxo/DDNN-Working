@@ -18,17 +18,14 @@ def main():
     while True:
         try:
             data = server.get_data()
-            
-            if data is None:
-                break
-            if data == "EXIT":
-                break
-            
             recieved_time = time.time()
         except Exception as e:
             print(f"Error: {e}")
             break
-        print(data)
+        
+        if data is None:
+            break
+        print(f"{data}\n")
         ''''
         data->
         send_time, time_process, image_count, time_received
