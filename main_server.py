@@ -13,7 +13,7 @@ def main():
     server.connect()
     
     file_write = open("data.csv", "w")
-    file_write.write("send_time, time_process, image_count, time_received\n")
+    file_write.write("send_time, time_process\n")
     
     while True:
         try:
