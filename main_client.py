@@ -68,11 +68,12 @@ def main():
                 _ = svcnn(image.unsqueeze(0))
                 end_time = time.time()
                 
-                time_process = end_time - start_time
+                # time_process = end_time - start_time
                 
                 send_time = time.time()
                 
-                data = f"{send_time},{time_process},{image_count}"
+                # data = f"{send_time},{time_process},{image_count}"
+                data = send_time()
                 image_count += 1                
                 print(f"send time: {send_time}")
                 

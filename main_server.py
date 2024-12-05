@@ -28,16 +28,14 @@ def main():
         except Exception as e:
             print(f"Error: {e}")
             break
-        else:
-            
-            print(data)
-            ''''
-            data->
-            send_time, time_process, image_count, time_received
-            '''
-            file_write.write(f"{data},{recieved_time}\n")
-            
-            time_received.append(time.time())
+        print(data)
+        ''''
+        data->
+        send_time, time_process, image_count, time_received
+        '''
+        file_write.write(f"{data},{recieved_time}\n")
+        
+        time_received.append(time.time())
     
     file_write.close()
     server.close_sockets()
