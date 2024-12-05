@@ -30,7 +30,7 @@ def main():
             break
         else:
             
-            print(f"Received {recieved_time}")
+            print(data)
             ''''
             data->
             send_time, time_process, image_count, time_received
