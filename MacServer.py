@@ -28,7 +28,7 @@ class MacServer:
 
     def get_data(self):
         if self.jetson_socket:
-            data = self.jetson_socket.recv(1024).decode()
+            data = self.jetson_socket.recv(256).decode()
             if data == '':
                 return None
             return data
