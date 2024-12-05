@@ -61,14 +61,14 @@ def main():
                 client.send_data(data)
                 
                 print(f"send time: {send_time}")
+            print("Inference Done")
+            send_data(None)
+            client.close_connection()
+            exit()
                 
                 
     except Exception as e:
         print(f"Error during inference: {e}")
-    
-    print("Inference Done")
-    client.close_connection()
-    exit()
 
 if __name__ == "__main__":
     main()

@@ -23,7 +23,9 @@ def main():
             print(f"Error: {e}")
             break
         
-        if data is not None:
+        if data is None:
+            break
+        else:
             
             print(f"Received {recieved_time}")
             ''''
@@ -33,9 +35,6 @@ def main():
             file_write.write(f"{data},{recieved_time}\n")
             
             time_received.append(time.time())
-        
-        else:
-            break
     
     file_write.close()
     server.close_connection()
