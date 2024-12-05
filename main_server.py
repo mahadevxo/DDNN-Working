@@ -40,7 +40,7 @@ def main():
             time_received.append(time.time())
     
     file_write.close()
-    server.close_connection()
+    server.close_sockets()
 
 if __name__ == "__main__":
     main()
