@@ -18,12 +18,13 @@ def main():
     while True:
         try:
             data = server.get_data()
+            
+            if data is None:
+                break
+            
             recieved_time = time.time()
         except Exception as e:
             print(f"Error: {e}")
-            break
-        
-        if data == "EXIT":
             break
         else:
             
