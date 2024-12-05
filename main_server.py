@@ -37,7 +37,6 @@ def main():
                     if record.strip():  # Skip empty lines
                         if record.strip() == "EXIT":
                             print("Malformed record skipped: EXIT")
-                            csv_writer.writerow(["EXIT", "EXIT", "EXIT", recieved_time])
                             server.close_sockets()
                             return
 
