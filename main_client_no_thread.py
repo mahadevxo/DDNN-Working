@@ -3,6 +3,7 @@ from JetsonClient import JetsonClient
 from load_model import load_model
 from preprocess_images import preprocess_images
 from torch import no_grad
+import os
 
 def send_data(client, data):
     try:
@@ -56,16 +57,17 @@ def main():
                 send_time = time.time()
                 
                 data = f"{send_time},{time_process},{image_count}"
+                print(data)
                 image_count += 1                
                 
                 client.send_data(data)
                 
-                print(f"send time: {send_time}")
+                # print(f"send time: {send_time}")
             print("Inference Done")
             client.send_data("EXIT")
             client.close_connection()
             print("Closed Connection")
-            exit()
+            os._exit(0)
                 
                 
     except Exception as e:

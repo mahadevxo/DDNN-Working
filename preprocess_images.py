@@ -19,7 +19,7 @@ def preprocess_images(count_arg=400):
     for root, _, files in os.walk(image_folder):
         for file in files:
             if file.endswith('.png'):
-                if count_arg == 400:
+                if count == count_arg:
                     break 
                 # Load the image
                 image_path = os.path.join(root, file)
