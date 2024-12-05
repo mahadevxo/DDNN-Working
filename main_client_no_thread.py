@@ -61,7 +61,7 @@ def main():
                 print(data)
                 image_count += 1                
                 
-                client.send_data(str(data))
+                client.send_data(data)
                 
                 # print(f"send time: {send_time}")
             print("Inference Done")
