@@ -3,7 +3,11 @@
 ```md
 .
 ├── README.md
-├── data.csv
+├── data
+│   └── transmission
+│       ├── data.csv
+│       ├── data.numbers
+│       └── data.pdf
 ├── dev
 │   ├── onnx_convert.py
 │   └── test.py
@@ -31,14 +35,12 @@
     │   └── __init__.py
     └── train_mvcnn_resnet18.py
 
-7 directories, 22 files
+9 directories, 24 files
 
 
-check data.csv for results
-    send_time in UTC
-    time_process in UTC
-    image_count
-    time_received in UTC
+check data for results
+    transmission/
+        results from transmission delay testing
 
 
 
