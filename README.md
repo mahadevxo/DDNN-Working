@@ -38,9 +38,10 @@
 9 directories, 24 files
 
 
-check data for results
+check data/ for results
     transmission/
         results from transmission delay testing
+        data.pdf with data visualized
 
 
 
