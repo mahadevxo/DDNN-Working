@@ -27,7 +27,7 @@ def main():
                 break
             
             if data is not None:
-                print(f"{data}\n")
+                print(f"{data} received at {recieved_time}")
                 ''''
                 data->
                 send_time, time_process, image_count, time_received
@@ -36,6 +36,10 @@ def main():
                 records = data.split("\n")
                 for record in records:
                     if record.strip():  # Skip empty lines
+                        if record.strip() == "EXIT":
+                            print("Malformed record skipped: EXIT")
+                            break  # Exit the loop when EXIT is received
+
                         try:
                             # Assuming data format: send_time, time_process, image_count
                             parts = record.split(",")
