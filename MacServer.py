@@ -6,6 +6,7 @@ class MacServer:
         self.mac_port = mac_port
         self.mac_socket = None
         self.jetson_socket = None
+        self.buffer = b""
 
     def create_server(self):
         self.mac_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -28,10 +29,19 @@ class MacServer:
 
     def get_data(self):
         if self.jetson_socket:
-            data = self.jetson_socket.recv(1024).decode()
-            if data == '':
-                return None
-            return data
+            while True:
+                try:
+                    chunk = self.jetson_socket.recv(1024)
+                    if not chunk:
+                        return None
+                    self.buffer += chunk
+                    
+                    if b"," in self.buffer:
+                        message, self.buffer = self.buffer.split(b"\n", 1)
+                        return message.decode('utf-8')
+                except Exception as e:
+                    print(f"Error receiving data: {e}")
+                    return None
         else:
             print("No client connection established.")
             return None
