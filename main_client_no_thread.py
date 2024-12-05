@@ -35,7 +35,7 @@ def main():
     
     
     print("Starting image preprocessing")
-    images = preprocess_images(10)
+    images = preprocess_images()
     print("Image Preprocess Done.")
 
     svcnn.eval()

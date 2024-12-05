@@ -16,7 +16,7 @@ def main():
     # Open the CSV file for writing
     with open("data.csv", "w", newline="") as csvfile:
         csv_writer = csv.writer(csvfile)
-        csv_writer.writerow(["send_time", "time_process", "image_count", "time_received"])  # Updated to reflect data structure
+        csv_writer.writerow(["send_time", "time_process", "image_count", "time_received"])
 
         while True:
             try:
@@ -32,16 +32,16 @@ def main():
                 data->
                 send_time, time_process, image_count, time_received
                 '''
-                # Split data if concatenated using a known delimiter (e.g., newline)
                 records = data.split("\n")
                 for record in records:
                     if record.strip():  # Skip empty lines
                         if record.strip() == "EXIT":
                             print("Malformed record skipped: EXIT")
-                            break  # Exit the loop when EXIT is received
+                            csv_writer.writerow(["EXIT", "EXIT", "EXIT", recieved_time])
+                            server.close_sockets()
+                            return
 
                         try:
-                            # Assuming data format: send_time, time_process, image_count
                             parts = record.split(",")
                             send_time, time_process, image_count = map(float, parts[:3])
                             csv_writer.writerow([send_time, time_process, image_count, recieved_time])
