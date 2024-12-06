@@ -35,7 +35,7 @@ def main():
     print("Model Loaded")
     
     print("Starting image preprocessing")
-    images = preprocess_images(int(input("Enter number of images to preprocess: ")))
+    images = preprocess_images()
     print("Image Preprocess Done.")
 
     svcnn.eval()
