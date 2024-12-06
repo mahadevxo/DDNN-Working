@@ -42,6 +42,8 @@ def main():
     
     print("Starting Inference")
     
+    shapes = []
+    
     try:
         with no_grad():
             image_count = 0
@@ -50,6 +52,7 @@ def main():
                 
                 start_time = time.time()
                 pred = svcnn(image.unsqueeze(0))
+                shapes.append(pred.shape)
                 end_time = time.time()
                 
                 time_process = end_time - start_time
@@ -66,6 +69,7 @@ def main():
                 
                 # print(f"send time: {send_time}")
             print("Inference Done")
+            print(set(shapes))
             client.send_data("EXIT")
             client.close_connection()
             print("Closed Connection")
