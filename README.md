@@ -4,17 +4,38 @@
 .
 ├── README.md
 ├── data
-│   └── transmission
-│       ├── data.csv
-│       ├── data.numbers
-│       └── data.pdf
+│   └── processing_transmission
+│       ├── no tensor
+│       │   ├── data.numbers
+│       │   │   ├── Data
+│       │   │   ├── Index.zip
+│       │   │   ├── Metadata
+│       │   │   │   ├── BuildVersionHistory.plist
+│       │   │   │   ├── DocumentIdentifier
+│       │   │   │   └── Properties.plist
+│       │   │   ├── preview-micro.jpg
+│       │   │   ├── preview-web.jpg
+│       │   │   └── preview.jpg
+│       │   ├── data_processing_transmission.pdf
+│       │   ├── processing time
+│       │   │   ├── data.csv
+│       │   │   └── processing_time.pdf
+│       │   └── transmission
+│       │       ├── data.csv
+│       │       ├── data.numbers
+│       │       └── data.pdf
+│       └── with tensor
+│           ├── tranmission_processing_delay.numbers
+│           └── tranmission_processing_delay.pdf
 ├── dev
+│   ├── get_images.py
 │   ├── onnx_convert.py
 │   └── test.py
-├── get_images.py
 ├── jetson_socket
 │   ├── JetsonClient.py
 │   ├── MacServer.py
+│   ├── __pycache__
+│   │   └── MacServer.cpython-310.pyc
 │   ├── load_model.py
 │   ├── main_client.py
 │   ├── main_client_no_thread.py
@@ -23,7 +44,8 @@
 │   │   ├── MVCNN.py
 │   │   ├── Model.py
 │   │   └── __init__.py
-│   └── preprocess_images.py
+│   ├── preprocess_images.py
+│   └── tranmission_processing_delay.xlsx
 └── mvcnn_training
     ├── models
     │   ├── MVCNN.py
@@ -35,13 +57,17 @@
     │   └── __init__.py
     └── train_mvcnn_resnet18.py
 
-9 directories, 24 files
+17 directories, 38 files
 
 
 check data/ for results
-    transmission/
-        results from transmission delay testing
-        data.pdf with data visualized
+    processing_transmission
+        without sending tensor
+            data_processing_transmission.pdf
+            plotted in pdf
+        sending tensors
+            tranmission_processing_delay.pdf
+            plotted in pdf
 
 
 
