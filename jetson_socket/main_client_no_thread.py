@@ -4,6 +4,7 @@ from load_model import load_model
 from preprocess_images import preprocess_images
 from torch import no_grad
 import os
+import numpy as np
 
 def send_data(client, data):
     try:
@@ -42,7 +43,6 @@ def main():
     
     print("Starting Inference")
     
-    shapes = []
     
     try:
         with no_grad():
@@ -52,16 +52,19 @@ def main():
                 
                 start_time = time.time()
                 pred = svcnn(image.unsqueeze(0))
-                shapes.append(pred.shape)
+                
                 end_time = time.time()
+                
+                pred = pred.cpu().numpy()
+                pred = pred.tobytes().flatten()
+                pred = ' '.join(map(str, pred))
+                
                 
                 time_process = end_time - start_time
                 
-                pred_str = str(pred.flatten()).replace(',', ' ').replace('\n', ' ')
-                
                 send_time = time.time()
                 
-                data = f"{send_time},{time_process},{image_count},{pred_str}"
+                data = f"{send_time},{time_process},{image_count},{pred}"
                 # print(data)
                 image_count += 1                
                 
@@ -69,7 +72,6 @@ def main():
                 
                 # print(f"send time: {send_time}")
             print("Inference Done")
-            print(set(shapes))
             client.send_data("EXIT")
             client.close_connection()
             print("Closed Connection")

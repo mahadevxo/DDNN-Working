@@ -45,7 +45,7 @@ def main():
                             # Split the record into parts
                             parts = record.split(",", 3)  # Split into 4 parts: send_time, time_process, image_count, pred
                             if len(parts) < 4:
-                                raise ValueError(f"Record does not contain enough parts. {len(parts)} parts found.")
+                                raise ValueError(f"Record does not contain enough parts. {len(parts)} parts found. >>> \n{parts}")
 
                             # Extract the first three numeric parts
                             send_time, time_process, image_count = map(float, parts[:3])
