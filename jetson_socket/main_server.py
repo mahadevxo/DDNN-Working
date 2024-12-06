@@ -2,7 +2,7 @@ from MacServer import MacServer
 import time
 import numpy as np
 import pandas as pd
-import ast
+import base64
 
 def main():
     time_received = []
@@ -54,7 +54,7 @@ def main():
                         send_time = float(send_time_str)
                         time_process = float(time_process_str)
                         image_count = float(image_count_str)
-                        pred = ast.literal_eval(pred)
+                        pred = base64.b64decode(pred.encode('utf-8'))
                         pred = np.frombuffer(pred, dtype=np.float32)
 
                         # Store record in the list

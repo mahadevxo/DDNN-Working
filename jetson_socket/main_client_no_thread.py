@@ -4,6 +4,7 @@ from load_model import load_model
 from preprocess_images import preprocess_images
 from torch import no_grad
 import os
+import base64
 
 def send_data(client, data):
     try:
@@ -58,6 +59,7 @@ def main():
                 
                 # convert pred to bytes
                 pred = pred.cpu().numpy().tobytes()
+                pred = base64.b64encode(pred).decode('utf-8')
                 
                 send_time = time.time()
                 
