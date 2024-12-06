@@ -56,7 +56,9 @@ def main():
                 
                 send_time = time.time()
                 
-                data = f"{send_time},{time_process},{image_count},{pred.flatten()}"
+                pred_str = ','.join(map(str, pred.flatten().tolist()))
+                
+                data = f"{send_time},{time_process},{image_count},{pred_str}"
                 print(data)
                 image_count += 1                
                 
