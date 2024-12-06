@@ -36,10 +36,9 @@ def main():
                     if record.strip() == "EXIT":
                         print("Received EXIT command. Closing server.")
                         server.close_sockets()
-                        # Convert the collected records to a DataFrame and save as Excel
                         df = pd.DataFrame(records_list, 
                                           columns=["send_time", "time_process", "image_count", "time_received", "pred"])
-                        df.to_excel("data_1.xlsx", index=False)
+                        df.to_excel("tranmission_processing_delay.xlsx", index=False)
                         return
 
                     try:
