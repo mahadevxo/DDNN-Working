@@ -49,14 +49,14 @@ def main():
                 image = image.to("cuda")
                 
                 start_time = time.time()
-                _ = svcnn(image.unsqueeze(0))
+                pred = svcnn(image.unsqueeze(0))
                 end_time = time.time()
                 
                 time_process = end_time - start_time
                 
                 send_time = time.time()
                 
-                data = f"{send_time},{time_process},{image_count},"
+                data = f"{send_time},{time_process},{image_count},{pred}"
                 print(data)
                 image_count += 1                
                 

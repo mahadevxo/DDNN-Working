@@ -16,7 +16,7 @@ def main():
     # Open the CSV file for writing
     with open("/home/mahadev/Desktop/DDNN/work/data.csv", "w", newline="") as csvfile:
         csv_writer = csv.writer(csvfile)
-        csv_writer.writerow(["send_time", "time_process", "image_count", "time_received"])
+        csv_writer.writerow(["send_time", "time_process", "image_count", "time_received", "pred"])
 
         while True:
             try:
@@ -30,7 +30,7 @@ def main():
                 print(f"{data} received at {recieved_time}")
                 ''''
                 data->
-                send_time, time_process, image_count, time_received
+                send_time, time_process, image_count, time_received, pred
                 '''
                 records = data.split("\n")
                 for record in records:
@@ -43,7 +43,8 @@ def main():
                         try:
                             parts = record.split(",")
                             send_time, time_process, image_count = map(float, parts[:3])
-                            csv_writer.writerow([send_time, time_process, image_count, recieved_time])
+                            pred = parts[3]
+                            csv_writer.writerow([send_time, time_process, image_count, recieved_time, pred])
                         except ValueError:
                             print(f"Malformed record skipped: {record}")
             
