@@ -45,7 +45,7 @@ def main():
                             # Split the record into parts
                             parts = record.split(",", 3)  # Split into 4 parts: send_time, time_process, image_count, pred
                             if len(parts) < 4:
-                                raise ValueError("Record does not contain enough parts.")
+                                raise ValueError(f"Record does not contain enough parts. {len(parts)} parts found.")
 
                             # Extract the first three numeric parts
                             send_time, time_process, image_count = map(float, parts[:3])
@@ -57,7 +57,7 @@ def main():
                             csv_writer.writerow([send_time, time_process, image_count, received_time, pred])
 
                         except ValueError as e:
-                            print(f"Malformed record skipped: {record} ({e})")
+                            print(f"Malformed record skipped: ({e})")
 
                 time_received.append(time.time())
 
