@@ -54,12 +54,12 @@ def main():
                 
                 time_process = end_time - start_time
                 
-                pred_str = ','.join(map(str, pred.flatten().tolist()))
+                pred_str = str(pred.flatten()).replace(',', ' ').replace('\n', ' ')
                 
                 send_time = time.time()
                 
                 data = f"{send_time},{time_process},{image_count},{pred_str}"
-                print(data)
+                # print(data)
                 image_count += 1                
                 
                 client.send_data(str(data))
