@@ -54,9 +54,9 @@ def main():
                 
                 time_process = end_time - start_time
                 
-                send_time = time.time()
-                
                 pred_str = ','.join(map(str, pred.flatten().tolist()))
+                
+                send_time = time.time()
                 
                 data = f"{send_time},{time_process},{image_count},{pred_str}"
                 print(data)
