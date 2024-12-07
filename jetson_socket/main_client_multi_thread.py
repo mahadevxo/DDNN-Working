@@ -6,7 +6,7 @@ from load_model import load_model
 from preprocess_images import preprocess_images
 from torch import no_grad
 import base64
-import os
+import sys
 
 data_queue = queue.Queue()
 
@@ -77,8 +77,12 @@ def main():
                 send_time = time.time()
                 
                 data = f"{send_time},{time_process},{image_count},{pred}"
+                
+                if image_count == 3:
+                    print(sys.getsizeof(data))
                 # print(data)
                 image_count += 1
+                
                 
                 data_queue.put(data)
                 

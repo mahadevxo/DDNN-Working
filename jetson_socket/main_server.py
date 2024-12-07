@@ -55,6 +55,8 @@ def main():
                         pred = np.frombuffer(pred, dtype=np.float32)
 
                         records_list.append([send_time, time_process, image_count, received_time, pred])
+                        
+                        print(f"Image {image_count} received at {received_time}")
 
                     except ValueError as e:
                         print(f"Malformed record skipped: ({e})")
