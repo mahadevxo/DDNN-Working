@@ -2,12 +2,11 @@ from MacServer import MacServer
 import time
 import numpy as np
 import pandas as pd
-import os
 import base64
 
 def main():
     time_received = []
-    records_list = []  # To store all incoming records
+    records_list = []
 
     address = ['100.86.4.56', 4044]
     server = MacServer(address[0], int(address[1]))
@@ -49,9 +48,9 @@ def main():
 
                         image_count, pred, time_process, send_time = parts
 
-                        send_time = float(send_time)
-                        time_process = float(time_process)
-                        image_count = float(image_count)
+                        send_time, time_process = float(send_time), float(time_process)
+                        image_count = int(image_count)
+                    
                         pred = base64.b64decode(pred.encode('utf-8'))
                         pred = np.frombuffer(pred, dtype=np.float32)
 
@@ -60,20 +59,18 @@ def main():
                         print(f"Image {image_count} received at {received_time}")
                         
                         if image_count == 399:
+                            df = pd.DataFrame(records_list, 
+                                              columns=["image_count", "pred", "time_process", "time_sent", "time_received"])
                             print("All images received.")
-                            break     
+                            df.to_excel("tranmission_processing_delay.xlsx", index=False)
+                            print("Data saved to tranmission_processing_delay.xlsx")
+                            server.close_sockets()
+                            return     
 
                     except ValueError as e:
                         print(f"Malformed record skipped: ({e})")
 
             time_received.append(time.time())
-
-    server.close_sockets()
-    if records_list:
-        df = pd.DataFrame(records_list, 
-                          columns=["image_count", "pred", "time_process", "time_sent", "time_received"])
-        df.to_excel("data_1.xlsx", index=False)
-    print("Server closed.")
 
 if __name__ == "__main__":
     main()

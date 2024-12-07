@@ -78,11 +78,10 @@ def main():
                 
                 data = f"{image_count},{pred},{time_process},{send_time}"
                 
-                # if image_count == 3:
-                #     print(sys.getsizeof(data))
+                if image_count == 3:
+                    print(sys.getsizeof(data))
                 # print(data)
                 image_count += 1
-                
                 
                 data_queue.put(data)
                 
