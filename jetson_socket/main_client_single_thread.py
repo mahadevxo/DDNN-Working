@@ -26,7 +26,7 @@ def main():
     except:
         print("Error")
     
-    path_to_weights = "/home/mahadev/Desktop/DDNN/work/SVCNN-Jetson/model-00008.pth"
+    path_to_weights = "/home/mahadev/Desktop/DDNN/DDNN-Working/models_trained/SVCNN-Jetson/model-00008.pth"
     
     # _ = input(f"Path to Weights >>> {path_to_weights}")
     

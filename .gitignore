@@ -2,6 +2,6 @@
 models/__pycache__
 .vscode/settings.json
 data.numbers
-jetson_socket/__pycache__/MacServer.cpython-310.pyc
 __pycache_/
 test_set/
+jetson_socket/__pycache__/
