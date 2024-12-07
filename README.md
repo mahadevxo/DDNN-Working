@@ -1,5 +1,7 @@
 # DDNN Working Directory
 
+### Directory Structure
+
 ```md
 .
 ├── README.md
@@ -7,7 +9,6 @@
 │   └── processing_transmission
 │       ├── no tensor
 │       │   ├── data.numbers
-│       │   │   ├── Data
 │       │   │   ├── Index.zip
 │       │   │   ├── Metadata
 │       │   │   │   ├── BuildVersionHistory.plist
@@ -46,6 +47,17 @@
 │   │   └── __init__.py
 │   ├── preprocess_images.py
 │   └── tranmission_processing_delay.xlsx
+├── models_trained
+│   ├── MVCNN-Jetson
+│   │   ├── model-00000.pth
+│   │   ├── model-00001.pth
+│   │   ├── model-00002.pth
+│   │   └── model-00004.pth
+│   └── SVCNN-Jetson
+│       ├── model-00000.pth
+│       ├── model-00001.pth
+│       ├── model-00007.pth
+│       └── model-00008.pth
 └── mvcnn_training
     ├── models
     │   ├── MVCNN.py
@@ -57,9 +69,17 @@
     │   └── __init__.py
     └── train_mvcnn_resnet18.py
 
-17 directories, 38 files
+20 directories, 46 files
+
+```
+
+---
 
 
+
+### Directory Information
+
+```md
 check data/ for results
     processing_transmission
         without sending tensor
@@ -69,7 +89,11 @@ check data/ for results
             tranmission_processing_delay.pdf
             plotted in pdf
 
-
+models_trained/
+    SVCNN-Jetson
+        Has 4 trained models for SVCNN
+    MVCNN-Jetson/
+        Has 4 trained mdoels for MVCNN
 
 jetson_socket/
     run main_client.py on jetson for multithreaded process
@@ -77,8 +101,8 @@ jetson_socket/
     preprocess image takes value 0-400; default: 400
 
 
-
 get_images.py
     gets 10 random images from */test
     saves it to test_set/ for inference
+
 ```
