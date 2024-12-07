@@ -76,10 +76,10 @@ def main():
                 
                 send_time = time.time()
                 
-                data = f"{send_time},{time_process},{image_count},{pred}"
+                data = f"{image_count},{pred},{time_process},{send_time}"
                 
-                if image_count == 3:
-                    print(sys.getsizeof(data))
+                # if image_count == 3:
+                #     print(sys.getsizeof(data))
                 # print(data)
                 image_count += 1
                 

@@ -61,7 +61,7 @@ def main():
                 
                 send_time = time.time()
                 
-                data = f"{send_time},{time_process},{image_count},{pred}"
+                data = f"{image_count},{pred},{time_process},{send_time}"
                 # print(data)
                 image_count += 1                
                 

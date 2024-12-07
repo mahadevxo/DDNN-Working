@@ -36,7 +36,7 @@ def main():
                         print("Received EXIT command. Closing server.")
                         server.close_sockets()
                         df = pd.DataFrame(records_list, 
-                                          columns=["send_time", "time_process", "image_count", "time_received", "pred"])
+                                          columns=["image_count", "pred", "time_process", "time_sent", "time_received"])
                         df.to_excel("tranmission_processing_delay.xlsx", index=False)
                         return
 
@@ -46,17 +46,20 @@ def main():
                         if len(parts) < 4:
                             raise ValueError(f"Record does not contain enough parts. {len(parts)} parts found. >>> \n{parts}")
 
-                        send_time_str, time_process_str, image_count_str, pred = parts
+                        image_count, pred, time_process, send_time = parts
 
-                        send_time = float(send_time_str)
-                        time_process = float(time_process_str)
-                        image_count = float(image_count_str)
+                        send_time = float(send_time)
+                        time_process = float(time_process)
+                        image_count = float(image_count)
                         pred = base64.b64decode(pred.encode('utf-8'))
                         pred = np.frombuffer(pred, dtype=np.float32)
 
-                        records_list.append([send_time, time_process, image_count, received_time, pred])
+                        records_list.append([image_count, pred, time_process, send_time, received_time])
                         
                         print(f"Image {image_count} received at {received_time}")
+                        
+                        if image_count == 399:
+                            break
 
                     except ValueError as e:
                         print(f"Malformed record skipped: ({e})")
@@ -66,7 +69,7 @@ def main():
     server.close_sockets()
     if records_list:
         df = pd.DataFrame(records_list, 
-                          columns=["send_time", "time_process", "image_count", "time_received", "pred"])
+                          columns=["image_count", "pred", "time_process", "time_sent", "time_received"])
         df.to_excel("data_1.xlsx", index=False)
     print("Server closed.")
 
