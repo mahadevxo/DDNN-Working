@@ -36,7 +36,7 @@ def main():
                         print("Received EXIT command. Closing server.")
                         server.close_sockets()
                         df = pd.DataFrame(records_list, 
-                                          columns=["image_count", "pred", "time_process", "time_sent", "time_received"])
+                                          columns=["image_count", "pred", "time_process", "time_sent", "time_received", "transmission_time"])
                         df.to_excel("tranmission_processing_delay.xlsx", index=False)
                         return
 
@@ -54,13 +54,13 @@ def main():
                         pred = base64.b64decode(pred.encode('utf-8'))
                         pred = np.frombuffer(pred, dtype=np.float32)
 
-                        records_list.append([image_count, pred, time_process, send_time, received_time])
+                        records_list.append([image_count, pred, time_process, send_time, received_time, received_time - send_time])
                         
                         print(f"Image {image_count} received at {received_time}")
                         
                         if image_count == 399:
                             df = pd.DataFrame(records_list, 
-                                              columns=["image_count", "pred", "time_process", "time_sent", "time_received"])
+                                              columns=["image_count", "pred", "time_process", "time_sent", "time_received", "transmission_time"])
                             print("All images received.")
                             df.to_excel("tranmission_processing_delay.xlsx", index=False)
                             print("Data saved to tranmission_processing_delay.xlsx")
