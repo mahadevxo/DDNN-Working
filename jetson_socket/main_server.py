@@ -2,6 +2,7 @@ from MacServer import MacServer
 import time
 import numpy as np
 import pandas as pd
+import os
 import base64
 
 def main():
@@ -59,7 +60,8 @@ def main():
                         print(f"Image {image_count} received at {received_time}")
                         
                         if image_count == 399:
-                            break
+                            print("All images received.")
+                            break     
 
                     except ValueError as e:
                         print(f"Malformed record skipped: ({e})")
