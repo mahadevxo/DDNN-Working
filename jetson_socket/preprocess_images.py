@@ -11,7 +11,7 @@ def preprocess_images(count_arg=400):
         Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
     ])
     
-    image_folder = '/home/mahadev/Desktop/DDNN/work/test_set'
+    image_folder = '/home/mahadev/Desktop/DDNN/DDNN-Working/test_set'
 
     count = 0
     test_images = []
