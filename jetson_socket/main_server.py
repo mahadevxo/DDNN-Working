@@ -37,7 +37,7 @@ def main():
                         server.close_sockets()
                         df = pd.DataFrame(records_list, 
                                           columns=["image_count", "pred", "time_process", "time_sent", "time_received", "transmission_time"])
-                        df.to_excel("tranmission_processing_delay.xlsx", index=False)
+                        df.to_excel(f"tranmission_processing_delay{time.time()}.xlsx", index=False)
                         return
 
                     try:
@@ -62,7 +62,7 @@ def main():
                             df = pd.DataFrame(records_list, 
                                               columns=["image_count", "pred", "time_process", "time_sent", "time_received", "transmission_time"])
                             print("All images received.")
-                            df.to_excel("tranmission_processing_delay.xlsx", index=False)
+                            df.to_excel(f"tranmission_processing_delay{time.time()}.xlsx", index=False)
                             print("Data saved to tranmission_processing_delay.xlsx")
                             server.close_sockets()
                             return     
