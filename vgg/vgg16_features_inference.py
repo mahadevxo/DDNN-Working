@@ -24,6 +24,7 @@ class VGG16_Inference():
     
     def run(self):
         input_images = 100
+        print(f'Running inference on {input_images} images')
         images = self.create_images(input_images)
         model = self.extract_features(self.model)
         
