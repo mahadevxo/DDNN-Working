@@ -17,14 +17,15 @@ class VGG16_Inference():
     def extract_features(self, model):
         return model.features
     
-    def forward(self, model, images):
-        return model(images)
+    def forward(self, model, image):
+        image = image.unsqueeze(0)
+        return model(image)
     
     def run(self):
         input_images = 100
         images = self.create_images(input_images)
         model = self.extract_features(self.model)
-        with open('vgg16.csv', mode='w') as file:
+        with open('vgg16_jetson.csv', mode='w') as file:
             writer = csv.writer(file)
             writer.writerow(['image', 'time'])
             print("Inference Started")
