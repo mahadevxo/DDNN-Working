@@ -5,7 +5,8 @@ import time
 
 class VGG16_Inference():
     def __init__(self):
-        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        #self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        self.device = 'cpu'
         self.model = vgg16(pretrained=True).to(self.device)
         self.model.eval()
     
@@ -38,7 +39,7 @@ class VGG16_Inference():
             for i, image in enumerate(images):
                 start = time.time()
                 image = image.unsqueeze(0)
-                self.forward(model, image)
+                self.forward(model, image)  
                 end = time.time()
                 writer.writerow([i, end - start])
         print('Done')
