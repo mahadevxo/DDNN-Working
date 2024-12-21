@@ -5,7 +5,8 @@ import time
 
 class VGG16_Inference():
     def __init__(self):
-        self.model = vgg16(pretrained=True)
+        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        self.model = vgg16(pretrained=True).to(self.device)
         self.model.eval()
     
     def create_images(self, count):
@@ -25,7 +26,10 @@ class VGG16_Inference():
         input_images = 100
         images = self.create_images(input_images)
         model = self.extract_features(self.model)
-        with open('vgg16_jetson.csv', mode='w') as file:
+        
+        print(f'Using {self.device}')
+        
+        with open(f'vgg16_{self.device}.csv', mode='w') as file:
             writer = csv.writer(file)
             writer.writerow(['image', 'time'])
             print("Inference Started")
