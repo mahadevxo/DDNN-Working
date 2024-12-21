@@ -5,8 +5,8 @@ import time
 
 class VGG16_Inference():
     def __init__(self):
-        #self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-        self.device = 'cpu'
+        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        #self.device = 'cpu'
         self.model = vgg16(pretrained=True).to(self.device)
         self.model.eval()
     
