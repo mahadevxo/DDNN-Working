@@ -16,11 +16,12 @@ class VGG16_Inference():
         return images
     
     def extract_features(self, model):
-        return model.features
+        return model.features.to(self.device)
     
     def forward(self, model, image):
-        image = image.unsqueeze(0)
-        return model(image)
+        image = image.to(self.device)
+        with torch.no_grad():
+            return model(image)
     
     def run(self):
         input_images = 100
@@ -36,6 +37,7 @@ class VGG16_Inference():
             print("Inference Started")
             for i, image in enumerate(images):
                 start = time.time()
+                image = image.unsqueeze(0)
                 self.forward(model, image)
                 end = time.time()
                 writer.writerow([i, end - start])
