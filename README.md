@@ -111,6 +111,7 @@
 vgg/
     contains vgg16 features infernence code
     contains csv file with results for both cpu and cuda
+
 check data/ for results
     processing_transmission
         without sending tensor
