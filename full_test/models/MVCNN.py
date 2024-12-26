@@ -8,7 +8,7 @@ import torchvision.models as models
 from .Model import Model
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'mps' if torch.backends.mps.is_available else 'cpu')
-print("we're using {device}")
+print(f"we're using {device}")
 
 mean = Variable(torch.FloatTensor([0.485, 0.456, 0.406]), requires_grad=False).to(device)
 std = Variable(torch.FloatTensor([0.229, 0.224, 0.225]), requires_grad=False).to(device)
