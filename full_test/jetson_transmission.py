@@ -25,8 +25,17 @@ def main():
         with torch.no_grad():
             feature_map = svcnn.net_1(image)
             
+            print(feature_map.shape)
+            
             feature_map = feature_map.numpy()
             feature_map = base64.b64encode(feature_map).decode('utf-8')
+            
+            print(len(feature_map))
+            
+            while len(feature_map) % 4 != 0:
+                feature_map += "="
+                
+            print(f"new len {len(feature_map)}")
             
             send_time = time.time()
             client.send_data(f"{send_time}|{feature_map}")

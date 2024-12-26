@@ -37,8 +37,6 @@ def main():
             feature_map = data_rev[1]
             receive_time = time.time()
             
-            while len(feature_map) % 4 != 0:
-                feature_map += "="
             
             feature_map = base64.b64decode(feature_map.encode('utf-8'))
             feature_map = np.frombuffer(feature_map, dtype=np.float32)
