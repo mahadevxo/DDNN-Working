@@ -30,11 +30,12 @@ def main():
             feature_map = feature_map.numpy()
             feature_map = base64.b64encode(feature_map).decode('utf-8')
             
-            print(len(feature_map))
-            
+            # Ensure the feature map is correctly padded
             while len(feature_map) % 4 != 0:
                 feature_map += "="
-                
+            
+            print(len(feature_map))
+            
             print(f"new len {len(feature_map)}")
             
             send_time = time.time()

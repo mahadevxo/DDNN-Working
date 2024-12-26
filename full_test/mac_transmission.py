@@ -37,9 +37,16 @@ def main():
             feature_map = data_rev[1]
             receive_time = time.time()
             
-            
-            feature_map = base64.b64decode(feature_map.encode('utf-8'))
-            feature_map = np.frombuffer(feature_map, dtype=np.float32)
+            # Add padding if necessary
+            missing_padding = len(feature_map) % 4
+            if missing_padding:
+                feature_map += '=' * (4 - missing_padding)
+            try:
+                feature_map = base64.b64decode(feature_map.encode('utf-8'))
+                feature_map = np.frombuffer(feature_map, dtype=np.float32)
+            except Exception as decode_error:
+                print(f"Error decoding feature map: {decode_error}")
+                continue
             df = df.append(
                 {
                     'send_time': send_time,
