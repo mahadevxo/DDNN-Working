@@ -12,23 +12,24 @@ def main():
     server = MacServer(address[0], int(address[1]))
     
     svcnn = MVCNN.SVCNN('svcnn')
-    svcnn.load('MVCNN-Jetson_stage_2/')
+    svcnn.load('MVCNN-Jetson_stage_1/')
     svcnn.eval()
+    
+    print('svcnn loaded')
     
     mvcnn = MVCNN.MVCNN('mvcnn', 'MVCNN-Jetson_stage_2/')
     mvcnn.eval()
     
+    print('mvcnn loaded')
     
-
     try:
         server.create_server()
+        print('gonna listen')
         server.server_listen()
         server.connect()
     except Exception as e:
         print(f"Error setting up server: {e}")
         return
-    
-    time_rec = []
     
     records = []
     
@@ -57,6 +58,7 @@ def main():
             
             feature_map = base64.b64decode(feature_map.encode('utf-8'))
             feature_map = np.frombuffer(feature_map, dtype=np.float32)
+            feature_map = torch.tensor(feature_map).to(mvcnn.device)
             
             pooled_features = torch.max(feature_map, dim=1)[0]
             
@@ -76,10 +78,6 @@ def main():
         except Exception as e:
             print('Error {e}')
         
-        
-        
-        
-        
-        
-        
-        
+
+if __name__ == '__main__':
+    main()
