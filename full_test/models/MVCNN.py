@@ -66,8 +66,8 @@ class SVCNN(Model):
             
         #     self.net_classifier._modules['6'] = nn.Linear(4096,40)
         
-        self.net_features = models.alexnet(pretraining=self.pretraining).features
-        self.net_classifier = models.alexnet(pretraining=self.pretraining).classifier
+        self.net_features = models.alexnet(pretrained=self.pretraining).features
+        self.net_classifier = models.alexnet(pretrained=self.pretraining).classifier
         self.net_classifier._modules['6'] = nn.Linear(4096, 40)
 
     def forward(self, x):
