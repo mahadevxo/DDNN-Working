@@ -5,3 +5,6 @@ data.numbers
 __pycache_/
 test_set/
 jetson_socket/__pycache__/
+models_trained/
+mvcnn_training/MVCNN-Jetson_stage_1
+mvcnn_training/MVCNN-Jetson_stage_2
