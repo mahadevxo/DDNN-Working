@@ -55,27 +55,27 @@ class SVCNN(Model):
         #         self.net.fc = nn.Linear(2048,40)
         # else:
         #     if self.cnn_name == 'alexnet':
-        #         self.net_features = models.alexnet(pretrained=self.pretraining).features
-        #         self.net_classifier = models.alexnet(pretrained=self.pretraining).classifier
+        #         self.net_1 = models.alexnet(pretrained=self.pretraining).features
+        #         self.net_2 = models.alexnet(pretrained=self.pretraining).classifier
         #     elif self.cnn_name == 'vgg11':
-        #         self.net_features = models.vgg11(pretrained=self.pretraining).features
-        #         self.net_classifier = models.vgg11(pretrained=self.pretraining).classifier
+        #         self.net_1 = models.vgg11(pretrained=self.pretraining).features
+        #         self.net_2 = models.vgg11(pretrained=self.pretraining).classifier
         #     elif self.cnn_name == 'vgg16':
-        #         self.net_features = models.vgg16(pretrained=self.pretraining).features
-        #         self.net_classifier = models.vgg16(pretrained=self.pretraining).classifier
+        #         self.net_1 = models.vgg16(pretrained=self.pretraining).features
+        #         self.net_2 = models.vgg16(pretrained=self.pretraining).classifier
             
-        #     self.net_classifier._modules['6'] = nn.Linear(4096,40)
+        #     self.net_2._modules['6'] = nn.Linear(4096,40)
         
-        self.net_features = models.alexnet(pretrained=self.pretraining).features
-        self.net_classifier = models.alexnet(pretrained=self.pretraining).classifier
-        self.net_classifier._modules['6'] = nn.Linear(4096, 40)
+        self.net_1 = models.alexnet(pretrained=self.pretraining).features
+        self.net_2 = models.alexnet(pretrained=self.pretraining).classifier
+        self.net_2._modules['6'] = nn.Linear(4096, 40)
 
     def forward(self, x):
         if self.use_resnet:
             return self.net(x)
         else:
-            y = self.net_features(x)
-            return self.net_classifier(y.view(y.shape[0],-1))
+            y = self.net_1(x)
+            return self.net_2(y.view(y.shape[0],-1))
 
 
 class MVCNN(Model):
@@ -95,11 +95,11 @@ class MVCNN(Model):
         self.mean = Variable(torch.FloatTensor([0.485, 0.456, 0.406]), requires_grad=False).to(self.device)
         self.std = Variable(torch.FloatTensor([0.229, 0.224, 0.225]), requires_grad=False).to(self.device)
 
-        self.net_features = model.net_features
-        self.net_classifier = model.net_classifier
+        self.net_1 = model.net_1
+        self.net_2 = model.net_2
 
     def forward(self, x):
-        y = self.net_features(x)
+        y = self.net_1(x)
         y = y.view((int(x.shape[0]/self.num_views),self.num_views,y.shape[-3],y.shape[-2],y.shape[-1]))#(8,12,512,7,7)
-        return self.net_classifier(torch.max(y,1)[0].view(y.shape[0],-1))
+        return self.net_2(torch.max(y,1)[0].view(y.shape[0],-1))
 

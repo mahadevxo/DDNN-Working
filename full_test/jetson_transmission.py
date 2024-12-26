@@ -23,7 +23,7 @@ def main():
     
     for image in images:
         with torch.no_grad():
-            feature_map = svcnn.net_features(image)
+            feature_map = svcnn.net_1(image)
             
             feature_map = feature_map.numpy()
             feature_map = base64.b64encode(feature_map).decode('utf-8')
