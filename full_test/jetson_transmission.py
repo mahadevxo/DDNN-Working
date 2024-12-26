@@ -31,8 +31,9 @@ def main():
             feature_map = base64.b64encode(feature_map).decode('utf-8')
             
             # Ensure the feature map is correctly padded
-            while len(feature_map) % 4 != 0:
-                feature_map += "="
+            missing_padding = len(feature_map) % 4
+            if missing_padding:
+                feature_map += "=" * (4 - missing_padding)
             
             print(len(feature_map))
             
