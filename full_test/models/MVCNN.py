@@ -13,7 +13,6 @@ print(f"we're using {device}")
 mean = Variable(torch.FloatTensor([0.485, 0.456, 0.406]), requires_grad=False).to(device)
 std = Variable(torch.FloatTensor([0.229, 0.224, 0.225]), requires_grad=False).to(device)
 
-print("main, std declared")
 
 def flip(x, dim):
     xsize = x.size()
@@ -27,7 +26,6 @@ def flip(x, dim):
 class SVCNN(Model):
 
     def __init__(self, name, nclasses=40, pretraining=True, cnn_name='alexnet'):
-        print("in init")
         super(SVCNN, self).__init__(name)
 
         self.classnames=['airplane','bathtub','bed','bench','bookshelf','bottle','bowl','car','chair',
@@ -35,7 +33,6 @@ class SVCNN(Model):
                          'guitar','keyboard','lamp','laptop','mantel','monitor','night_stand',
                          'person','piano','plant','radio','range_hood','sink','sofa','stairs',
                          'stool','table','tent','toilet','tv_stand','vase','wardrobe','xbox']
-        print('classnames')
 
         self.nclasses = nclasses
         self.pretraining = pretraining
@@ -45,7 +42,6 @@ class SVCNN(Model):
         self.mean = Variable(torch.FloatTensor([0.485, 0.456, 0.406]), requires_grad=False).to(self.device)
         self.std = Variable(torch.FloatTensor([0.229, 0.224, 0.225]), requires_grad=False).to(self.device)
         
-        print('vars')
         
         # if self.use_resnet:
         #     if self.cnn_name == 'resnet18':
@@ -70,14 +66,9 @@ class SVCNN(Model):
             
         #     self.net_classifier._modules['6'] = nn.Linear(4096,40)
         
-        self.net_features = models.alexnet(weights=models.AlexNet_Weights.IMAGENET1K_V1).features
-        print('features')
-        self.net_classifier = models.alexnet(weights=models.AlexNet_Weights.IMAGENET1K_V1).classifier
-        print('classifier')
+        self.net_features = models.alexnet(pretraining=self.pretraining).features
+        self.net_classifier = models.alexnet(pretraining=self.pretraining).classifier
         self.net_classifier._modules['6'] = nn.Linear(4096, 40)
-        print('adjusted')
-        
-        print('selected model')
 
     def forward(self, x):
         if self.use_resnet:
