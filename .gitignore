@@ -8,3 +8,6 @@ jetson_socket/__pycache__/
 models_trained/
 mvcnn_training/MVCNN-Jetson_stage_1
 mvcnn_training/MVCNN-Jetson_stage_2
+full_test/MVCNN-Jetson_stage_1
+full_test/MVCNN-Jetson_stage_2
+full_test/models/__pycache__
