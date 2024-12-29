@@ -32,6 +32,9 @@ def main():
             os._exit(0)
         try:
             data_rev = data.split("|")
+            if len(data_rev) != 2:
+                print(f"Received data in unexpected format: {len(data_rev)}")
+                continue
             
             send_time = data_rev[0]
             feature_map = data_rev[1]
@@ -47,7 +50,8 @@ def main():
             except Exception as decode_error:
                 print(f"Error decoding feature map: {decode_error}")
                 continue
-            df = df.append(
+            df = df.(records,
+                columns=['send_time', 'receive_time', 'feature_map']
                 {
                     'send_time': send_time,
                     'receive_time': receive_time,
