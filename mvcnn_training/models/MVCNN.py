@@ -106,4 +106,3 @@ class MVCNN(Model):
         y_flat = y_max.view(y_max.shape[0], -1) #Flatten Tensor
         output = self.net_classifier(y_flat) #Classifier
         return output
-
