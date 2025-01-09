@@ -37,5 +37,3 @@ class Model(nn.Module):
             mf = os.path.join(complete_path, modelfile)
 
         self.load_state_dict(torch.load(mf, map_location='cpu' if cpu_use else None))
-
-
