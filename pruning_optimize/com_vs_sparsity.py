@@ -48,7 +48,7 @@ def computation_time(model):
     
     return end_time - start_time
 
-for sparsity in numpy.linspace(0.0, 1.0, 0.1):
+for sparsity in numpy.arange(0.0, 1.0, 0.1):
     model = vgg11(pretrained=True)
     model = prune_model(model, sparsity)
     time_taken = computation_time(model)
@@ -56,7 +56,7 @@ for sparsity in numpy.linspace(0.0, 1.0, 0.1):
 
 print("Pruning Complete")
 
-plt.plot(numpy.linspace(0.0, 1.0, 0.1), computation_time)
+plt.plot(numpy.arange(0.0, 1.0, 0.1), computation_time)
 plt.xlabel("Sparsity")
 plt.ylabel("Computation Time")
 plt.title("Computation Time vs Sparsity")
