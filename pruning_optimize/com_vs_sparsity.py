@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.utils.prune as prune
-from torchvision import vgg11
+from torchvision.models import vgg11
 import numpy
 import time
 import matplotlib.pyplot as plt
