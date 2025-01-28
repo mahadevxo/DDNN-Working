@@ -38,14 +38,14 @@ def compute_time(model):
 print("Imported all libaries")
 
 for sparsity in numpy.arange(0.0, 1.1, 0.1):
-    print("Starting with", end=" ")
-    print(f"Sparsity: {sparsity}", end=" ")
+    print("Starting with")
+    print(f"Sparsity: {sparsity}")
     model = vgg11(pretrained=True)
-    print("Model loaded", end=" ")
+    print("Model loaded")
     model = prune_model(model, sparsity)
-    print("Model pruned", end=" ")
+    print("Model pruned")
     time_taken = compute_time(model)
-    print(f"Time taken: {time_taken}", end="\n")
+    print(f"Time taken: {time_taken}")
     computation_time_results.append(time_taken)
 
 plt.plot(numpy.arange(0.0, 1.1, 0.1), computation_time_results)
