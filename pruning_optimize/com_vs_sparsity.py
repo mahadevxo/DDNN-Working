@@ -38,6 +38,7 @@ def compute_time(model):
 print("Imported all libaries")
 
 for sparsity in numpy.arange(0.0, 1.1, 0.1):
+    print("Starting with", end=" ")
     print(f"Sparsity: {sparsity}", end=" ")
     model = vgg11(pretrained=True)
     print("Model loaded", end=" ")
