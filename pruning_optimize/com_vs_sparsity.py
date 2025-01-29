@@ -11,7 +11,7 @@ sparsityies = []
 def prune_model(model, sparsity):
     prunable_layers = [
         (name, module) for name, module in model.named_modules()
-        if isinstance(module, (nn.Conv2d, nn.Linear))
+        if isinstance(module, (nn.Conv2d))
     ]
     
     for _, module in prunable_layers:
