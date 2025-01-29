@@ -34,7 +34,7 @@ def compute_time(model):
 
 print("Imported all libaries")
 
-for sparsity in numpy.arange(0.0, 1.1, 0.1):
+for sparsity in numpy.arange(0.0, 1.1, 0.01):
     print("Starting with")
     print(f"Sparsity: {sparsity}")
     model = vgg11(pretrained=True)
@@ -51,7 +51,7 @@ with open("computation_time_results.csv", "w") as f:
     for I in range(len(sparsityies)):
         f.write(f"{sparsityies[I]},{computation_time_results[I]}\n")
 
-plt.plot(numpy.arange(0.0, 1.1, 0.1), computation_time_results)
+plt.plot(numpy.arange(0.0, 1.1, 0.01), computation_time_results)
 plt.xlabel("Sparsity")
 plt.ylabel("Computation Time")
 plt.title("Computation Time vs Sparsity")
