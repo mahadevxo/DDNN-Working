@@ -7,7 +7,7 @@ import time
 import matplotlib.pyplot as plt
 
 computation_time_results = []
-
+sparsityies = []
 def prune_model(model, sparsity):
     prunable_layers = [
         (name, module) for name, module in model.named_modules()
@@ -47,6 +47,12 @@ for sparsity in numpy.arange(0.0, 1.1, 0.1):
     time_taken = compute_time(model)
     print(f"Time taken: {time_taken}")
     computation_time_results.append(time_taken)
+    sparsityies.append(sparsity)
+    
+
+with open("computation_time_results.csv", "w") as f:
+    for I in range(len(sparsityies)):
+        f.write(f"{sparsityies[I]},{computation_time_results[I]}\n")
 
 plt.plot(numpy.arange(0.0, 1.1, 0.1), computation_time_results)
 plt.xlabel("Sparsity")
