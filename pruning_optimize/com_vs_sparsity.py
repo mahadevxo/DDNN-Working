@@ -13,14 +13,11 @@ def prune_model(model, sparsity):
         (name, module) for name, module in model.named_modules()
         if isinstance(module, (nn.Conv2d, nn.Linear))
     ]
-    params = [(module, 'weight') for _, module in prunable_layers]
-    prune.global_unstructured(
-        params,
-        pruning_method=prune.L1Unstructured,
-        amount=sparsity,
-    )
+    
     for _, module in prunable_layers:
-        prune.remove(module, 'weight')
+        prune.l1_unstructured(module, name="weight", amount=sparsity)
+        prune.remove(module, name="weight")
+    
     return model
 
 def compute_time(model):
