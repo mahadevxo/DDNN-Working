@@ -11,3 +11,4 @@ mvcnn_training/MVCNN-Jetson_stage_2
 full_test/MVCNN-Jetson_stage_1
 full_test/MVCNN-Jetson_stage_2
 full_test/models/__pycache__
+*.pth
