@@ -14,6 +14,7 @@ def get_pruned_models():
     prune_models = []
     for file in os.listdir(path):
         prune_models.append(path+file)
+    print(prune_models)
     return prune_models
 
 # def prune_model(model, sparsity):
@@ -44,6 +45,7 @@ print("Imported all libaries")
 
 pruned_models = get_pruned_models()
 for model_path in pruned_models:
+    print(f"Starting with {model_path}")
     model = vgg11(pretrained=False)
     model.load_state_dict(torch.load(model_path))
     time_taken = compute_time(model)
