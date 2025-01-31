@@ -1,10 +1,11 @@
 import torch
-import torch.nn as nn
-import torch.nn.utils.prune as prune
+# import torch.nn as nn
+# import torch.nn.utils.prune as prune
 from torchvision.models import vgg11
 import time
 import matplotlib.pyplot as plt
 import os
+import re
 
 computation_time_results = {}
 
@@ -12,8 +13,7 @@ computation_time_results = {}
 def get_pruned_models():
     path = './vgg11_pruned/'
     prune_models = []
-    for file in os.listdir(path):
-        prune_models.append(path+file)
+    prune_models.extend(path+file for file in os.listdir(path))
     print(prune_models)
     return prune_models
 
@@ -41,7 +41,7 @@ def compute_time(model):
     return end_time - start_time
 
 
-print("Imported all libaries")
+print("Imported all libraries")
 
 pruned_models = get_pruned_models()
 for model_path in pruned_models:
@@ -51,10 +51,13 @@ for model_path in pruned_models:
     time_taken = compute_time(model)
     print(f"Time taken: {time_taken}")
     #vgg11_0.7.pth
-    sparsity = model_path.split('_')[1].split('.')[0:2]
-    sparsity = float(sparsity[0] + '.' + sparsity[1])
+    if match := re.search(r'_(\d+\.\d+)\.pth', model_path):
+        sparsity = float(match[1])
+    else:
+        print(f"Warning: Could not extract sparsity from {model_path}")
+        continue
     computation_time_results[sparsity] = time_taken
-    
+
 computation_time_results = dict(sorted(computation_time_results.items()))
 
 # for sparsity in numpy.arange(0.0, 1.01, 0.01):
@@ -68,7 +71,7 @@ computation_time_results = dict(sorted(computation_time_results.items()))
 #     print(f"Time taken: {time_taken}")
 #     computation_time_results.append(time_taken)
 #     sparsityies.append(sparsity)
-    
+
 
 #plot
 plt.plot(computation_time_results.keys(), computation_time_results.values())
