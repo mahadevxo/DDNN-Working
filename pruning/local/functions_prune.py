@@ -63,8 +63,7 @@ class FunctionsPrune:
             if isinstance(module, nn.Conv2d):
                 prune.l1_unstructured(module, name='weight', amount=prune_rate)
         names_params = list(model.named_parameters())
-        print('Number of parameters:', len(names_params))
-        return model
+        return model, names_params
 
     def convert_to_coreml(self, model, input_shape=(1, 3, 224, 224)):
         """Converts a PyTorch model to CoreML format.
