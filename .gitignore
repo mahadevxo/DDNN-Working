@@ -13,3 +13,4 @@ full_test/MVCNN-Jetson_stage_2
 full_test/models/__pycache__
 *.pth
 pruning/imagenet-sample-images
+/*.pyc
