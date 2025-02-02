@@ -69,17 +69,17 @@ computation_times = []
 accuracies = []
 
 for sparsity in sparsity_levels:
-    print(f"Loading Model for {sparsity:.2f} sparsity", end = "\t")
+    print(f"Loading Model for {sparsity:.2f} sparsity")
     model = models.vgg11(pretrained=True)
-    print("Pruning Model", end = "\t")
+    print("Pruning Model")
     model = prune_model_individual(model, amount=sparsity)
-    print("Evaluating Model", end = "\t")
+    print("Evaluating Model")
     comp_time = evaluate_computation_time(model)
     computation_times.append(comp_time)
-    print("Evaluating Accuracy", end = "\n")
+    print("Evaluating Accuracy")
     accuracy = evaluate_model_accuracy(model)
     accuracies.append(accuracy)
-    print(f"Sparsity: {sparsity:.2f}, Computation Time: {comp_time:.4f} seconds, Accuracy: {accuracy:.5f}%")
+    print(f"Sparsity: {sparsity:.1f}, Computation Time: {comp_time:.4f} seconds, Accuracy: {accuracy:.3f}%")
 
 # Plot the graphs
 plt.figure(figsize=(14, 6))
