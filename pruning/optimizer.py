@@ -5,13 +5,13 @@ from device_info import DeviceInfo
 
 def apply_pruning(model, sparsity_ratio):
     for _, module in model.nameed_modules():
-        if isinstance(module, torch.nn.Conv2d) or isinstance(module, torch.nn.Linear):
-           weights = module.weight.data.abs().view(-1)
-           threshold = torch.quantile(weights, sparsity_ratio)
-           
-           mask = module.weight.data.abs() > threshold
-           module.weight.data.mul_(mask)
-    
+        if isinstance(module, (torch.nn.Conv2d, torch.nn.Linear)):
+            weights = module.weight.data.abs().view(-1)
+            threshold = torch.quantile(weights, sparsity_ratio)
+
+            mask = module.weight.data.abs() > threshold
+            module.weight.data.mul_(mask)
+
     return model
 
 def compress_feature_map(feature_map, dct_blocks, quality = 0.5):
