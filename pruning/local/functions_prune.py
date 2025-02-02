@@ -36,7 +36,7 @@ class FunctionsPrune:
 
     def prune_model(self,model, prune_rate):
         for _, module in model.named_modules():
-            if isinstance(module, nn.Conv2d):
+            if isinstance(module, (nn.Conv2d, nn.Linear)):
                 prune.l1_unstructured(module, name='weight', amount=prune_rate)
         names_params = list(model.named_parameters())
         return model, len(names_params)
@@ -65,7 +65,7 @@ class FunctionsPrune:
                 images.append({"image": image})
         else:
             model.eval()
-            images = [torch.randn(1, 3, 224, 224) for _ in range(count)]
+            images = torch.randn(100, 3, 224, 224)
 
         start_time = time.time()
         
@@ -74,8 +74,7 @@ class FunctionsPrune:
                 model.predict(image)
         else:
             with torch.no_grad():
-                for image_dict in images:
-                    _ = model(image_dict)
+                _ = model(images)
         end_time = time.time()
         return end_time - start_time
 

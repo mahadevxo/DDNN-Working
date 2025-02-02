@@ -27,12 +27,13 @@ def main():
     if os.path.exists('coremlmodel.mlpackage/'):
         shutil.rmtree('coremlmodel.mlpackage/')
     sparsities = numpy.arange(0, 1.05, 0.05)
-    models = ['MobileNetV3 Large', 'AlexNet', 'VGG11', 'VGG13', 'VGG16', 'VGG19', 'ConvNeXt Large']
+    models = ['ConvNeXt Large']
+    #'MobileNetV3 Large', 'AlexNet', 'VGG11', 'VGG13', 'VGG16', VGG19, 
     coreml = get_device()
     for model_using in models:
         params = None
         computation_times = []
-        print(f'{bcolors.BOLD}{bcolors.FAIL}Model Used: {model_using}'.center(shutil.get_terminal_size().columns))
+        print(f'{bcolors.BOLD}{bcolors.FAIL}Model Used: {model_using}{bcolors.ENDC}'.center(shutil.get_terminal_size().columns))
         for sparsity in sparsities:
             model = functionsprune.get_model(model_using)
             model.eval()
@@ -43,7 +44,7 @@ def main():
                 shutil.rmtree('coremlmodel.mlpackage/')
             inference_time = functionsprune.computation_time(model, coreml, 100)
             print(
-                f'{bcolors.WARNING}Model: {model_using}, Params: {params}, Sparsity: {sparsity:.2f}, {bcolors.OKGREEN}Inference time: {inference_time:.2f} ms'
+                f'{bcolors.WARNING}Model: {model_using}, Params: {params}, Sparsity: {sparsity:.2f}, {bcolors.OKGREEN}Inference time: {inference_time:.2f} s{bcolors.ENDC}'
             )
             computation_times.append(inference_time)
 
