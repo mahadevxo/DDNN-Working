@@ -77,7 +77,7 @@ accuracies = []
 
 for sparsity in sparsity_levels:
     print(f"Loading Model for {sparsity:.2f} sparsity")
-    model = models.convnext_small(pretrained=True)
+    model = models.AlexNet(pretrained=True)
     print("Pruning Model")
     model = prune_model_individual(model, amount=sparsity)
     print("Evaluating Computation Time and Accuracy")
