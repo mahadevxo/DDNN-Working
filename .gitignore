@@ -14,5 +14,4 @@ full_test/models/__pycache__
 *.pth
 pruning/imagenet-sample-images
 /*.pyc
-/data/cifar-10-batches-py/
-/data/*.tar.gz
+/data
