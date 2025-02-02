@@ -70,7 +70,7 @@ accuracies = []
 
 for sparsity in sparsity_levels:
     # Clone the original model to keep it unmodified
-    model_copy = models.vgg16(pretrained=True)
+    model_copy = models.vgg11(pretrained=True)
     pruned_model = prune_model_individual(model_copy, amount=sparsity)
     del model_copy
     comp_time = evaluate_computation_time(pruned_model)
