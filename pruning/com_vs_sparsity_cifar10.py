@@ -1,19 +1,13 @@
 import time
-
-try:
-    import torch
-    import torch.nn as nn
-    import torch.nn.utils.prune as prune
-    import torchvision.models as models
-    import torchvision.transforms as transforms
-    import torchvision.datasets as datasets
-    from torch.utils.data import DataLoader
-    import matplotlib.pyplot as plt
-    import numpy
-except ModuleNotFoundError as e:
-    print("Required module not found. Please ensure PyTorch, torchvision, and matplotlib are installed.")
-    print("Install using: pip install torch torchvision matplotlib")
-    raise e
+import torch
+import torch.nn as nn
+import torch.nn.utils.prune as prune
+import torchvision.models as models
+import torchvision.transforms as transforms
+import torchvision.datasets as datasets
+from torch.utils.data import DataLoader
+import matplotlib.pyplot as plt
+import numpy
 
 # Define a pruning function
 def prune_model_individual(model, amount):
@@ -63,6 +57,19 @@ def evaluate_model_accuracy(model):
             correct += (predicted == labels).sum().item()
     return (100 * (correct / total))
 
+def computation_time_accuracy(model):
+    model.eval()
+    start_time = time.time()
+    total, correct = 0, 0
+    with torch.no_grad():
+        for images, labels in test_loader:
+            outputs = model(images)
+            _, predicted = torch.max(outputs.data, 1)
+            total += labels.size(0)
+            correct += (predicted == labels).sum().item()
+    end_time = time.time()
+    return end_time - start_time, (100 * (correct / total))
+
 # Sparsity levels
 sparsity_levels = numpy.arange(0.0, 1.1, 0.1)
 computation_times = []
@@ -73,11 +80,9 @@ for sparsity in sparsity_levels:
     model = models.vgg11(pretrained=True)
     print("Pruning Model")
     model = prune_model_individual(model, amount=sparsity)
-    print("Evaluating Model")
-    comp_time = evaluate_computation_time(model)
+    print("Evaluating Computation Time and Accuracy")
+    comp_time, accuracy = computation_time_accuracy(model)
     computation_times.append(comp_time)
-    print("Evaluating Accuracy")
-    accuracy = evaluate_model_accuracy(model)
     accuracies.append(accuracy)
     print(f"Sparsity: {sparsity:.1f}, Computation Time: {comp_time:.4f} seconds, Accuracy: {accuracy:.3f}%")
 
