@@ -106,4 +106,4 @@ plt.grid(True)
 # plt.grid(True)
 
 plt.tight_layout()
-plt.imsave("pruning_results_jetson.png")
+plt.savefig("pruning_results_jetson.png")
