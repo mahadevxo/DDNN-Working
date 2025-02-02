@@ -85,6 +85,7 @@ accuracies = []
 
 model_name = None
 
+
 for sparsity in sparsity_levels:
     print(f"Loading Model for {sparsity:.2f} sparsity")
     model = models.alexnet(pretrained=True)
@@ -119,4 +120,4 @@ plt.grid(True)
 # plt.grid(True)
 
 plt.tight_layout()
-plt.savefig(f"pruning_results_{device}_{model_name}.png")
+plt.savefig(f"results/pruning_results_{device}_{model_name}_{time.time()}.png")
