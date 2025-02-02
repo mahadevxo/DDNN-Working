@@ -15,3 +15,4 @@ full_test/models/__pycache__
 pruning/imagenet-sample-images
 /*.pyc
 /data
+/pruning/data
