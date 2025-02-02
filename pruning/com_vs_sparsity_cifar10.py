@@ -37,7 +37,7 @@ except Exception as e:
     print("Error loading datasets. Ensure you have internet access and sufficient storage.")
     raise e
 
-test_loader = DataLoader(torch.utils.data.Subset(test_dataset, range(100)), batch_size=32, shuffle=False).to(device)
+test_loader = DataLoader(torch.utils.data.Subset(test_dataset, range(100)), batch_size=32, shuffle=False)
 
 # Define evaluation functions
 # def evaluate_computation_time(model):
@@ -70,6 +70,7 @@ def computation_time_accuracy(model):
     total, correct = 0, 0
     with torch.no_grad():
         for images, labels in test_loader:
+            images, labels = images.to(device), labels.to(device)
             outputs = model(images)
             _, predicted = torch.max(outputs.data, 1)
             total += labels.size(0)
@@ -87,6 +88,7 @@ model_name = None
 for sparsity in sparsity_levels:
     print(f"Loading Model for {sparsity:.2f} sparsity")
     model = models.alexnet(pretrained=True)
+    model.to(device)
     if model_name is None:
         model_name = model.__class__.__name__
     print(f"Pruning {model_name} with {sparsity:.2f} sparsity")
