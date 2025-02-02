@@ -87,16 +87,15 @@ model_name = None
 for sparsity in sparsity_levels:
     print(f"Loading Model for {sparsity:.2f} sparsity")
     model = models.alexnet(pretrained=True)
-    print("Pruning Model")
+    if model_name is None:
+        model_name = model.__class__.__name__
+    print(f"Pruning {model_name} with {sparsity:.2f} sparsity")
     model = prune_model_individual(model, amount=sparsity)
     print("Evaluating Computation Time and Accuracy")
     comp_time, accuracy = computation_time_accuracy(model)
     computation_times.append(comp_time)
     accuracies.append(accuracy)
     print(f"Sparsity: {sparsity:.1f}, Computation Time: {comp_time:.4f} seconds, Accuracy: {accuracy:.3f}%")
-    
-    if model_name is None:
-        model_name = model.__class__.__name__
 
 # Plot the graphs
 plt.figure(figsize=(14, 6))
