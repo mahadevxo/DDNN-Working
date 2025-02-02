@@ -6,8 +6,13 @@ import torchvision.models as models
 import torchvision.transforms as transforms
 import torchvision.datasets as datasets
 from torch.utils.data import DataLoader
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import numpy
+
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
 
 # Define a pruning function
 def prune_model_individual(model, amount):
@@ -32,33 +37,35 @@ except Exception as e:
     print("Error loading datasets. Ensure you have internet access and sufficient storage.")
     raise e
 
-test_loader = DataLoader(torch.utils.data.Subset(test_dataset, range(100)), batch_size=32, shuffle=False)
+test_loader = DataLoader(torch.utils.data.Subset(test_dataset, range(100)), batch_size=32, shuffle=False).to(device)
 
 # Define evaluation functions
-def evaluate_computation_time(model):
-    model.eval()
-    start_time = time.time()
-    with torch.no_grad():
-        for images, labels in test_loader:
-            _ = model(images)
-    end_time = time.time()
-    return end_time - start_time
+# def evaluate_computation_time(model):
+#     model.eval()
+#     start_time = time.time()
+#     with torch.no_grad():
+#         for images, labels in test_loader:
+#             _ = model(images)
+#     end_time = time.time()
+#     return end_time - start_time
 
 
-def evaluate_model_accuracy(model):
-    model.eval()
-    correct = 0
-    total = 0
-    with torch.no_grad():
-        for images, labels in test_loader:
-            outputs = model(images)
-            _, predicted = torch.max(outputs.data, 1)
-            total += labels.size(0)
-            correct += (predicted == labels).sum().item()
-    return (100 * (correct / total))
+# def evaluate_model_accuracy(model):
+#     model.eval()
+#     model.to(device)
+#     correct = 0
+#     total = 0
+#     with torch.no_grad():
+#         for images, labels in test_loader:
+#             outputs = model(images)
+#             _, predicted = torch.max(outputs.data, 1)
+#             total += labels.size(0)
+#             correct += (predicted == labels).sum().item()
+#     return (100 * (correct / total))
 
 def computation_time_accuracy(model):
     model.eval()
+    model.to(device)
     start_time = time.time()
     total, correct = 0, 0
     with torch.no_grad():
@@ -75,6 +82,8 @@ sparsity_levels = numpy.arange(0.0, 1.1, 0.1)
 computation_times = []
 accuracies = []
 
+model_name = None
+
 for sparsity in sparsity_levels:
     print(f"Loading Model for {sparsity:.2f} sparsity")
     model = models.alexnet(pretrained=True)
@@ -85,6 +94,9 @@ for sparsity in sparsity_levels:
     computation_times.append(comp_time)
     accuracies.append(accuracy)
     print(f"Sparsity: {sparsity:.1f}, Computation Time: {comp_time:.4f} seconds, Accuracy: {accuracy:.3f}%")
+    
+    if model_name is None:
+        model_name = model.__class__.__name__
 
 # Plot the graphs
 plt.figure(figsize=(14, 6))
@@ -106,4 +118,4 @@ plt.grid(True)
 # plt.grid(True)
 
 plt.tight_layout()
-plt.savefig("pruning_results_jetson.png")
+plt.savefig(f"pruning_results_{device}_{model_name}.png")
