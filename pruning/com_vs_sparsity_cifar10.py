@@ -79,7 +79,7 @@ def computation_time_accuracy(model):
     return end_time - start_time, (100 * (correct / total))
 
 # Sparsity levels
-sparsity_levels = numpy.arange(0.0, 1.1, 0.1)
+sparsity_levels = numpy.arange(0.0, 1.01, 0.01)
 computation_times = []
 accuracies = []
 
@@ -88,7 +88,7 @@ model_name = None
 
 for sparsity in sparsity_levels:
     print(f"Loading Model for {sparsity:.2f} sparsity")
-    model = models.alexnet(pretrained=True)
+    model = models.vgg19(pretrained=True)
     model.to(device)
     if model_name is None:
         model_name = model.__class__.__name__
@@ -98,7 +98,7 @@ for sparsity in sparsity_levels:
     comp_time, accuracy = computation_time_accuracy(model)
     computation_times.append(comp_time)
     accuracies.append(accuracy)
-    print(f"Sparsity: {sparsity:.1f}, Computation Time: {comp_time:.4f} seconds, Accuracy: {accuracy:.3f}%")
+    print(f"Sparsity: {sparsity:.1f}, Computation Time: {comp_time:.4f} seconds")
 
 # Plot the graphs
 plt.figure(figsize=(14, 6))

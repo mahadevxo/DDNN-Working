@@ -33,39 +33,38 @@ if __name__ == '__main__':
     pretraining = not no_pretraining
 
     # STAGE 1
-    log_dir = name+'_stage_1'
+    log_dir = f'{name}_stage_1'
     create_folder(log_dir)
     cnet = MVCNN.SVCNN(name, nclasses=40, pretraining=pretraining, cnn_name=cnn_name)
     optimizer = optim.Adam(cnet.parameters(), lr=lr, weight_decay=weight_decay)
     num_models_train = num_models*num_views
-    
+
     train_dataset = SingleImgDataset(train_path, scale_aug=False, rot_aug=False, num_models=num_models_train, num_views=num_views)
     train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=64, shuffle=True, num_workers=8)
-    
+
     val_dataset = SingleImgDataset(test_path, scale_aug=False, rot_aug=False, test_mode=True)
     val_loader = torch.utils.data.DataLoader(val_dataset, batch_size=64, shuffle=False, num_workers=8)
-    
+
     print('num_train_files: '+str(len(train_dataset.filepaths)))
     print('num_val_files: '+str(len(val_dataset.filepaths)))
-    
+
     trainer = ModelNetTrainer(cnet, train_loader, val_loader, optimizer, nn.CrossEntropyLoss(), 'svcnn', log_dir, num_views=1)
-    
+
     trainer.train(10)
-    
-        # STAGE 2
+
     log_dir = name+'_stage_2'
     create_folder(log_dir)
     cnet_2 = MVCNN.MVCNN(name, cnet, nclasses=40, cnn_name=cnn_name, num_views=num_views)
     del cnet
 
     optimizer = optim.Adam(cnet_2.parameters(), lr=lr, weight_decay=weight_decay, betas=(0.9, 0.999))
-    
+
     train_dataset = MultiviewImgDataset(train_path, scale_aug=False, rot_aug=False, num_models=num_models_train, num_views=num_views)
     train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=batchSize, shuffle=False, num_workers=8)
 
     val_dataset = MultiviewImgDataset(test_path, scale_aug=False, rot_aug=False, num_views=num_views)
     val_loader = torch.utils.data.DataLoader(val_dataset, batch_size=batchSize, shuffle=False, num_workers=8)
-    
+
     print('num_train_files: '+str(len(train_dataset.filepaths)))
     print('num_val_files: '+str(len(val_dataset.filepaths)))
     trainer = ModelNetTrainer(cnet_2, train_loader, val_loader, optimizer, nn.CrossEntropyLoss(), 'mvcnn', log_dir, num_views=num_views)

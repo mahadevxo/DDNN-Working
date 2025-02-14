@@ -16,3 +16,7 @@ pruning/imagenet-sample-images
 /*.pyc
 /data
 /pruning/data
+pruning_tf/imagenet-sample-images/
+/pruning_tf/*.keras
+vgg_models/cat-dogs-dataset
+vgg_models/imagenet-mini
