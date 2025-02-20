@@ -8,6 +8,7 @@ import torch.nn as nn
 from torchvision import datasets, transforms
 from ComprehensiveVGGPruner import ComprehensiveVGGPruner
 import numpy
+from copy import deepcopy
 
 
 def replace_layers(features, layer_idx, replace_indices, new_layers):
@@ -74,6 +75,7 @@ def calculate_parameter_reduction(original_model, pruned_model):
     return ((original_params - pruned_params) / original_params) * 100
 
 def calculate_flops(model, input_size=(1, 3, 224, 224)):
+    device = 'mps' if torch.backends.mps.is_available() else 'cuda' if torch.cuda.is_available() else 'cpu'
     """Calculates the floating point operations (FLOPs) for a given model.
 
     This function iterates through the model's layers, registers forward hooks to count operations for Conv2d and Linear layers, performs a forward pass, and accumulates the total FLOPs.
@@ -129,7 +131,7 @@ def calculate_flops(model, input_size=(1, 3, 224, 224)):
     model.apply(register_hooks)
     
     # Perform forward pass
-    input = torch.randn(input_size).to('mps')
+    input = torch.randn(input_size).to(device)
     model(input)
     
     # Sum up the total operations
@@ -144,6 +146,7 @@ def calculate_flops(model, input_size=(1, 3, 224, 224)):
     return total_ops
 
 def fine_tuning(model):
+    device = 'mps' if torch.backends.mps.is_available() else 'cuda' if torch.cuda.is_available() else 'cpu'
     """Fine-tunes a given model using SGD optimizer and CrossEntropyLoss.
 
     This function performs fine-tuning on the provided model for a fixed number of epochs using a subset of ImageNet data. It utilizes Stochastic Gradient Descent (SGD) for optimization and CrossEntropyLoss as the loss function.
@@ -154,7 +157,7 @@ def fine_tuning(model):
     Returns:
         torch.nn.Module: The fine-tuned model.
     """
-    model = model.to('mps')
+    model = model.to(device)
     model.train()
     optimizer = SGD(model.parameters(), lr=0.001, momentum=0.9)
     criterion = nn.CrossEntropyLoss()
@@ -162,8 +165,8 @@ def fine_tuning(model):
         running_loss = 0.0
         for data in get_random_images(n=300):
             inputs, labels = data
-            inputs = inputs.to('mps')
-            labels = labels.to('mps')
+            inputs = inputs.to(device)
+            labels = labels.to(device)
             optimizer.zero_grad()
             outputs = model(inputs)
             loss = criterion(outputs, labels)
@@ -171,20 +174,21 @@ def fine_tuning(model):
             optimizer.step()
             running_loss += loss.item()
         # print(f"Epoch {epoch + 1}, Loss: {running_loss / len(train_loader)}")
-    print("Finished fine-tuning!")
+    # print("Finished fine-tuning!")
     return model
 
 def comp_accuracy(model):
+    device = 'mps' if torch.backends.mps.is_available() else 'cuda' if torch.cuda.is_available() else 'cpu'
     model.eval()
-    model = model.to('mps')
+    model = model.to(device)
     correct = 0
     total = 0
     comp_time = 0
     with torch.no_grad():
         for data in get_random_images(n=1000):
             images, labels = data
-            images = images.to('mps')
-            labels = labels.to('mps')
+            images = images.to(device)
+            labels = labels.to(device)
             t1 = time.time()
             outputs = model(images)
             t2 = time.time()
@@ -195,29 +199,37 @@ def comp_accuracy(model):
     return [(correct / total)*100 , comp_time]
 
 
-def dict_to_csv(comp_times, accuracies, g_flops, sparsities):
-    with open('vgg16_pruning_results.csv', 'w') as f:
+def dict_to_csv(model, comp_times, accuracies, g_flops, sparsities):
+    model_name = model.__class__.__name__
+    with open(f'{model_name}_pruning_results.csv', 'w') as f:
         f.write("Sparsity,Accuracy,Comp Time,GFLOPs\n")
         for sparsity in sparsities:
-            f.write(f"{sparsity},{accuracies[sparsity]},{comp_times[sparsity]},{g_flops[sparsity]}\n")
+            f.write(f"{sparsity:.2f},{accuracies[sparsity]},{comp_times[sparsity]},{g_flops[sparsity]}\n")
 
 
 def main():
+    device = 'mps' if torch.backends.mps.is_available() else 'cuda' if torch.cuda.is_available() else 'cpu'
     """Main function to perform pruning, fine-tuning, and evaluation of VGG16 models.
 
     This function loads a pre-trained VGG16 model, iteratively prunes it with increasing sparsities, fine-tunes each pruned model, and evaluates its accuracy, computation time, and FLOPs. The results are then saved to a CSV file.
     """
     # Load a pretrained VGG16 model
-    model_org = models.vgg16(weights=models.VGG16_Weights.IMAGENET1K_V1)
-    model_org = model_org.to('mps')
+    # model_org = models.vgg16(weights=models.VGG16_Weights.IMAGENET1K_V1)
+    # model_org = models.densenet201(weights=models.DenseNet201_Weights.DEFAULT)
+    model_org = models.vgg19(weights=models.VGG19_Weights.IMAGENET1K_V1)
+    model_org = model_org.to(device)
+    model = deepcopy(model_org)
+    model.to(device)
     
     comp_times = {}
     accuracies = {}
     g_flops = {}
-    sparsities = numpy.arange(0.0, 1.1, 0.1)
+    sparsities = numpy.arange(0.0, 1, 0.01)
+    print("Sparsities: ", sparsities)
+    print(f"Model: {model_org.__class__.__name__}")
     org_accuracy = None
     for sparsity in sparsities:
-        print(f"Pruning {model_org.__class__.__name__} with sparsity {sparsity:.2f}")
+        # print(f"Pruning {model_org.__class__.__name__} with sparsity {sparsity:.2f}")
         pruned_vgg = prune_vgg16_comprehensive(model_org, prune_percentage=sparsity)
         pruned_vgg = fine_tuning(pruned_vgg)
         # torch.save(pruned_vgg, f'pruned_models/pruned_vgg_{sparsity:.2f}.pth')
@@ -226,7 +238,8 @@ def main():
         flops = flops / 1e9
         if sparsity == 0.0:
             org_accuracy = accuracy
-            print(org_accuracy)
+            print("Original Accuracy: ", org_accuracy)
+            
         # param_reduction = calculate_parameter_reduction(model_org, pruned_vgg)
         # param_org, param_pruned = count_parameters(model_org), count_parameters(pruned_vgg)
         # print(f"Original Parameters: {param_org}, Pruned Parameters: {param_pruned}")
@@ -237,7 +250,7 @@ def main():
         comp_times[sparsity] = comp_time
         accuracies[sparsity] = accuracy
         g_flops[sparsity] = flops
-    dict_to_csv(comp_times, accuracies, g_flops, list(sparsities))
+    dict_to_csv(model, comp_times, accuracies, g_flops, list(sparsities))
 
 if __name__ == '__main__':
     main()

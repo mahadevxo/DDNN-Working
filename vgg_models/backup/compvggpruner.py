@@ -1,4 +1,3 @@
-#name: ComprehensiveVGGPruner.py
 import torch
 import numpy as np
 class ComprehensiveVGGPruner:
@@ -15,15 +14,6 @@ class ComprehensiveVGGPruner:
                 conv_indices.append(i)
         return conv_indices
     
-    def replace_layers(self, features, layer_idx, replace_indices, new_layers):
-        new_features = []
-        for i, layer in enumerate(features):
-            if i in replace_indices:
-                new_features.append(new_layers[replace_indices.index(i)])
-            else:
-                new_features.append(layer)
-        return torch.nn.Sequential(*new_features)
-    
     def calculate_filters_per_layer(self):
         filters_to_prune = {}
         for layer_idx in self.conv_layers:
@@ -36,7 +26,6 @@ class ComprehensiveVGGPruner:
         return filters_to_prune
     
     def prune_conv_layer(self, model, layer_index, filter_index):
-    # Extract the target Conv2D layer
         _, conv = list(model.features._modules.items())[layer_index]
         next_conv = None
         offset = 1
@@ -50,7 +39,16 @@ class ComprehensiveVGGPruner:
             offset += 1
 
         # Create a new Conv2D layer with one fewer filter
-        new_conv = self.make_conv(conv)
+        new_conv = torch.nn.Conv2d(
+            in_channels=conv.in_channels,
+            out_channels=conv.out_channels - 1,
+            kernel_size=conv.kernel_size,
+            stride=conv.stride,
+            padding=conv.padding,
+            dilation=conv.dilation,
+            groups=conv.groups,
+            bias=(conv.bias is not None),
+        )
 
         # Copy old weights and prune one filter
         old_weights = conv.weight.data.cpu().numpy()
@@ -64,12 +62,23 @@ class ComprehensiveVGGPruner:
         # Handle biases
         if conv.bias is not None:
             bias_numpy = conv.bias.data.cpu().numpy()
-            new_bias = np.delete(bias_numpy, filter_index)
-            new_conv.bias.data = torch.from_numpy(new_bias).to('mps')
+            bias = np.zeros(shape=(bias_numpy.shape[0] - 1), dtype=np.float32)
+            bias[:filter_index] = bias_numpy[:filter_index]
+            bias[filter_index:] = bias_numpy[filter_index + 1:]
+            new_conv.bias.data = torch.from_numpy(bias).to('mps')
 
         # Handle the next Conv2D layer if it exists
         if next_conv is not None:
-            next_new_conv = self.make_conv(next_conv)
+            next_new_conv = torch.nn.Conv2d(
+                in_channels=next_conv.in_channels - 1,
+                out_channels=next_conv.out_channels,
+                kernel_size=next_conv.kernel_size,
+                stride=next_conv.stride,
+                padding=next_conv.padding,
+                dilation=next_conv.dilation,
+                groups=next_conv.groups,
+                bias=(next_conv.bias is not None),
+            )
 
             old_weights = next_conv.weight.data.cpu().numpy()
             new_weights = next_new_conv.weight.data.cpu().numpy()
@@ -82,9 +91,8 @@ class ComprehensiveVGGPruner:
             next_new_conv.bias.data = next_conv.bias.data if next_conv.bias is not None else None
 
             # Replace both layers
-            model.features = self.replace_layers(model.features, layer_index, [layer_index], [new_conv])
-            model.features = self.replace_layers(model.features, layer_index + offset, [layer_index + offset], [next_new_conv])
-            
+            model.features[layer_index] = new_conv
+            model.features[layer_index + offset] = next_new_conv
         else:
             # Replace only the current layer
             model.features[layer_index] = new_conv
@@ -93,13 +101,6 @@ class ComprehensiveVGGPruner:
             layer_index = 0
             old_linear_layer = None
 
-
-            # for i in range(len(model.classifier)):
-            #     if isinstance(model.classifier[i], torch.nn.Linear):
-            #         old_linear_layer = model.classifier[i]
-            #         layer_index = i
-            #         break
-            
             for i, module in enumerate(model.classifier):
                 if isinstance(module, torch.nn.Linear):
                     old_linear_layer = module
@@ -134,18 +135,6 @@ class ComprehensiveVGGPruner:
             model.classifier[layer_index] = new_linear_layer
 
         return model
-
-    def make_conv(self, conv):
-        return torch.nn.Conv2d(
-            in_channels=conv.in_channels,
-            out_channels=conv.out_channels - 1,
-            kernel_size=conv.kernel_size,
-            stride=conv.stride,
-            padding=conv.padding,
-            dilation=conv.dilation,
-            groups=conv.groups,
-            bias=(conv.bias is not None),
-        )
     
     def prune_all_layers(self):
         # print("Starting comprehensive pruning of VGG16...")
@@ -168,5 +157,5 @@ class ComprehensiveVGGPruner:
 
             # print(f"Remaining filters: {self.model.features[layer_idx].out_channels}")
 
-        # print("Pruning completed!")
+        print("Pruning completed!")
         return self.model
