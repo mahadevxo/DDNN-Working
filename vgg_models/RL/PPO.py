@@ -41,7 +41,7 @@ class PruningEnv:
             A tuple containing the next state, reward, done flag, and info dictionary.
         """
         s = torch.clamp(action, 0.0, 0.99)
-        accuracy, model_size, computation_time = GetAccuracy().get_accuracy(sparsity=s.item(), model=model_sel, initial=False)
+        accuracy, model_size, computation_time = GetAccuracy(model=model_sel).get_accuracy(sparsity=s.item(), model=model_sel, initial=False)
         penalty = max(MIN_ACCURACY - accuracy, 0.0)
         reward = s.item() - lambda_penalty * (penalty ** 2) - lambda_model * model_size - lambda_compute * computation_time
         
@@ -253,7 +253,7 @@ for update in range(num_updates):
     state_eval = env.reset().float().unsqueeze(0).to(device, non_blocking=True)
     mean, _ = agent.policy(state_eval)
     s_eval = torch.clamp(mean, 0.0, 0.99).item()
-    accuracy, model_size, computation_time = get_acc.get_accuracy(sparsity=s_eval, model_sel=model_sel, initial=False)
+    accuracy, model_size, computation_time = get_acc.get_accuracy(sparsity=s_eval, model=model_sel, initial=False)
     penalty = max(MIN_ACCURACY - accuracy, 0.0)
     reward = s_eval - lambda_penalty * (penalty ** 2) - lambda_model * model_size - lambda_compute * computation_time
     
