@@ -101,7 +101,7 @@ class GetAccuracy:
             # print('Loss: ', running_loss)
         return model
         
-    def get_accuracy(self, model_sel, sparsity):
+    def get_accuracy(self, model_sel, sparsity, initial=False):
         """Calculates the accuracy, model size, and computation time for a given model and sparsity.
 
         This function prunes the specified model with the given sparsity, fine-tunes it, and then
@@ -117,7 +117,8 @@ class GetAccuracy:
         
         model = self.get_model(model_sel)
         model = self.prune_model(model, sparsity)
-        model = self.fine_tuning(model)
+        if not initial:
+            model = self.fine_tuning(model)
         
         model.eval()
         model = model.to(self.device)
