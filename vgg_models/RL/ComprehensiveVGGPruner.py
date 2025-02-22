@@ -2,20 +2,12 @@ import torch
 import numpy as np
 class ComprehensiveVGGPruner:
     def __init__(self, model, prune_percentage=0.5):
-        """
-        Initialize the pruner with a VGG model and desired pruning percentage.
-        ˀ
-        Args:
-            model: The VGG16 model to prune
-            prune_percentage: Percentage of filters to remove from each layer (0.0 to 1.0)
-        """
         self.model = model
         self.prune_percentage = prune_percentage
         self.conv_layers = self.get_conv_layer_indices()
         
     def get_conv_layer_indices(self):
         # sourcery skip: inline-immediately-returned-variable, list-comprehension
-        """Find all convolutional layer indices in the model."""
         conv_indices = []
         for i, layer in enumerate(self.model.features):
             if isinstance(layer, torch.nn.Conv2d):
@@ -23,7 +15,6 @@ class ComprehensiveVGGPruner:
         return conv_indices
     
     def calculate_filters_per_layer(self):
-        """Calculate how many filters to remove from each layer."""
         filters_to_prune = {}
         for layer_idx in self.conv_layers:
             layer = list(self.model.features._modules.items())[layer_idx][1]
@@ -35,21 +26,6 @@ class ComprehensiveVGGPruner:
         return filters_to_prune
     
     def prune_conv_layer(self, model, layer_index, filter_index):
-        """Prunes a single convolutional layer in the model.
-
-        This function removes a specified filter from a convolutional layer and adjusts the subsequent layer accordingly, handling both convolutional and linear layers. It copies the weights from the original layer, excluding the pruned filter, and updates the model in place.
-
-        Args:
-            model: The PyTorch model to prune.
-            layer_index: The index of the convolutional layer to prune.
-            filter_index: The index of the filter to remove within the layer.
-
-        Returns:
-            torch.nn.Module: The updated model with the pruned layer.
-
-        Raises:
-            ValueError: If no linear layer is found in the classifier when pruning the last convolutional layer.
-        """
     # Extract the target Conv2D layer
         _, conv = list(model.features._modules.items())[layer_index]
         next_conv = None
@@ -160,7 +136,6 @@ class ComprehensiveVGGPruner:
         return model
     
     def prune_all_layers(self):
-        """Prune all convolutional layers in the network."""
         # print("Starting comprehensive pruning of VGG16...")
 
         # Calculate number of filters to remove per layer
@@ -181,5 +156,5 @@ class ComprehensiveVGGPruner:
 
             # print(f"Remaining filters: {self.model.features[layer_idx].out_channels}")
 
-        print("Pruning completed!")
+        # print("Pruning completed!")
         return self.model

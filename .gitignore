@@ -20,3 +20,4 @@ pruning_tf/imagenet-sample-images/
 /pruning_tf/*.keras
 vgg_models/cat-dogs-dataset
 vgg_models/imagenet-mini
+vgg_models/RL/imagenet-mini

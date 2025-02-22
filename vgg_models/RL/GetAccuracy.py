@@ -7,7 +7,7 @@ from ComprehensiveVGGPruner import ComprehensiveVGGPruner
 class GetAccuracy:
     def __init__(self):
         self.device = 'mps' if torch.backends.mps.is_available() else 'cuda' if torch.cuda.is_available() else 'cpu'
-        print('Device: ', self.device)
+        # print('Device: ', self.device)
     
     def replace_layers(self, features, layer_idx, replace_indices, new_layers):
         new_features = []
@@ -55,10 +55,15 @@ class GetAccuracy:
                 loss.backward()
                 optimizer.step()
                 running_loss += loss.item()
-            print('Loss: ', running_loss)
+            # print('Loss: ', running_loss)
         return model
         
-    def get_accuracy(self, model, data_loader):
+    def get_accuracy(self, model_sel, sparsity):
+        
+        model = self.get_model(model_sel)
+        model = self.prune_model(model, sparsity)
+        model = self.fine_tuning(model)
+        
         model.eval()
         model = model.to(self.device)
         correct = total = computation_time = 0
@@ -83,6 +88,6 @@ class GetAccuracy:
             'vgg16': models.vgg16(weights = models.VGG16_Weights.IMAGENET1K_V1),
             'vgg11': models.vgg11(weights = models.VGG11_Weights.IMAGENET1K_V1),
             'vgg19': models.vgg19(weights = models.VGG19_Weights.IMAGENET1K_V1),
-            'alexnet': models.alexnet(weights = models.ALEXNET_Weights.IMAGENET1K_V1),
+            'alexnet': models.alexnet(weights = models.AlexNet_Weights.IMAGENET1K_V1),
         }
         return model_selection[name]

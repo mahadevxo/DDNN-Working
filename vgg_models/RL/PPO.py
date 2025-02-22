@@ -23,12 +23,8 @@ device = 'mps' if torch.backends.mps.is_available() else 'cuda' if torch.cuda.is
 model_sel = 'vgg16'
 
 def get_accuracy(sparsity):
-    model = GetAccuracy().get_model(model_sel)
-    model = GetAccuracy().prune_model(model, sparsity)
-    model = GetAccuracy().fine_tuning(model)
-    data_loader = GetAccuracy().get_random_images()
-    accuracy, model_size, computation_time = GetAccuracy().get_accuracy(model, data_loader)
-    return accuracy, model_size, computation_time
+    get_accuracy = GetAccuracy()
+    return  get_accuracy.get_accuracy(model_sel, sparsity)
 
 class PruningEnv:
     def __init__(self):
@@ -52,11 +48,12 @@ class PolicyNetwork(nn.Module):
     def __init__(self, state_dim, hidden_dim, action_dim):
         super(PolicyNetwork, self).__init__()
         self.fc1 = nn.Linear(state_dim, hidden_dim)
+        self.act = nn.Tanh()
         self.fc_mean = nn.Linear(hidden_dim, action_dim)
         self.log_std = nn.Parameter(torch.zeros(action_dim))
 
     def forward(self, x):
-        x = torch.tanh =(self.fc1(x))
+        x = self.act(self.fc1(x))
         mean = self.fc_mean(x)
         std = torch.exp(self.log_std)
         return mean, std
@@ -65,17 +62,22 @@ class ValueNetwork(nn.Module):
     def __init__(self, state_dim, hidden_dim):
         super(ValueNetwork, self).__init__()
         self.fc1 = nn.Linear(state_dim, hidden_dim)
+        self.act = nn.Tanh()
         self.fc2 = nn.Linear(hidden_dim, 1)
 
     def forward(self, x):
-        x = torch.tanh(self.fc1(x))
-        x = self.fc2(x)
-        return x
+        try:
+            x =self.act(self.fc1(x))
+            x = self.fc2(x)
+            return x
+        except Exception as exp:
+            print(x, "Exception: ", exp)
+            exit()
 
 class PPOAgent:
     def __init__(self, state_dim, hidden_dim, action_dim, lr):
-        self.policy = PolicyNetwork(state_dim, hidden_dim, action_dim)
-        self.value_function = ValueNetwork(state_dim, hidden_dim)
+        self.policy = PolicyNetwork(state_dim, hidden_dim, action_dim).to(device)
+        self.value_function = ValueNetwork(state_dim, hidden_dim).to(device)
         self.optimizer = optim.Adam(
             list(self.policy.parameters()) + list(self.value_function.parameters()),
             lr = lr
@@ -110,4 +112,77 @@ def ppo_update(agent, trajectories, clip_param, ppo_epochs, batch_size):
     
     for _ in range(ppo_epochs):
         indices = np.random.permutation(dataset_size)
+        for start in range(0, dataset_size, batch_size):
+            end = start + batch_size
+            mini_indices = indices[start:end]
+            states_mini = states[mini_indices]
+            actions_mini = actions[mini_indices]
+            log_probs_old_mini = log_probs_old[mini_indices]
+            returns_mini = returns[mini_indices]
+            advantages_mini = advantages[mini_indices]
+            
+            log_probs, entropies, values = agent.evaluate(states_mini, actions_mini)
+            ratio = torch.exp(log_probs - log_probs_old_mini)
+            
+            surr1 = ratio * advantages_mini
+            surr2 = torch.clamp(ratio, 1.0 - clip_param, 1.0 + clip_param) * advantages_mini
+            policy_loss = -torch.min(surr1, surr2).mean()
+            value_loss = nn.MSELoss()(values, returns_mini)
+            entropy_bonus = entropies.mean()
+            
+            loss = policy_loss + 0.5 * value_loss - 0.01 * entropy_bonus
+            agent.optimizer.zero_grad()
+            loss.backward()
+            agent.optimizer.step()
+
+print(f"Initial Accuracy: {get_accuracy(0.0)[0]:.2f}")
+min_acc = input("Enter minimum acceptable accuracy: ")
+if min_acc != "":
+    MIN_ACCURACY = float(min_acc)
+print(f"Minimum acceptable accuracy: {MIN_ACCURACY:.2f}")
+
+env = PruningEnv()
+state_dim = 1
+hidden_dim = 64
+action_dim = 1
+agent = PPOAgent(state_dim, hidden_dim, action_dim, learning_rate)
+
+for update in range(num_updates):
+    trajectories = []
+    
+    for _ in range(episodes_per_update):
+        states, actions, log_probs = [], [], []
         
+        state = env.reset().float().unsqueeze(0).to(device)
+        action, log_prob = agent.select_action(state)
+        
+        states.append(state)
+        actions.append(action)
+        log_probs.append(log_prob)
+        
+        next_state, reward, done, info = env.step(action)
+        trajectory = {
+            'states': torch.cat(states, dim=0),
+            'actions': torch.cat(actions, dim=0),
+            'log_probs': torch.cat(log_probs, dim=0),
+            'returns': reward,
+            'info': info
+        }
+        trajectories.append(trajectory)
+        
+    ppo_update(agent, trajectories, clip_param, ppo_epochs, batch_size)
+    
+    state_eval = env.reset().float().unsqueeze(0).to(device)
+    mean, _ = agent.policy(state_eval)
+    s_eval = torch.clamp(mean, 0.0, 0.99).item()
+    accuracy, model_size, computation_time = get_accuracy(s_eval)
+    penalty = max(MIN_ACCURACY - accuracy, 0.0)
+    reward = s_eval - lambda_penalty * (penalty ** 2) - lambda_model * model_size - lambda_compute * computation_time
+    
+    if update % 50 == 0:
+        print(f"Update: {update:03d}, Sparsity: {s_eval:.2f}, Reward: {reward:.2f}, Accuracy: {accuracy:.2f}, Model Size: {model_size:.2f}, Computation Time: {computation_time:.2f}")
+        
+print("Training completed, final sparsity: {:.2f}".format(s_eval))
+print("Final accuracy: {:.2f}".format(accuracy))
+print("Final model size: {:.2f}".format(model_size))
+print("Final computation time: {:.2f}".format(computation_time))
