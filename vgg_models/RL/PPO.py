@@ -1,4 +1,3 @@
-from pyexpat import model
 from GetAccuracy import GetAccuracy
 import torch
 import torch.nn as nn
@@ -180,7 +179,8 @@ def ppo_update(agent, trajectories, clip_param, ppo_epochs, batch_size):
     
     dataset_size = states.size(0)
     
-    for _ in range(ppo_epochs):
+    for update in range(ppo_epochs):
+        print(f"Update: {update:03d}")
         indices = np.random.permutation(dataset_size)
         for start in range(0, dataset_size, batch_size):
             end = start + batch_size
