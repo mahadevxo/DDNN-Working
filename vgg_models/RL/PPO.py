@@ -279,5 +279,4 @@ def main():
     print("Final computation time: {:.2f}".format(computation_time))
     
 
-if __name__ == '__main__':
-    main()
+main()
