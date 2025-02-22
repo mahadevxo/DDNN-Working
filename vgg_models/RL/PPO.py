@@ -230,9 +230,8 @@ PPO Epochs: {ppo_epochs},\n \
 Batch Size: {batch_size},\n \
 Learning Rate: {learning_rate},\n \
 Num Updates: {num_updates},\n \
-Episodes per Update: {episodes_per_update}\n")
-
-print(f"Device: {device}")
+Episodes per Update: {episodes_per_update}\n, \
+Device: {device}\n")
 
 env = PruningEnv()
 state_dim = 1
