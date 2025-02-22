@@ -22,21 +22,6 @@ device = 'mps' if torch.backends.mps.is_available() else 'cuda' if torch.cuda.is
 
 model_sel = 'vgg16'
 
-def get_accuracy(sparsity):
-    """Gets the accuracy, model size, and computation time for a given sparsity.
-
-    This function calculates the accuracy, model size, and computation time for a given sparsity
-    using the `GetAccuracy` class.
-
-    Args:
-        sparsity: The sparsity value.
-
-    Returns:
-        A tuple containing the accuracy, model size, and computation time.
-    """
-    get_accuracy = GetAccuracy()
-    return  get_accuracy.get_accuracy(model_sel, sparsity)
-
 class PruningEnv:
     def __init__(self):
         self.state = torch.tensor([0.0])
@@ -225,7 +210,10 @@ This function initializes the environment and agent, then runs the PPO training 
 It periodically prints the training progress and final results.
 """
 print("Starting PPO training...")
-print(f"Initial Accuracy: {get_accuracy(0.0, initial=True)[0]:.2f}")
+
+get_acc = GetAccuracy(model_sel)
+
+print(f"Initial Accuracy: {get_acc.get_accuracy(0.0, initial=True)[0]:.2f}")
 min_acc = input("Enter minimum acceptable accuracy: ")
 if min_acc != "":
     MIN_ACCURACY = float(min_acc)
@@ -265,7 +253,7 @@ for update in range(num_updates):
     state_eval = env.reset().float().unsqueeze(0).to(device)
     mean, _ = agent.policy(state_eval)
     s_eval = torch.clamp(mean, 0.0, 0.99).item()
-    accuracy, model_size, computation_time = get_accuracy(s_eval)
+    accuracy, model_size, computation_time = get_acc.get_accuracy(s_eval)
     penalty = max(MIN_ACCURACY - accuracy, 0.0)
     reward = s_eval - lambda_penalty * (penalty ** 2) - lambda_model * model_size - lambda_compute * computation_time
     
