@@ -11,10 +11,10 @@ class GetAccuracy:
     This class provides methods for pruning, fine-tuning, and evaluating the performance of
     various pre-trained models (like VGG) on a subset of ImageNet.
     """
-    def __init__(self):
-        
+    def __init__(self, model):
         self.device = 'mps' if torch.backends.mps.is_available() else 'cuda' if torch.cuda.is_available() else 'cpu'
         print('Device: ', self.device)
+        self.model = model
     
     def replace_layers(self, features, layer_idx, replace_indices, new_layers):
         """Replaces specific layers in a feature list with new layers.
