@@ -86,7 +86,7 @@ class GetAccuracy:
         model = model.to(self.device)
         optimizer = torch.optim.SGD(model.parameters(), lr=0.001, momentum=0.9)
         criterion = torch.nn.CrossEntropyLoss()
-        
+        print(f'Fine-tuning using {self.device}...')
         for _ in range(3):
             running_loss = 0.0
             for data in self.get_random_images(n=300):
