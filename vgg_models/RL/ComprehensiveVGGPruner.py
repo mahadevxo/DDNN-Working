@@ -1,6 +1,12 @@
 import torch
 import numpy as np
 class ComprehensiveVGGPruner:
+    """Prunes VGG models comprehensively.
+
+    This class prunes convolutional layers in a VGG model by removing filters and adjusting
+    subsequent layers accordingly, including linear layers.  It aims to reduce model size
+    while preserving accuracy.
+    """
     def __init__(self, model, prune_percentage=0.5):
         self.model = model
         self.prune_percentage = prune_percentage
@@ -15,6 +21,14 @@ class ComprehensiveVGGPruner:
         return conv_indices
     
     def calculate_filters_per_layer(self):
+        """Calculates the number of filters to prune per convolutional layer.
+
+        This function determines how many filters to prune in each convolutional layer based on the
+        `prune_percentage` and ensures at least two filters remain per layer.
+
+        Returns:
+            A dictionary where keys are layer indices and values are the number of filters to prune.
+        """
         filters_to_prune = {}
         for layer_idx in self.conv_layers:
             layer = list(self.model.features._modules.items())[layer_idx][1]
@@ -26,6 +40,22 @@ class ComprehensiveVGGPruner:
         return filters_to_prune
     
     def prune_conv_layer(self, model, layer_index, filter_index):
+        """Prunes a single filter from a convolutional layer.
+
+        This function removes a specified filter from a convolutional layer and updates
+        subsequent convolutional and linear layers to maintain network connectivity.
+
+        Args:
+            model: The VGG model being pruned.
+            layer_index: The index of the convolutional layer to prune.
+            filter_index: The index of the filter to remove within the layer.
+
+        Returns:
+            The updated VGG model with the pruned layer.
+
+        Raises:
+            ValueError: If no linear layer is found in the classifier.
+        """
     # Extract the target Conv2D layer
         _, conv = list(model.features._modules.items())[layer_index]
         next_conv = None
@@ -136,6 +166,14 @@ class ComprehensiveVGGPruner:
         return model
     
     def prune_all_layers(self):
+        """Prunes all convolutional layers in the model.
+
+        This function calculates the number of filters to prune per layer and then iteratively
+        prunes each convolutional layer, starting from the last layer and working backwards.
+
+        Returns:
+            The updated VGG model with all convolutional layers pruned.
+        """
         # print("Starting comprehensive pruning of VGG16...")
 
         # Calculate number of filters to remove per layer
