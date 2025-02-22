@@ -221,16 +221,16 @@ if min_acc != "":
 print(f"Minimum acceptable accuracy: {MIN_ACCURACY:.2f}")
 
 print(f"Settings:\n \
-    Lambda Penalty: {lambda_penalty},\n \
-        Lambda Model: {lambda_model},\n \
-            Lambda Compute: {lambda_compute},\n \
-                Gamma: {gamma},\n \
-                    Clip Param: {clip_param},\n \
-                        PPO Epochs: {ppo_epochs},\n \
-                            Batch Size: {batch_size},\n \
-                                Learning Rate: {learning_rate},\n \
-                                    Num Updates: {num_updates},\n \
-                                        Episodes per Update: {episodes_per_update}\n")
+Lambda Penalty: {lambda_penalty},\n \
+Lambda Model: {lambda_model},\n \
+Lambda Compute: {lambda_compute},\n \
+Gamma: {gamma},\n \
+Clip Param: {clip_param},\n \
+PPO Epochs: {ppo_epochs},\n \
+Batch Size: {batch_size},\n \
+Learning Rate: {learning_rate},\n \
+Num Updates: {num_updates},\n \
+Episodes per Update: {episodes_per_update}\n")
 
 print(f"Device: {device}")
 
@@ -242,7 +242,7 @@ agent = PPOAgent(state_dim, hidden_dim, action_dim, learning_rate)
 
 for update in range(num_updates):
     trajectories = []
-    print(f"Update -->: {update:03d}")
+    print(f"Update --> {update:03d}")
     
     for _ in range(episodes_per_update):    
         states, actions, log_probs = [], [], []
