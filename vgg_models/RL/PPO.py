@@ -220,17 +220,17 @@ if min_acc != "":
     MIN_ACCURACY = float(min_acc)
 print(f"Minimum acceptable accuracy: {MIN_ACCURACY:.2f}")
 
-print(f"Settings: \
-    Lambda Penalty: {lambda_penalty}, \
-        Lambda Model: {lambda_model}, \
-            Lambda Compute: {lambda_compute}, \
-                Gamma: {gamma}, \
-                    Clip Param: {clip_param}, \
-                        PPO Epochs: {ppo_epochs}, \
-                            Batch Size: {batch_size}, \
-                                Learning Rate: {learning_rate}, \
-                                    Num Updates: {num_updates}, \
-                                        Episodes per Update: {episodes_per_update}")
+print(f"Settings:\n \
+    Lambda Penalty: {lambda_penalty},\n \
+        Lambda Model: {lambda_model},\n \
+            Lambda Compute: {lambda_compute},\n \
+                Gamma: {gamma},\n \
+                    Clip Param: {clip_param},\n \
+                        PPO Epochs: {ppo_epochs},\n \
+                            Batch Size: {batch_size},\n \
+                                Learning Rate: {learning_rate},\n \
+                                    Num Updates: {num_updates},\n \
+                                        Episodes per Update: {episodes_per_update}\n")
 
 print(f"Device: {device}")
 
@@ -242,9 +242,9 @@ agent = PPOAgent(state_dim, hidden_dim, action_dim, learning_rate)
 
 for update in range(num_updates):
     trajectories = []
-    print(f"Update: {update:03d}")
+    print(f"Update -->: {update:03d}")
     
-    for _ in range(episodes_per_update):
+    for _ in range(episodes_per_update):    
         states, actions, log_probs = [], [], []
         
         state = env.reset().float().unsqueeze(0).to(device, non_blocking=True)
