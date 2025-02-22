@@ -21,3 +21,5 @@ pruning_tf/imagenet-sample-images/
 vgg_models/cat-dogs-dataset
 vgg_models/imagenet-mini
 vgg_models/RL/imagenet-mini
+vgg_models/RL/__pycache__/ComprehensiveVGGPruner.cpython-310.pyc
+vgg_models/RL/__pycache__/GetAccuracy.cpython-310.pyc

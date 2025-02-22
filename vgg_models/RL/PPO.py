@@ -219,64 +219,60 @@ def ppo_update(agent, trajectories, clip_param, ppo_epochs, batch_size):
             loss.backward()
             agent.optimizer.step()
 
-def main():
-    """Main function for training the PPO agent.
+"""Main function for training the PPO agent.
 
-    This function initializes the environment and agent, then runs the PPO training loop.
-    It periodically prints the training progress and final results.
-    """
+This function initializes the environment and agent, then runs the PPO training loop.
+It periodically prints the training progress and final results.
+"""
+
+print(f"Initial Accuracy: {get_accuracy(0.0)[0]:.2f}")
+min_acc = input("Enter minimum acceptable accuracy: ")
+if min_acc != "":
+    MIN_ACCURACY = float(min_acc)
+print(f"Minimum acceptable accuracy: {MIN_ACCURACY:.2f}")
+
+env = PruningEnv()
+state_dim = 1
+hidden_dim = 64
+action_dim = 1
+agent = PPOAgent(state_dim, hidden_dim, action_dim, learning_rate)
+
+for update in range(num_updates):
+    trajectories = []
     
-    print(f"Initial Accuracy: {get_accuracy(0.0)[0]:.2f}")
-    min_acc = input("Enter minimum acceptable accuracy: ")
-    if min_acc != "":
-        MIN_ACCURACY = float(min_acc)
-    print(f"Minimum acceptable accuracy: {MIN_ACCURACY:.2f}")
-
-    env = PruningEnv()
-    state_dim = 1
-    hidden_dim = 64
-    action_dim = 1
-    agent = PPOAgent(state_dim, hidden_dim, action_dim, learning_rate)
-
-    for update in range(num_updates):
-        trajectories = []
+    for _ in range(episodes_per_update):
+        states, actions, log_probs = [], [], []
         
-        for _ in range(episodes_per_update):
-            states, actions, log_probs = [], [], []
-            
-            state = env.reset().float().unsqueeze(0).to(device)
-            action, log_prob = agent.select_action(state)
-            
-            states.append(state)
-            actions.append(action)
-            log_probs.append(log_prob)
-            
-            next_state, reward, done, info = env.step(action)
-            trajectory = {
-                'states': torch.cat(states, dim=0),
-                'actions': torch.cat(actions, dim=0),
-                'log_probs': torch.cat(log_probs, dim=0),
-                'returns': reward,
-                'info': info
-            }
-            trajectories.append(trajectory)
-            
-        ppo_update(agent, trajectories, clip_param, ppo_epochs, batch_size)
+        state = env.reset().float().unsqueeze(0).to(device)
+        action, log_prob = agent.select_action(state)
         
-        state_eval = env.reset().float().unsqueeze(0).to(device)
-        mean, _ = agent.policy(state_eval)
-        s_eval = torch.clamp(mean, 0.0, 0.99).item()
-        accuracy, model_size, computation_time = get_accuracy(s_eval)
-        penalty = max(MIN_ACCURACY - accuracy, 0.0)
-        reward = s_eval - lambda_penalty * (penalty ** 2) - lambda_model * model_size - lambda_compute * computation_time
+        states.append(state)
+        actions.append(action)
+        log_probs.append(log_prob)
         
-        if update % 50 == 0:
-            print(f"Update: {update:03d}, Sparsity: {s_eval:.2f}, Reward: {reward:.2f}, Accuracy: {accuracy:.2f}, Model Size: {model_size:.2f}, Computation Time: {computation_time:.2f}")
-            
-    print("Training completed, final sparsity: {:.2f}".format(s_eval))
-    print("Final accuracy: {:.2f}".format(accuracy))
-    print("Final model size: {:.2f}".format(model_size))
-    print("Final computation time: {:.2f}".format(computation_time))
+        next_state, reward, done, info = env.step(action)
+        trajectory = {
+            'states': torch.cat(states, dim=0),
+            'actions': torch.cat(actions, dim=0),
+            'log_probs': torch.cat(log_probs, dim=0),
+            'returns': reward,
+            'info': info
+        }
+        trajectories.append(trajectory)
+        
+    ppo_update(agent, trajectories, clip_param, ppo_epochs, batch_size)
     
-
-main()
+    state_eval = env.reset().float().unsqueeze(0).to(device)
+    mean, _ = agent.policy(state_eval)
+    s_eval = torch.clamp(mean, 0.0, 0.99).item()
+    accuracy, model_size, computation_time = get_accuracy(s_eval)
+    penalty = max(MIN_ACCURACY - accuracy, 0.0)
+    reward = s_eval - lambda_penalty * (penalty ** 2) - lambda_model * model_size - lambda_compute * computation_time
+    
+    if update % 50 == 0:
+        print(f"Update: {update:03d}, Sparsity: {s_eval:.2f}, Reward: {reward:.2f}, Accuracy: {accuracy:.2f}, Model Size: {model_size:.2f}, Computation Time: {computation_time:.2f}")
+        
+print("Training completed, final sparsity: {:.2f}".format(s_eval))
+print("Final accuracy: {:.2f}".format(accuracy))
+print("Final model size: {:.2f}".format(model_size))
+print("Final computation time: {:.2f}".format(computation_time))
