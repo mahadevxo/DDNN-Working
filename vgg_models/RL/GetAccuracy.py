@@ -139,6 +139,9 @@ class GetAccuracy:
         return accuracy, model_size, computation_time
     
     def get_model(self, name='vgg16'):
+        '''
+        CHANGE THIS TO IF ELSE STATEMENT
+        '''
         model_selection = {
             'vgg16': models.vgg16(weights = models.VGG16_Weights.IMAGENET1K_V1),
             'vgg11': models.vgg11(weights = models.VGG11_Weights.IMAGENET1K_V1),

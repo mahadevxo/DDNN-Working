@@ -11,6 +11,7 @@ class ComprehensiveVGGPruner:
         self.model = model
         self.prune_percentage = prune_percentage
         self.conv_layers = self.get_conv_layer_indices()
+        self.device = 'mps' if torch.backends.mps.is_available() else 'cuda' if torch.cuda.is_available() else 'cpu'
         
     def get_conv_layer_indices(self):
         # sourcery skip: inline-immediately-returned-variable, list-comprehension
@@ -88,13 +89,13 @@ class ComprehensiveVGGPruner:
         # Copy weights except for the pruned filter
         new_weights[:filter_index] = old_weights[:filter_index]
         new_weights[filter_index:] = old_weights[filter_index + 1:]
-        new_conv.weight.data = torch.from_numpy(new_weights).to('mps')
+        new_conv.weight.data = torch.from_numpy(new_weights).to(self.device)
 
         # Handle biases
         if conv.bias is not None:
             bias_numpy = conv.bias.data.cpu().numpy()
             new_bias = np.delete(bias_numpy, filter_index)
-            new_conv.bias.data = torch.from_numpy(new_bias).to('mps')
+            new_conv.bias.data = torch.from_numpy(new_bias).to(self.device)
 
         # Handle the next Conv2D layer if it exists
         if next_conv is not None:
@@ -116,7 +117,7 @@ class ComprehensiveVGGPruner:
             new_weights[:, :filter_index] = old_weights[:, :filter_index]
             new_weights[:, filter_index:] = old_weights[:, filter_index + 1:]
 
-            next_new_conv.weight.data = torch.from_numpy(new_weights).to('mps')
+            next_new_conv.weight.data = torch.from_numpy(new_weights).to(self.device)
             next_new_conv.bias.data = next_conv.bias.data if next_conv.bias is not None else None
 
             # Replace both layers
@@ -157,7 +158,7 @@ class ComprehensiveVGGPruner:
             new_weights[:, filter_index * params_per_input_channel:] = \
                 old_weights[:, (filter_index + 1) * params_per_input_channel:]
 
-            new_linear_layer.weight.data = torch.from_numpy(new_weights).to('mps')
+            new_linear_layer.weight.data = torch.from_numpy(new_weights).to(self.device)
             new_linear_layer.bias.data = old_linear_layer.bias.data
 
             # Replace the linear layer
