@@ -224,7 +224,7 @@ def ppo_update(agent, trajectories, clip_param, ppo_epochs, batch_size):
 This function initializes the environment and agent, then runs the PPO training loop.
 It periodically prints the training progress and final results.
 """
-
+print("Starting PPO training...")
 print(f"Initial Accuracy: {get_accuracy(0.0)[0]:.2f}")
 min_acc = input("Enter minimum acceptable accuracy: ")
 if min_acc != "":

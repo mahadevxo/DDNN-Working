@@ -14,7 +14,7 @@ class GetAccuracy:
     def __init__(self):
         
         self.device = 'mps' if torch.backends.mps.is_available() else 'cuda' if torch.cuda.is_available() else 'cpu'
-        # print('Device: ', self.device)
+        print('Device: ', self.device)
     
     def replace_layers(self, features, layer_idx, replace_indices, new_layers):
         """Replaces specific layers in a feature list with new layers.
