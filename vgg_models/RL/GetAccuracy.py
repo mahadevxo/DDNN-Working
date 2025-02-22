@@ -64,7 +64,7 @@ class GetAccuracy:
         num_samples = n
         indices = random.sample(range(len(data_dataset)), num_samples)
         subset_dataset = Subset(data_dataset, indices)
-        return DataLoader(subset_dataset, batch_size=32, shuffle=True)
+        return DataLoader(subset_dataset, batch_size=32, shuffle=True, num_workers=4)
     
     def prune_model(self, model_org, pruning_amount):
         model = deepcopy(model_org)
@@ -83,7 +83,7 @@ class GetAccuracy:
         Returns:
             The fine-tuned model.
         """
-        model = model.to(self.device)
+        model = model.to(self.device, non_blocking=True)
         optimizer = torch.optim.SGD(model.parameters(), lr=0.001, momentum=0.9)
         criterion = torch.nn.CrossEntropyLoss()
         print(f'Fine-tuning using {self.device}...')
@@ -91,7 +91,7 @@ class GetAccuracy:
             running_loss = 0.0
             for data in self.get_random_images(n=300):
                 inputs, labels = data
-                inputs, labels = inputs.to(self.device), labels.to(self.device)
+                inputs, labels = inputs.to(self.device, non_blocking=True), labels.to(self.device, non_blocking=True)
                 optimizer.zero_grad()
                 outputs = model(inputs)
                 loss = criterion(outputs, labels)
@@ -121,13 +121,13 @@ class GetAccuracy:
             model = self.fine_tuning(model)
         
         model.eval()
-        model = model.to(self.device)
+        model = model.to(self.device, non_blocking=True)
         correct = total = computation_time = 0
         
         with torch.no_grad():
             for data in self.get_random_images(n=1000):
                 images, labels = data
-                images, labels = images.to(self.device), labels.to(self.device)
+                images, labels = images.to(self.device, non_blocking=True), labels.to(self.device, non_blocking=True)
                 start_time = time.time()
                 outputs = model(images)
                 computation_time += time.time() - start_time

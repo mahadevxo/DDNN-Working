@@ -89,13 +89,13 @@ class ComprehensiveVGGPruner:
         # Copy weights except for the pruned filter
         new_weights[:filter_index] = old_weights[:filter_index]
         new_weights[filter_index:] = old_weights[filter_index + 1:]
-        new_conv.weight.data = torch.from_numpy(new_weights).to(self.device)
+        new_conv.weight.data = torch.from_numpy(new_weights).to(self.device, non_blocking=True)
 
         # Handle biases
         if conv.bias is not None:
             bias_numpy = conv.bias.data.cpu().numpy()
             new_bias = np.delete(bias_numpy, filter_index)
-            new_conv.bias.data = torch.from_numpy(new_bias).to(self.device)
+            new_conv.bias.data = torch.from_numpy(new_bias).to(self.device, non_blocking=True)
 
         # Handle the next Conv2D layer if it exists
         if next_conv is not None:
@@ -117,7 +117,7 @@ class ComprehensiveVGGPruner:
             new_weights[:, :filter_index] = old_weights[:, :filter_index]
             new_weights[:, filter_index:] = old_weights[:, filter_index + 1:]
 
-            next_new_conv.weight.data = torch.from_numpy(new_weights).to(self.device)
+            next_new_conv.weight.data = torch.from_numpy(new_weights).to(self.device, non_blocking=True)
             next_new_conv.bias.data = next_conv.bias.data if next_conv.bias is not None else None
 
             # Replace both layers
@@ -158,7 +158,7 @@ class ComprehensiveVGGPruner:
             new_weights[:, filter_index * params_per_input_channel:] = \
                 old_weights[:, (filter_index + 1) * params_per_input_channel:]
 
-            new_linear_layer.weight.data = torch.from_numpy(new_weights).to(self.device)
+            new_linear_layer.weight.data = torch.from_numpy(new_weights).to(self.device, non_blocking=True)
             new_linear_layer.bias.data = old_linear_layer.bias.data
 
             # Replace the linear layer
