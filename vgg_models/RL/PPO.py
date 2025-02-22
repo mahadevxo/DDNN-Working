@@ -41,7 +41,7 @@ class PruningEnv:
             A tuple containing the next state, reward, done flag, and info dictionary.
         """
         s = torch.clamp(action, 0.0, 0.99)
-        accuracy, model_size, computation_time = get_accuracy(s.item())
+        accuracy, model_size, computation_time = GetAccuracy().get_accuracy(sparsity=s.item(), model_sel=model_sel, initial=False)
         penalty = max(MIN_ACCURACY - accuracy, 0.0)
         reward = s.item() - lambda_penalty * (penalty ** 2) - lambda_model * model_size - lambda_compute * computation_time
         
@@ -209,7 +209,7 @@ def ppo_update(agent, trajectories, clip_param, ppo_epochs, batch_size):
 This function initializes the environment and agent, then runs the PPO training loop.
 It periodically prints the training progress and final results.
 """
-print("Starting PPO training...")
+print(f"Starting PPO training using {device}...")
 
 get_acc = GetAccuracy(model_sel)
 
