@@ -272,8 +272,7 @@ for update in range(num_updates):
     penalty = max(MIN_ACCURACY - accuracy, 0.0)
     reward = s_eval - lambda_penalty * (penalty ** 2) - lambda_model * model_size - lambda_compute * computation_time
     
-    if update % 50 == 0:
-        print(f"Update: {update:03d}, Sparsity: {s_eval:.2f}, Reward: {reward:.2f}, Accuracy: {accuracy:.2f}, Model Size: {model_size:.2f}, Computation Time: {computation_time:.2f}")
+    print(f"Update: {update:03d}, Sparsity: {s_eval:.2f}, Reward: {reward:.2f}, Accuracy: {accuracy:.2f}, Model Size: {model_size:.2f}, Computation Time: {computation_time:.2f}")
         
 print("Training completed, final sparsity: {:.2f}".format(s_eval))
 print("Final accuracy: {:.2f}".format(accuracy))
