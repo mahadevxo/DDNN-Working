@@ -210,7 +210,7 @@ def ppo_update(agent, trajectories, clip_param, ppo_epochs, batch_size):
 This function initializes the environment and agent, then runs the PPO training loop.
 It periodically prints the training progress and final results.
 """
-print(f"Starting PPO training using {device}...")
+print("Starting PPO training")
 
 get_acc = GetAccuracy(model_sel)
 
@@ -220,6 +220,20 @@ if min_acc != "":
     MIN_ACCURACY = float(min_acc)
 print(f"Minimum acceptable accuracy: {MIN_ACCURACY:.2f}")
 
+print(f"Settings: \
+    Lambda Penalty: {lambda_penalty}, \
+        Lambda Model: {lambda_model}, \
+            Lambda Compute: {lambda_compute}, \
+                Gamma: {gamma}, \
+                    Clip Param: {clip_param}, \
+                        PPO Epochs: {ppo_epochs}, \
+                            Batch Size: {batch_size}, \
+                                Learning Rate: {learning_rate}, \
+                                    Num Updates: {num_updates}, \
+                                        Episodes per Update: {episodes_per_update}")
+
+print(f"Device: {device}")
+
 env = PruningEnv()
 state_dim = 1
 hidden_dim = 64
@@ -228,6 +242,7 @@ agent = PPOAgent(state_dim, hidden_dim, action_dim, learning_rate)
 
 for update in range(num_updates):
     trajectories = []
+    print(f"Update: {update:03d}")
     
     for _ in range(episodes_per_update):
         states, actions, log_probs = [], [], []
