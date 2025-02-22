@@ -225,7 +225,7 @@ This function initializes the environment and agent, then runs the PPO training 
 It periodically prints the training progress and final results.
 """
 print("Starting PPO training...")
-print(f"Initial Accuracy: {get_accuracy(0.0)[0]:.2f}")
+print(f"Initial Accuracy: {get_accuracy(0.0, initial=True)[0]:.2f}")
 min_acc = input("Enter minimum acceptable accuracy: ")
 if min_acc != "":
     MIN_ACCURACY = float(min_acc)
