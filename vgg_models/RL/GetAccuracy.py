@@ -13,6 +13,7 @@ class GetAccuracy:
     """
     def __init__(self, model):
         self.device = 'mps' if torch.backends.mps.is_available() else 'cuda' if torch.cuda.is_available() else 'cpu'
+        self.original_state_dict = deepcopy(model.state_dict())
         # print('Device: ', self.device)
         self.model = model
     
@@ -65,8 +66,8 @@ class GetAccuracy:
         subset_dataset = Subset(data_dataset, indices)
         return DataLoader(subset_dataset, batch_size=32, shuffle=True, num_workers=4)
     
-    def prune_model(self, model_org, pruning_amount):
-        model = deepcopy(model_org)
+    def prune_model(self, model, pruning_amount):
+        model = self.model.load_state_dict(self.original_state_dict)
         pruner = ComprehensiveVGGPruner(model, pruning_amount)
         return pruner.prune_all_layers()
     
