@@ -82,7 +82,7 @@ class GetAccuracy:
         Returns:
             The fine-tuned model.
         """
-        model = model.to(self.device, non_blocking=True)
+        model = model.to(self.device)
         optimizer = torch.optim.SGD(model.parameters(), lr=0.001, momentum=0.9)
         criterion = torch.nn.CrossEntropyLoss()
         # print(f'Fine-tuning using {self.device}...')
@@ -90,7 +90,7 @@ class GetAccuracy:
             running_loss = 0.0
             for data in self.get_random_images(n=300):
                 inputs, labels = data
-                inputs, labels = inputs.to(self.device, non_blocking=True), labels.to(self.device, non_blocking=True)
+                inputs, labels = inputs.to(self.device), labels.to(self.device)
                 optimizer.zero_grad()
                 outputs = model(inputs)
                 loss = criterion(outputs, labels)
@@ -120,13 +120,13 @@ class GetAccuracy:
             model = self.fine_tuning(model)
         
         model.eval()
-        model = model.to(self.device, non_blocking=True)
+        model = model.to(self.device)
         correct = total = computation_time = 0
         
         with torch.no_grad():
             for data in self.get_random_images(num_samples=1000):
                 images, labels = data
-                images, labels = images.to(self.device, non_blocking=True), labels.to(self.device, non_blocking=True)
+                images, labels = images.to(self.device), labels.to(self.device)
                 start_time = time.time()
                 outputs = model(images)
                 computation_time += time.time() - start_time
@@ -136,6 +136,7 @@ class GetAccuracy:
                 
         model_size = sum(param.numel() * param.element_size() for param in model.parameters())
         accuracy = (correct / total) * 100
+        print(f'Sparsity: {sparsity:.2f}, Accuracy: {accuracy:.2f}, Model Size: {model_size}, Computation Time: {computation_time:.2f}')
         return accuracy, model_size, computation_time
     
     def get_model(self, name='vgg16'):

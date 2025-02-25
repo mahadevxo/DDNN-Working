@@ -132,8 +132,8 @@ class PPOAgent:
             action_dim: Dimension of the action space.
             lr: Learning rate for the optimizer.
         """
-        self.policy = PolicyNetwork(state_dim, hidden_dim, action_dim).to(device, non_blocking=True)
-        self.value_function = ValueNetwork(state_dim, hidden_dim).to(device, non_blocking=True)
+        self.policy = PolicyNetwork(state_dim, hidden_dim, action_dim).to(device)
+        self.value_function = ValueNetwork(state_dim, hidden_dim).to(device)
         self.optimizer = optim.Adam(
             list(self.policy.parameters()) + list(self.value_function.parameters()),
             lr = lr
@@ -168,11 +168,11 @@ def ppo_update(agent, trajectories, clip_param, ppo_epochs, batch_size):
         ppo_epochs: The number of epochs to train the PPO for.
         batch_size: The mini-batch size for training.
     """
-    states = torch.cat([traj['states'] for traj in trajectories], dim=0).to(device, non_blocking=True)
-    actions = torch.cat([traj['actions'] for traj in trajectories], dim=0).to(device, non_blocking=True)
-    log_probs_old = torch.cat([traj['log_probs'] for traj in trajectories], dim=0).to(device, non_blocking=True)
+    states = torch.cat([traj['states'] for traj in trajectories], dim=0).to(device)
+    actions = torch.cat([traj['actions'] for traj in trajectories], dim=0).to(device)
+    log_probs_old = torch.cat([traj['log_probs'] for traj in trajectories], dim=0).to(device)
     
-    returns = torch.tensor([traj['returns'] for traj in trajectories], dtype=torch.float).to(device, non_blocking=True)
+    returns = torch.tensor([traj['returns'] for traj in trajectories], dtype=torch.float).to(device)
 
     
     values = agent.value_function(states)
@@ -212,7 +212,7 @@ This function initializes the environment and agent, then runs the PPO training 
 It periodically prints the training progress and final results.
 """
 def main():
-    print("Starting PPO training")
+    print("Starting PPO training for {model_sel}...")
 
     get_acc = GetAccuracy(model_sel)
 
@@ -248,7 +248,7 @@ def main():
         for _ in range(episodes_per_update):    
             states, actions, log_probs = [], [], []
             
-            state = env.reset().float().unsqueeze(0).to(device, non_blocking=True)
+            state = env.reset().float().unsqueeze(0).to(device)
             action, log_prob = agent.select_action(state)
             
             states.append(state)
@@ -267,7 +267,7 @@ def main():
             
         ppo_update(agent, trajectories, clip_param, ppo_epochs, batch_size)
         
-        state_eval = env.reset().float().unsqueeze(0).to(device, non_blocking=True)
+        state_eval = env.reset().float().unsqueeze(0).to(device)
         mean, _ = agent.policy(state_eval)
         s_eval = torch.clamp(mean, 0.0, 0.99).item()
         accuracy, model_size, computation_time = get_acc.get_accuracy(sparsity=s_eval, model_sel=model_sel, initial=False)
