@@ -39,7 +39,7 @@ class GetAccuracy:
                 new_features.append(layer)
         return torch.nn.Sequential(*new_features)
     
-    def get_random_images(self, n=500):
+    def get_random_images(self, num_samples=500):
         """Loads and transforms a random subset of images from the ImageNet mini validation set.
 
         This function applies a series of transformations to the images, including resizing,
@@ -52,7 +52,7 @@ class GetAccuracy:
             A DataLoader object containing the transformed images.
         """
         transform = transforms.Compose([
-        transforms.Resize((255,255)),
+        transforms.Resize((224,224)),
         transforms.RandomHorizontalFlip(), 
         transforms.RandomRotation(15),
         transforms.ToTensor(),
@@ -61,7 +61,6 @@ class GetAccuracy:
     ])
         data_folder = 'imagenet-mini/val'
         data_dataset = datasets.ImageFolder(data_folder, transform=transform)
-        num_samples = n
         indices = random.sample(range(len(data_dataset)), num_samples)
         subset_dataset = Subset(data_dataset, indices)
         return DataLoader(subset_dataset, batch_size=32, shuffle=True, num_workers=4)
@@ -125,7 +124,7 @@ class GetAccuracy:
         correct = total = computation_time = 0
         
         with torch.no_grad():
-            for data in self.get_random_images(n=1000):
+            for data in self.get_random_images(num_samples=1000):
                 images, labels = data
                 images, labels = images.to(self.device, non_blocking=True), labels.to(self.device, non_blocking=True)
                 start_time = time.time()
