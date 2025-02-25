@@ -245,7 +245,8 @@ def main():
         trajectories = []
         print(f"Update --> {update:03d}")
         
-        for _ in range(episodes_per_update):    
+        for up in range(episodes_per_update):    
+            print(f"Episode --> {up:03d}")
             states, actions, log_probs = [], [], []
             
             state = env.reset().float().unsqueeze(0).to(device)
