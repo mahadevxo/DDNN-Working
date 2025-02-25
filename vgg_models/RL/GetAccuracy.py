@@ -14,7 +14,7 @@ class GetAccuracy:
     def __init__(self, model):
         self.device = 'mps' if torch.backends.mps.is_available() else 'cuda' if torch.cuda.is_available() else 'cpu'
         model = models.vgg16(weights = models.VGG16_Weights.IMAGENET1K_V1)
-        self.original_state_dict = model.state_dict()
+        self.original_state_dict = deepcopy(model.state_dict())
         # print('Device: ', self.device)
         self.model = model
     
@@ -41,9 +41,16 @@ class GetAccuracy:
                 new_features.append(layer)
         return torch.nn.Sequential(*new_features)
     
-    def reset(self, model):
-        model.load_state_dict(self.original_state_dict)
-        return model
+    def reset(self):
+        """Resets the model to its original state.
+
+        This function resets the model to its original state by loading the original state dictionary
+        and replacing the layers in the model with the original layers.
+
+        Returns:
+            The model in its original state.
+        """
+        self.model.load_state_dict(self.original_state_dict)
     
     def get_random_images(self, num_samples=500):
         """Loads and transforms a random subset of images from the ImageNet mini validation set.
@@ -72,7 +79,7 @@ class GetAccuracy:
         return DataLoader(subset_dataset, batch_size=32, shuffle=True, num_workers=4)
     
     def prune_model(self, model, pruning_amount):
-        model = self.reset(model)
+        self.reset()
         pruner = ComprehensiveVGGPruner(model, pruning_amount)
         return pruner.prune_all_layers()
     
