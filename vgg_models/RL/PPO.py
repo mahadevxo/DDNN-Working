@@ -212,7 +212,7 @@ This function initializes the environment and agent, then runs the PPO training 
 It periodically prints the training progress and final results.
 """
 def main():
-    print("Starting PPO training for {model_sel}...")
+    print(f"Starting PPO training for {model_sel}...")
 
     get_acc = GetAccuracy(model_sel)
 
