@@ -265,7 +265,6 @@ def main():
                 'info': info
             }
             trajectories.append(trajectory)
-            print(trajectory)
             
         ppo_update(agent, trajectories, clip_param, ppo_epochs, batch_size)
         
@@ -276,7 +275,7 @@ def main():
         penalty = max(MIN_ACCURACY - accuracy, 0.0)
         reward = s_eval - lambda_penalty * (penalty ** 2) - lambda_model * model_size - lambda_compute * computation_time
         
-        print(f"Update: {update:03d}, Sparsity: {s_eval}, Reward: {reward:.2f}, Accuracy: {accuracy:.2f}, Model Size: {model_size:.2f}, Computation Time: {computation_time:.2f}")
+        print(f"Update: {update:03d}, Sparsity: {s_eval}, Reward: {reward:}, Accuracy: {accuracy}, Model Size: {model_size/(1024*1024)}, Computation Time: {computation_time}")
             
     print("Training completed, final sparsity: {:.2f}".format(s_eval))
     print("Final accuracy: {:.2f}".format(accuracy))
