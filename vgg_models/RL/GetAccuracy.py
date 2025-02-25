@@ -128,8 +128,8 @@ class GetAccuracy:
         """
         
         model = self.get_model(model_sel)
-        model = self.prune_model(model, sparsity)
         if not initial:
+            model = self.prune_model(model, sparsity)
             model = self.fine_tuning(model)
         
         model.eval()
