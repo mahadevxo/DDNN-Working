@@ -282,5 +282,62 @@ def main():
     print("Final model size: {:.2f}".format(model_size))
     print("Final computation time: {:.2f}".format(computation_time))
     
+
+# Run a small test with reduced parameters
+def test_ppo():
+    print("Running PPO test...")
+    env = PruningEnv()
+    state_dim = 1
+    hidden_dim = 64
+    action_dim = 1
+    agent = PPOAgent(state_dim, hidden_dim, action_dim, learning_rate)
+
+    # Use smaller parameters for testing
+    test_updates = 2
+    test_episodes = 4
+    test_epochs = 2
+
+    for update in range(test_updates):
+        print(f"Test Update: {update}")
+        trajectories = []
+
+        for _ in range(test_episodes):
+            states, actions, log_probs = [], [], []
+
+            state = env.reset().float().unsqueeze(0).to(device)
+            action, log_prob = agent.select_action(state)
+
+            states.append(state)
+            actions.append(action)
+            log_probs.append(log_prob)
+
+            next_state, reward, done, info = env.step(action)
+            trajectory = {
+                'states': torch.cat(states, dim=0),
+                'actions': torch.cat(actions, dim=0),
+                'log_probs': torch.cat(log_probs, dim=0),
+                'returns': reward,
+                'info': info
+            }
+            trajectories.append(trajectory)
+
+        try:
+            ppo_update(agent, trajectories, clip_param, test_epochs, min(batch_size, test_episodes))
+            print("✅ PPO update completed successfully")
+        except Exception as e:
+            print(f"❌ Error during PPO update: {e}")
+            return False
+
+    return True
+
+# Add this to your main function or call it separately
 if __name__ == '__main__':
-    main()
+    if test_ppo():
+        print("Test passed! You can now run the full training.")
+        # main()  # Uncomment to run full training
+    else:
+        print("Test failed. Please check the code for errors.")
+
+
+# if __name__ == '__main__':
+#     main()
