@@ -13,10 +13,24 @@ class GetAccuracy:
     """
     def __init__(self, model):
         self.device = 'mps' if torch.backends.mps.is_available() else 'cuda' if torch.cuda.is_available() else 'cpu'
-        model = models.vgg11(weights = models.VGG11_Weights.IMAGENET1K_V1)
-        self.original_state_dict = deepcopy(model.state_dict())
-        # print('Device: ', self.device)
-        self.model = model
+        if model == 'vgg16':
+            model = models.vgg16(weights = models.VGG16_Weights.IMAGENET1K_V1)
+            self.original_state_dict = deepcopy(model.state_dict())
+            self.model = model
+        elif model == 'vgg19':
+            model = models.vgg19(weights = models.VGG19_Weights.IMAGENET1K_V1)
+            self.original_state_dict = deepcopy(model.state_dict())
+            self.model = model
+        elif model == 'alexnet':
+            model = models.alexnet(weights = models.AlexNet_Weights.IMAGENET1K_V1)
+            self.original_state_dict = deepcopy(model.state_dict())
+            self.model = model
+        elif model == 'vgg11':
+            model = models.vgg11(weights = models.VGG11_Weights.IMAGENET1K_V1)
+            self.original_state_dict = deepcopy(model.state_dict())
+            self.model = model
+        else:
+            raise ValueError(f'Unsupported model: {model}')
     
     def replace_layers(self, features, layer_idx, replace_indices, new_layers):
         """Replaces specific layers in a feature list with new layers.
