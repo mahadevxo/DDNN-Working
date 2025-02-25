@@ -149,7 +149,7 @@ class GetAccuracy:
                 
         model_size = sum(param.numel() * param.element_size() for param in model.parameters())
         accuracy = (correct / total) * 100
-        print(f'Sparsity: {sparsity:.2f}, Accuracy: {accuracy:.2f}, Model Size: {model_size}, Computation Time: {computation_time:.2f}')
+        print(f'Sparsity: {sparsity}, Accuracy: {accuracy}, Model Size: {model_size/(1024*1024)}, Computation Time: {computation_time:.5f}')
         return accuracy, model_size, computation_time
     
     def get_model(self, name='vgg16'):
