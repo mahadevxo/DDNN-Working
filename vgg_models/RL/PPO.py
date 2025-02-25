@@ -264,6 +264,7 @@ def main():
                 'info': info
             }
             trajectories.append(trajectory)
+            print(trajectory)
             
         ppo_update(agent, trajectories, clip_param, ppo_epochs, batch_size)
         
