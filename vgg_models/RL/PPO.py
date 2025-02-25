@@ -14,7 +14,7 @@ gamma = 0.99               # Discount factor (not used much in one-step episodes
 clip_param = 0.2           # PPO clipping parameter
 ppo_epochs = 4             # PPO epochs per update
 batch_size = 64            # Mini-batch size for PPO update
-learning_rate = 0.01      # Learning rate for policy and value networks
+learning_rate = 0.01       # Learning rate for policy and value networks
 num_updates = 100          # Number of PPO update iterations
 episodes_per_update = 16   # Episodes to collect per update
 
@@ -172,7 +172,7 @@ def ppo_update(agent, trajectories, clip_param, ppo_epochs, batch_size):
     actions = torch.cat([traj['actions'] for traj in trajectories], dim=0).to(device)
     log_probs_old = torch.cat([traj['log_probs'] for traj in trajectories], dim=0).to(device)
     
-    returns = torch.tensor([traj['returns'] for traj in trajectories], dtype=torch.float).to(device)
+    returns = torch.tensor([traj['returns'] for traj in trajectories], dtype=torch.float).unsqueeze(1).to(device)
 
     
     values = agent.value_function(states)
@@ -203,7 +203,7 @@ def ppo_update(agent, trajectories, clip_param, ppo_epochs, batch_size):
             
             loss = policy_loss + 0.5 * value_loss - 0.01 * entropy_bonus
             agent.optimizer.zero_grad()
-            loss.backward()
+            loss.backward(retain_graph=True)
             agent.optimizer.step()
 
 """Main function for training the PPO agent.
