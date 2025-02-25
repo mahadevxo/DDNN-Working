@@ -16,7 +16,7 @@ ppo_epochs = 4             # PPO epochs per update
 batch_size = 64            # Mini-batch size for PPO update
 learning_rate = 0.01       # Learning rate for policy and value networks
 num_updates = 100          # Number of PPO update iterations
-episodes_per_update = 16   # Episodes to collect per update
+episodes_per_update = 2   # Episodes to collect per update
 
 device = 'mps' if torch.backends.mps.is_available() else 'cuda' if torch.cuda.is_available() else 'cpu'
 
@@ -80,14 +80,6 @@ class PolicyNetwork(nn.Module):
             x: The input state.
 
         Returns:
-            The estimated value of the input state.
-        """
-        """Performs a forward pass through the network.
-
-        Args:
-            x: The input state.
-
-        Returns:
             A tuple containing the mean and standard deviation of the action distribution.
         """
         x = self.act(self.fc1(x))
@@ -114,7 +106,7 @@ class ValueNetwork(nn.Module):
 
     def forward(self, x):
         try:
-            x =self.act(self.fc1(x))
+            x = self.act(self.fc1(x))
             x = self.fc2(x)
             return x
         except Exception as exp:
@@ -176,10 +168,13 @@ def ppo_update(agent, trajectories, clip_param, ppo_epochs, batch_size):
     log_probs_old = torch.cat([traj['log_probs'] for traj in trajectories], dim=0).to(device)
     
     returns = torch.tensor([traj['returns'] for traj in trajectories], dtype=torch.float).unsqueeze(1).to(device)
-
     
-    values = agent.value_function(states)
-    advantages = returns - values.detach()
+    # Calculate value predictions outside the loop to avoid in-place operations
+    with torch.no_grad():
+        values = agent.value_function(states)
+    
+    # Calculate advantages outside the loop
+    advantages = returns - values
     
     dataset_size = states.size(0)
     
@@ -189,24 +184,35 @@ def ppo_update(agent, trajectories, clip_param, ppo_epochs, batch_size):
         for start in range(0, dataset_size, batch_size):
             end = start + batch_size
             mini_indices = indices[start:end]
-            states_mini = states[mini_indices]
-            actions_mini = actions[mini_indices]
-            log_probs_old_mini = log_probs_old[mini_indices]
-            returns_mini = returns[mini_indices]
-            advantages_mini = advantages[mini_indices]
             
-            log_probs, entropies, values = agent.evaluate(states_mini, actions_mini)
+            # Create new tensor objects for each mini-batch to avoid in-place operations
+            states_mini = states[mini_indices].clone()
+            actions_mini = actions[mini_indices].clone()
+            log_probs_old_mini = log_probs_old[mini_indices].clone()
+            returns_mini = returns[mini_indices].clone()
+            advantages_mini = advantages[mini_indices].clone()
+            
+            log_probs, entropies, values_pred = agent.evaluate(states_mini, actions_mini)
+            
+            # Calculate policy loss
             ratio = torch.exp(log_probs - log_probs_old_mini)
             
             surr1 = ratio * advantages_mini
             surr2 = torch.clamp(ratio, 1.0 - clip_param, 1.0 + clip_param) * advantages_mini
             policy_loss = -torch.min(surr1, surr2).mean()
-            value_loss = nn.MSELoss()(values, returns_mini)
+            
+            # Calculate value loss
+            value_loss = nn.MSELoss()(values_pred, returns_mini)
+            
+            # Calculate entropy bonus
             entropy_bonus = entropies.mean()
             
+            # Calculate total loss
             loss = policy_loss + 0.5 * value_loss - 0.01 * entropy_bonus
+            
+            # Perform optimization step
             agent.optimizer.zero_grad()
-            loss.backward(retain_graph=True)
+            loss.backward()  # Remove retain_graph=True
             agent.optimizer.step()
 
 """Main function for training the PPO agent.
@@ -222,6 +228,7 @@ def main():
     print(f"Initial Accuracy: {get_acc.get_accuracy(sparsity=0.0, model_sel=model_sel, initial=True)[0]:.2f}")
     min_acc = input("Enter minimum acceptable accuracy: ")
     if min_acc != "":
+        global MIN_ACCURACY
         MIN_ACCURACY = float(min_acc)
     print(f"Minimum acceptable accuracy: {MIN_ACCURACY:.2f}")
 
@@ -278,12 +285,14 @@ def main():
         penalty = max(MIN_ACCURACY - accuracy, 0.0)
         reward = s_eval - lambda_penalty * (penalty ** 2) - lambda_model * model_size - lambda_compute * computation_time
         
-        print(f"Update: {update:02d}, Sparsity: {s_eval}, Reward: {reward:7f}, Accuracy: {accuracy}, Model Size: {model_size/(1024*1024)}GB, Computation Time: {computation_time:.5f}s")
+        print(f"Update: {update:02d}, Sparsity: {s_eval:.4f}, Reward: {reward:.6f}, Accuracy: {accuracy:.2f}, Model Size: {model_size/(1024*1024):.2f}MB, Computation Time: {computation_time:.5f}s")
             
     print("Training completed, final sparsity: {:.2f}".format(s_eval))
     print("Final accuracy: {:.2f}".format(accuracy))
-    print("Final model size: {:.2f}".format(model_size))
-    print("Final computation time: {:.2f}".format(computation_time))
+    print("Final model size: {:.2f}MB".format(model_size/(1024*1024)))
+    print("Final computation time: {:.5f}s".format(computation_time))
     
 if __name__ == '__main__':
+    # Enable anomaly detection for debugging (uncomment if needed)
+    # torch.autograd.set_detect_anomaly(True)
     main()
