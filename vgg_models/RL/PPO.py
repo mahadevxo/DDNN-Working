@@ -13,10 +13,10 @@ lambda_compute = 0.009     # Penalty coefficient for computing time
 gamma = 0.99               # Discount factor (not used much in one-step episodes)
 clip_param = 0.2           # PPO clipping parameter
 ppo_epochs = 4             # PPO epochs per update
-batch_size = 64            # Mini-batch size for PPO update
-learning_rate = 0.01       # Learning rate for policy and value networks
+batch_size = 32            # Mini-batch size for PPO update
+learning_rate = 0.001      # Learning rate for policy and value networks
 num_updates = 100          # Number of PPO update iterations
-episodes_per_update = 2   # Episodes to collect per update
+episodes_per_update = 16   # Episodes to collect per update
 
 device = 'mps' if torch.backends.mps.is_available() else 'cuda' if torch.cuda.is_available() else 'cpu'
 
@@ -172,7 +172,7 @@ def ppo_update(agent, trajectories, clip_param, ppo_epochs, batch_size):
     dataset_size = states.size(0)
     
     for update in range(ppo_epochs):
-        print(f"Update: {update:03d}")
+        print(f"PPO Epoch: {update:03d}")
         indices = np.random.permutation(dataset_size)
         for start in range(0, dataset_size, batch_size):
             end = start + batch_size
@@ -249,10 +249,10 @@ def main():
 
     for update in range(num_updates):
         trajectories = []
-        print(f"Update --> {update:03d}")
+        print(f"Num Update: {update:03d}")
         
         for up in range(episodes_per_update):    
-            print(f"Episode --> {up:03d}")
+            print(f"Episode: {up:03d}")
             states, actions, log_probs = [], [], []
             
             state = env.reset().float().unsqueeze(0).to(device)
