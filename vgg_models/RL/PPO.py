@@ -20,7 +20,10 @@ episodes_per_update = 16   # Episodes to collect per update
 
 device = 'mps' if torch.backends.mps.is_available() else 'cuda' if torch.cuda.is_available() else 'cpu'
 
-model_sel = 'vgg11'
+model_sel = input("Enter model selection (vgg16, vgg11, vgg19, alexnet): ")
+
+print(f"Selected model: {model_sel}")
+
 
 class PruningEnv:
     def __init__(self):
