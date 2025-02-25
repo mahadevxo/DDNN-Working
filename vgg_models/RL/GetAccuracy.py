@@ -13,7 +13,7 @@ class GetAccuracy:
     """
     def __init__(self, model):
         self.device = 'mps' if torch.backends.mps.is_available() else 'cuda' if torch.cuda.is_available() else 'cpu'
-        model = models.vgg16(weights = models.VGG16_Weights.IMAGENET1K_V1)
+        model = models.vgg11(weights = models.VGG11_Weights.IMAGENET1K_V1)
         self.original_state_dict = deepcopy(model.state_dict())
         # print('Device: ', self.device)
         self.model = model
