@@ -88,7 +88,7 @@ class GetAccuracy:
         # print(f'Fine-tuning using {self.device}...')
         for _ in range(3):
             running_loss = 0.0
-            for data in self.get_random_images(n=300):
+            for data in self.get_random_images(num_samples=300):
                 inputs, labels = data
                 inputs, labels = inputs.to(self.device), labels.to(self.device)
                 optimizer.zero_grad()
