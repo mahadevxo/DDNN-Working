@@ -169,13 +169,6 @@ def ppo_update(agent, trajectories, clip_param, ppo_epochs, batch_size):
     
     returns = torch.tensor([traj['returns'] for traj in trajectories], dtype=torch.float).unsqueeze(1).to(device)
     
-    # Calculate value predictions outside the loop to avoid in-place operations
-    with torch.no_grad():
-        values = agent.value_function(states)
-    
-    # Calculate advantages outside the loop
-    advantages = returns - values
-    
     dataset_size = states.size(0)
     
     for update in range(ppo_epochs):
@@ -186,13 +179,16 @@ def ppo_update(agent, trajectories, clip_param, ppo_epochs, batch_size):
             mini_indices = indices[start:end]
             
             # Create new tensor objects for each mini-batch to avoid in-place operations
-            states_mini = states[mini_indices].clone()
-            actions_mini = actions[mini_indices].clone()
-            log_probs_old_mini = log_probs_old[mini_indices].clone()
-            returns_mini = returns[mini_indices].clone()
-            advantages_mini = advantages[mini_indices].clone()
+            states_mini = states[mini_indices].detach()
+            actions_mini = actions[mini_indices].detach()
+            log_probs_old_mini = log_probs_old[mini_indices].detach()
+            returns_mini = returns[mini_indices].detach()
             
+            # Move computation of values inside mini-batch loop
             log_probs, entropies, values_pred = agent.evaluate(states_mini, actions_mini)
+            
+            # Calculate advantages inside the loop
+            advantages_mini = returns_mini - values_pred.detach()
             
             # Calculate policy loss
             ratio = torch.exp(log_probs - log_probs_old_mini)
@@ -212,7 +208,7 @@ def ppo_update(agent, trajectories, clip_param, ppo_epochs, batch_size):
             
             # Perform optimization step
             agent.optimizer.zero_grad()
-            loss.backward()  # Remove retain_graph=True
+            loss.backward()
             agent.optimizer.step()
 
 """Main function for training the PPO agent.
