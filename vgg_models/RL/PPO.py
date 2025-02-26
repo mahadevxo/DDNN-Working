@@ -43,7 +43,7 @@ class PruningEnv:
         Returns:
             A tuple containing the next state, reward, done flag, and info dictionary.
         """
-        s = torch.clamp(action, 0.0, 0.90)
+        s = torch.clamp(action, 1e-100000, 0.90)
         accuracy, model_size, computation_time = GetAccuracy(model_sel).get_accuracy(sparsity=s.item(), model_sel=model_sel, initial=False)
         penalty = max(MIN_ACCURACY - accuracy, 0.0)
         accuracy_reward = 0 if penalty == 0 else -lambda_penalty * np.exp(penalty * 2)
@@ -232,36 +232,26 @@ def ppo_update(agent, trajectories, clip_param, ppo_epochs, batch_size):
 This function initializes the environment and agent, then runs the PPO training loop.
 It periodically prints the training progress and final results.
 """
-def main():
+
+def get_min_acc():
     print(f"Starting PPO training for {model_sel}...")
 
     get_acc = GetAccuracy(model_sel)
 
     print(f"Initial Accuracy: {get_acc.get_accuracy(sparsity=0.0, model_sel=model_sel, initial=True)[0]:.2f}")
-    min_acc = input("Enter minimum acceptable accuracy: ")
+    min_acc = input("Enter minimum acceptable accuracy (Default: 0.75): ")
     if min_acc != "":
         global MIN_ACCURACY
         MIN_ACCURACY = float(min_acc)
-    print(f"Minimum acceptable accuracy: {MIN_ACCURACY:.2f}")
+        
 
-    print(f"Settings:\n \
-    Lambda Penalty: {lambda_penalty},\n \
-    Lambda Model: {lambda_model},\n \
-    Lambda Compute: {lambda_compute},\n \
-    Gamma: {gamma},\n \
-    Clip Param: {clip_param},\n \
-    PPO Epochs: {ppo_epochs},\n \
-    Batch Size: {batch_size},\n \
-    Learning Rate: {learning_rate},\n \
-    Num Updates: {num_updates},\n \
-    Episodes per Update: {episodes_per_update},\n \
-    Device: {device}\n")
-
+def training():
     env = PruningEnv()
     state_dim = 1
     hidden_dim = 64
     action_dim = 1
     agent = PPOAgent(state_dim, hidden_dim, action_dim, learning_rate)
+    get_acc = GetAccuracy(model_sel)
     
     best_sparsity = 0.0
     best_accuracy = 0.0
@@ -300,7 +290,7 @@ def main():
         
         state_eval = env.reset().float().unsqueeze(0).to(device)
         mean, _ = agent.policy(state_eval)
-        s_eval = torch.clamp(mean, 0.0, 0.90).item()
+        s_eval = torch.clamp(mean, 1e-100000, 0.90).item()
         accuracy, model_size, computation_time = get_acc.get_accuracy(sparsity=s_eval, model_sel=model_sel, initial=False)
         penalty = max(MIN_ACCURACY - accuracy, 0.0)
         accuracy_reward = 0 if penalty == 0 else -lambda_penalty * np.exp(penalty * 2)
@@ -320,6 +310,27 @@ def main():
             best_comp_time = computation_time
             print(f"New best result found! Sparsity: {best_sparsity:.2f}, Accuracy: {best_accuracy:.2f}, Model Size: {best_model_size/(1024*1024):.2f}MB, Comp Time: {best_comp_time:.5f}s")
             
+    return s_eval, accuracy, model_size, computation_time, best_sparsity, best_accuracy, best_model_size, best_comp_time, best_reward
+        
+def main():
+    print(f"Minimum acceptable accuracy: {MIN_ACCURACY:.2f}")
+
+    print(f"Settings:\n \
+    Lambda Penalty: {lambda_penalty},\n \
+    Lambda Model: {lambda_model},\n \
+    Lambda Compute: {lambda_compute},\n \
+    Gamma: {gamma},\n \
+    Clip Param: {clip_param},\n \
+    PPO Epochs: {ppo_epochs},\n \
+    Batch Size: {batch_size},\n \
+    Learning Rate: {learning_rate},\n \
+    Num Updates: {num_updates},\n \
+    Episodes per Update: {episodes_per_update},\n \
+    Device: {device}\n")
+
+    training_results = training()
+    s_eval, accuracy, model_size, computation_time = training_results[:4]
+    best_sparsity, best_accuracy, best_model_size, best_comp_time, best_reward = training_results[4:]
             
     print("\n--- Best Results ---")
     print("Best sparsity: {:.2f}".format(best_sparsity))
@@ -336,4 +347,5 @@ def main():
     print("Final computation time: {:.5f}s".format(computation_time))
     
 if __name__ == '__main__':
+    get_min_acc()
     main()
