@@ -193,128 +193,99 @@ class PPOAgent:
         """Step the learning rate schedulers"""
         self.policy_scheduler.step()
         self.value_scheduler.step()
+
+
     
-def ppo_update(agent, trajectories, clip_param, ppo_epochs, batch_size):
-    """Updates the policy and value networks using PPO.
+def compute_advantages(returns, initial_values):
+    advantages = returns - initial_values
+    if advantages.std() > 1e-8:  # Check for zero variance
+        advantages = (advantages - advantages.mean()) / (advantages.std() + 1e-8)
+    return advantages
 
-    This function implements the PPO algorithm to update the agent's policy and value networks
-    based on collected trajectories.
+def compute_policy_loss(log_probs, log_probs_old, advantages, clip_param):
+    ratio = torch.exp(log_probs - log_probs_old)
+    ratio = torch.clamp(ratio, 0.01, 10.0)  # Prevent extreme values
+    surr1 = ratio * advantages
+    surr2 = torch.clamp(ratio, 1.0 - clip_param, 1.0 + clip_param) * advantages
+    return -torch.min(surr1, surr2).mean()
 
-    Args:
-        agent: The PPO agent.
-        trajectories: A list of trajectories, where each trajectory is a dictionary containing
-            'states', 'actions', 'log_probs', 'returns', and 'info'.
-        clip_param: The PPO clipping parameter.
-        ppo_epochs: The number of epochs to train the PPO for.
-        batch_size: The mini-batch size for training.
-    """
+def update_policy(agent, policy_loss, entropy_bonus, entropy_coeff):
+    agent.policy_optimizer.zero_grad()
+    policy_total_loss = policy_loss - (entropy_coeff * entropy_bonus)
+    policy_total_loss.backward()
+    torch.nn.utils.clip_grad_norm_(agent.policy.parameters(), 0.5)  # Gradient clipping
+    agent.policy_optimizer.step()
+
+def update_value(agent, values_pred, returns):
+    value_crit = nn.SmoothL1Loss()  # Huber loss for value function
+    value_loss = value_crit(values_pred, returns)
+    agent.value_optimizer.zero_grad()
+    value_loss.backward()
+    torch.nn.utils.clip_grad_norm_(agent.value_function.parameters(), 0.5)  # Gradient clipping
+    agent.value_optimizer.step()
+    
+def prepare_data(trajectories):
     states = torch.cat([traj['states'] for traj in trajectories], dim=0).to(device)
     actions = torch.cat([traj['actions'] for traj in trajectories], dim=0).to(device)
     log_probs_old = torch.cat([traj['log_probs'] for traj in trajectories], dim=0).to(device)
-    
     returns = torch.tensor([traj['returns'] for traj in trajectories], dtype=torch.float).unsqueeze(1).to(device)
-    
-    # Check for NaNs in input data
-    if torch.isnan(states).any() or torch.isnan(actions).any() or torch.isnan(log_probs_old).any() or torch.isnan(returns).any():
-        print("NaN detected in input data to PPO update")
-        # Replace NaNs with zeros
-        states = torch.where(torch.isnan(states), torch.zeros_like(states), states)
-        actions = torch.where(torch.isnan(actions), torch.zeros_like(actions), actions)
-        log_probs_old = torch.where(torch.isnan(log_probs_old), torch.zeros_like(log_probs_old), log_probs_old)
-        returns = torch.where(torch.isnan(returns), torch.zeros_like(returns), returns)
-    
+
+    states = torch.nan_to_num(states)
+    actions = torch.nan_to_num(actions)
+    log_probs_old = torch.nan_to_num(log_probs_old)
+    returns = torch.nan_to_num(returns)
+    return states, actions, log_probs_old, returns
+
+def update_mini_batch(agent, states_mini, actions_mini, log_probs_old_mini, returns_mini, initial_values_mini, clip_param, epoch, ppo_epochs):
+    log_probs, entropies, values_pred = agent.evaluate(states_mini, actions_mini)
+
+    advantages_mini = compute_advantages(returns_mini, initial_values_mini)
+    policy_loss = compute_policy_loss(log_probs, log_probs_old_mini, advantages_mini, clip_param)
+
+    if torch.isnan(policy_loss).any():  # Check for NaNs
+        print("NaN detected in policy loss")
+        return
+
+    entropy_coeff = max(0.005, 0.01 * (1 - epoch / ppo_epochs))  # Adaptive entropy coefficient
+    entropy_bonus = entropies.mean()
+
+    update_policy(agent, policy_loss, entropy_bonus, entropy_coeff)
+    update_value(agent, values_pred, returns_mini)
+
+
+def ppo_update(agent, trajectories, clip_param, ppo_epochs, batch_size):
+    states, actions, log_probs_old, returns = prepare_data(trajectories)
     dataset_size = states.size(0)
-    
+
     with torch.no_grad():
         initial_values = agent.value_function(states)
-    
-    for update in range(ppo_epochs):
-        print(f"PPO Epoch: {update:03d}")
+
+    for epoch in range(ppo_epochs):
+        print(f"PPO Epoch: {epoch:03d}")
         indices = np.random.permutation(dataset_size)
         for start in range(0, dataset_size, batch_size):
-            end = min(start + batch_size, dataset_size)  # Prevent out of bounds
-            if start >= end:  # Skip if we've exhausted the dataset
+            end = min(start + batch_size, dataset_size)
+            if start >= end:
                 continue
-                
+
             mini_indices = indices[start:end]
-            
-            # Create new tensor objects for each mini-batch to avoid in-place operations
+
             states_mini = states[mini_indices].detach()
             actions_mini = actions[mini_indices].detach()
             log_probs_old_mini = log_probs_old[mini_indices].detach()
             returns_mini = returns[mini_indices].detach()
             initial_values_mini = initial_values[mini_indices].detach()
-            
-            # Move computation of values inside mini-batch loop
-            log_probs, entropies, values_pred = agent.evaluate(states_mini, actions_mini)
-            
-            # Calculate advantages inside the loop with better numerical stability
-            advantages_mini = returns_mini - initial_values_mini
-            
-            if advantages_mini.std() > 1e-8:
-                advantages_mini = (advantages_mini - advantages_mini.mean()) / (advantages_mini.std() + 1e-8)
-            
-            # Calculate policy loss with numerical safety checks
-            ratio = torch.exp(log_probs - log_probs_old_mini)
-            ratio = torch.clamp(ratio, 0.01, 10.0)  # Prevent extreme ratio values
-            
-            surr1 = ratio * advantages_mini
-            surr2 = torch.clamp(ratio, 1.0 - clip_param, 1.0 + clip_param) * advantages_mini
-            policy_loss = -torch.min(surr1, surr2).mean()
-            
-            # Check for NaN in policy loss
-            if torch.isnan(policy_loss).any():
-                print("NaN detected in policy loss")
-                continue  # Skip this batch
-            
-            # Calculate value loss
-            value_loss = F.mse_loss(values_pred, returns_mini)
-            
-            # Check for NaN in value loss
-            if torch.isnan(value_loss).any():
-                print("NaN detected in value loss")
-                continue  # Skip this batch
-            
-            value_crit = nn.SmoothL1Loss()
-            value_loss = value_crit(values_pred, returns_mini)
-            
-            # Check for NaN in value loss
-            if torch.isnan(value_loss).any():
-                print("NaN detected in value loss")
-                continue
-            
-            # Calculate entropy bonus
-            entropy_coeff = max(0.005, 0.01 * (1 - update / ppo_epochs)) 
-            entropy_bonus = entropies.mean()
-            
-            # Calculate total loss
-            agent.policy_optimizer.zero_grad()
-            policy_total_loss = policy_loss - (entropy_coeff * entropy_bonus)  # Reduced entropy coefficient
-            policy_total_loss.backward()
-            # Gradient clipping for stability
-            torch.nn.utils.clip_grad_norm_(agent.policy.parameters(), 0.5)
-            agent.policy_optimizer.step()
-            
-            # Value update
-            agent.value_optimizer.zero_grad()
-            value_loss.backward()
-            torch.nn.utils.clip_grad_norm_(agent.value_function.parameters(), 0.5)
-            agent.value_optimizer.step()
 
+            update_mini_batch(agent, states_mini, actions_mini, log_probs_old_mini, returns_mini, initial_values_mini, clip_param, epoch, ppo_epochs)
 
-"""Main function for training the PPO agent.
-
-This function initializes the environment and agent, then runs the PPO training loop.
-It periodically prints the training progress and final results.
-"""
 
 def get_min_acc():
     print(f"Starting PPO training for {model_sel}...")
 
     get_acc = GetAccuracy(model_sel)
 
-    print(f"Initial Accuracy: {get_acc.get_accuracy(sparsity=0.0, model_sel=model_sel, initial=True)[0]:.2f}")
-    min_acc = int(input("Enter minimum acceptable accuracy (Default: 0.75): "))
+    print(f"Initial Accuracy: {get_acc.get_accuracy(sparsity=0.0, model_sel=model_sel, initial=True)[0]:.2f*100}%")
+    min_acc = int(input("Enter minimum acceptable accuracy (Default: 75): "))
 
 
     if min_acc != "":
@@ -323,8 +294,83 @@ def get_min_acc():
 
         global MIN_ACCURACY
         MIN_ACCURACY = float(min_acc)
-    print(f"Minimum acceptable accuracy: {MIN_ACCURACY:.2f}")
-        
+    print(f"Minimum acceptable accuracy: {MIN_ACCURACY:.2f*100}%")
+
+
+def collect_trajectories(env, agent, episodes_per_update):
+    trajectories = []
+    for episode in range(episodes_per_update):
+        print(f"Episode: {episode:03d}")
+        try:
+            trajectory = run_episode(env, agent)
+            trajectories.append(trajectory)
+        except Exception as e:
+            print(f"Error in episode {episode}: {e}")
+            continue  # Skip to the next episode if there's an error
+    return trajectories
+
+def run_episode(env, agent):
+    states, actions, log_probs = [], [], []
+    state = env.reset().float().unsqueeze(0).to(device)
+    done = False
+    while not done:
+        action, log_prob = agent.select_action(state)
+        next_state, reward, done, info = env.step(action)
+
+        states.append(state)
+        actions.append(action)
+        log_probs.append(log_prob)
+        state = next_state.float().unsqueeze(0).to(device)
+
+    return {
+        'states': torch.cat(states, dim=0),
+        'actions': torch.cat(actions, dim=0),
+        'log_probs': torch.cat(log_probs, dim=0),
+        'returns': reward,  # Use the final reward as the return for the episode
+        'info': info
+    }
+
+def evaluate_agent(env, agent, get_acc):
+    num_evals = 3
+    eval_results = []
+    for _ in range(num_evals):
+        state_eval = env.reset().float().unsqueeze(0).to(device)
+        with torch.no_grad():
+            mean, _ = agent.policy(state_eval)
+        s_eval = torch.clamp(mean, 0.01, 0.90).item()
+        accuracy, model_size, computation_time = get_acc.get_accuracy(sparsity=s_eval, model_sel=model_sel, initial=False)
+        reward = calculate_reward(accuracy, s_eval, model_size, computation_time)
+        eval_results.append((s_eval, accuracy, model_size, computation_time, reward))
+
+    eval_results.sort(key=lambda x: x[4])
+    return eval_results[num_evals // 2]  # Return median result
+
+def calculate_reward(accuracy, sparsity, model_size, computation_time):
+    accuracy_factor = min(1.0, accuracy / MIN_ACCURACY)
+    accuracy_reward = 2.0 * accuracy_factor - 1.0
+
+    if accuracy < MIN_ACCURACY:
+        accuracy_penalty = lambda_penalty * (1.0 - accuracy_factor) ** 2
+        accuracy_reward -= accuracy_penalty
+
+    sparsity_reward = sparsity * 2.0
+    size_penalty = lambda_model * model_size / (1024 * 1024)
+    compute_penalty = lambda_compute * computation_time * 100
+
+    return accuracy_reward + sparsity_reward - size_penalty - compute_penalty
+
+def save_best_model(agent, best_sparsity, best_accuracy, best_reward, best_model_size, best_comp_time):
+    checkpoint = {
+        'policy_state_dict': agent.policy.state_dict(),
+        'value_state_dict': agent.value_function.state_dict(),
+        'sparsity': best_sparsity,
+        'accuracy': best_accuracy,
+        'reward': best_reward,
+        'model_size': best_model_size,
+        'comp_time': best_comp_time
+    }
+    torch.save(checkpoint, f"{model_sel}_best_model.pt")
+    print("Best model saved!")
 
 def training():
     env = PruningEnv()
@@ -350,39 +396,13 @@ def training():
         f.write("Update,Sparsity,Accuracy,Model Size,Computation Time,Reward\n")
 
     for update in range(num_updates):
-        trajectories = []
-        print(f"Num Update: {update:03d}")
+        
+        for update in range(num_updates):
+            trajectories = collect_trajectories(env, agent, episodes_per_update)
 
-        for up in range(episodes_per_update):    
-            print(f"Episode: {up:03d}")
-            states, actions, log_probs = [], [], []
-
-            state = env.reset().float().unsqueeze(0).to(device)
-            # Add try-except to catch potential distribution errors
-            try:
-                action, log_prob = agent.select_action(state)
-
-                states.append(state)
-                actions.append(action)
-                log_probs.append(log_prob)
-
-                next_state, reward, done, info = env.step(action)
-                trajectory = {
-                    'states': torch.cat(states, dim=0),
-                    'actions': torch.cat(actions, dim=0),
-                    'log_probs': torch.cat(log_probs, dim=0),
-                    'returns': reward,
-                    'info': info
-                }
-                trajectories.append(trajectory)
-            except Exception as e:
-                print(f"Error in episode {up}: {e}")
-                continue
-
-        if trajectories:  # Only update if we have valid trajectories
+        if trajectories:
             try:
                 ppo_update(agent, trajectories, clip_param, ppo_epochs, batch_size)
-                # Step the learning rate schedulers
                 agent.step_schedulers()
             except Exception as e:
                 print(f"Error in PPO update: {e}")
@@ -392,40 +412,12 @@ def training():
 
         # Evaluation with error handling and multiple trials
         try:
-            # Run multiple evaluations for more robust results
-            num_evals = 3
-            eval_results = []
-
-            for _ in range(num_evals):
-                state_eval = env.reset().float().unsqueeze(0).to(device)
-                with torch.no_grad():  # No need for gradients during evaluation
-                    mean, _ = agent.policy(state_eval)
-                s_eval = torch.clamp(mean, 0.01, 0.90).item()
-                accuracy, model_size, computation_time = get_acc.get_accuracy(sparsity=s_eval, model_sel=model_sel, initial=False)
-
-                # Calculate reward consistently with environment
-                accuracy_factor = min(1.0, accuracy / MIN_ACCURACY)
-                accuracy_reward = 2.0 * accuracy_factor - 1.0
-
-                if accuracy < MIN_ACCURACY:
-                    accuracy_penalty = lambda_penalty * (1.0 - accuracy_factor) ** 2
-                    accuracy_reward -= accuracy_penalty
-
-                sparsity_reward = s_eval * 2.0
-                size_penalty = lambda_model * model_size / (1024*1024)
-                compute_penalty = lambda_compute * computation_time * 100
-
-                reward = accuracy_reward + sparsity_reward - size_penalty - compute_penalty
-                eval_results.append((s_eval, accuracy, model_size, computation_time, reward))
-
-            # Take the median result to avoid outliers
-            eval_results.sort(key=lambda x: x[4])  # Sort by reward
-            s_eval, accuracy, model_size, computation_time, reward = eval_results[num_evals//2]  # Take median
+            s_eval, accuracy, model_size, computation_time, reward = evaluate_agent(env, agent, get_acc)
 
             with open(file_path, 'a') as f:
                 f.write(f"{update},{s_eval:.4f},{accuracy:.4f},{model_size/(1024*1024):.4f},{computation_time:.6f},{reward:.4f}\n")
 
-            print(f"Evaluation - Sparsity: {s_eval:.4f}, Accuracy: {accuracy:.4f}, Reward: {reward:.4f}")
+            print(f"Evaluation - Sparsity: {s_eval:.4f}, Accuracy: {accuracy:.4f*100}%, Reward: {reward:.4f}")
 
             if accuracy >= MIN_ACCURACY and (
                 (s_eval > best_sparsity and abs(accuracy - best_accuracy) < 0.5) or  # Better sparsity with similar accuracy
@@ -437,19 +429,10 @@ def training():
                 best_model_size = model_size
                 best_comp_time = computation_time
                 no_improvement_count = 0  # Reset counter
-                print(f"New best result found! Sparsity: {best_sparsity:.4f}, Accuracy: {best_accuracy:.4f}, Reward: {best_reward:.4f}")
+                print(f"New best result found! Sparsity: {best_sparsity:.4f}, Accuracy: {best_accuracy:.4f*100}%, Reward: {best_reward:.4f}")
 
                 # Save the best model checkpoint
-                checkpoint = {
-                    'policy_state_dict': agent.policy.state_dict(),
-                    'value_state_dict': agent.value_function.state_dict(),
-                    'sparsity': best_sparsity,
-                    'accuracy': best_accuracy,
-                    'reward': best_reward,
-                    'model_size': best_model_size,
-                    'comp_time': best_comp_time
-                }
-                torch.save(checkpoint, f"{model_sel}_best_model.pt")
+                save_best_model(agent, best_sparsity, best_accuracy, best_reward, best_model_size, best_comp_time)
             else:
                 no_improvement_count += 1
                 print(f"No improvement for {no_improvement_count} updates")
@@ -487,7 +470,7 @@ def main():
                 
         print("\n--- Best Results ---")
         print("Best sparsity: {:.2f}".format(best_sparsity))
-        print("Best accuracy: {:.2f}".format(best_accuracy))
+        print("Best accuracy: {:.2f*100%}".format(best_accuracy))
         print("Best model size: {:.2f}MB".format(best_model_size/(1024*1024)))
         print("Best computation time: {:.5f}s".format(best_comp_time))
         print("Best reward: {:.6f}".format(best_reward))
@@ -495,7 +478,7 @@ def main():
         # Also show final results
         print("\n--- Final Results ---")
         print("Final sparsity: {:.2f}".format(s_eval))
-        print("Final accuracy: {:.2f}".format(accuracy))
+        print("Final accuracy: {:.2f*100}%".format(accuracy))
         print("Final model size: {:.2f}MB".format(model_size/(1024*1024)))
         print("Final computation time: {:.5f}s".format(computation_time))
     except Exception as e:
