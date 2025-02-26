@@ -7,9 +7,9 @@ import numpy as np
 import torch.nn.functional as F
 
 MIN_ACCURACY = 0.75        # Minimum acceptable accuracy
-lambda_penalty = 500.0     # Penalty coefficient if accuracy < MIN_ACCURACY
+lambda_penalty = 1000.0    # Penalty coefficient if accuracy < MIN_ACCURACY
 lambda_model = 0.001       # Penalty coefficient for model size
-lambda_compute = 0.005     # Penalty coefficient for computing time
+lambda_compute = 0.05      # Penalty coefficient for computing time
 
 gamma = 0.99               # Discount factor (not used much in one-step episodes)
 clip_param = 0.2           # PPO clipping parameter
