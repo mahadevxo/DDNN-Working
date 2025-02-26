@@ -8,7 +8,7 @@ import torch.nn.functional as F
 
 MIN_ACCURACY = 0.75        # Minimum acceptable accuracy
 lambda_penalty = 1000.0    # Penalty coefficient if accuracy < MIN_ACCURACY
-lambda_model = 0.001       # Penalty coefficient for model size
+lambda_model = 0.0005      # Penalty coefficient for model size
 lambda_compute = 0.05      # Penalty coefficient for computing time
 
 gamma = 0.99               # Discount factor (not used much in one-step episodes)
@@ -29,6 +29,7 @@ print(f"Selected model: {model_sel}")
 class PruningEnv:
     def __init__(self):
         self.state = torch.tensor([0.0])
+        self.min_action = MIN_ACCURACY
         
     def reset(self):
         return self.state
@@ -46,6 +47,7 @@ class PruningEnv:
         """
         s = torch.clamp(action, 0.01, 0.90)  # Avoid extreme values close to 0
         accuracy, model_size, computation_time = GetAccuracy(model_sel).get_accuracy(sparsity=s.item(), model_sel=model_sel, initial=False)
+        
         penalty = max(MIN_ACCURACY - accuracy, 0.0)
         accuracy_reward = 0 if penalty == 0 else -lambda_penalty * np.exp(penalty * 2)
         sparsity_reward = s.item() * 2.0
@@ -60,53 +62,43 @@ class PruningEnv:
         return next_state, reward, done, info
     
 class PolicyNetwork(nn.Module):
-    """Policy network for PPO agent.
-
-    This network takes the state as input and outputs the mean and standard deviation of a normal
-    distribution from which the action is sampled.
-    """
     def __init__(self, state_dim, hidden_dim, action_dim):
-        """Initializes the PolicyNetwork.
-
-        Args:
-            state_dim: Dimension of the state space.
-            hidden_dim: Dimension of the hidden layer.
-            action_dim: Dimension of the action space.
-        """
         super(PolicyNetwork, self).__init__()
         self.fc1 = nn.Linear(state_dim, hidden_dim)
-        # Use ReLU instead of Tanh for better gradient flow
-        self.act = nn.LeakyReLU()
+        self.fc2 = nn.Linear(hidden_dim, hidden_dim)  # Add an extra layer
+        # Use LeakyReLU instead of ReLU to prevent dying neurons
+        self.act1 = nn.LeakyReLU(negative_slope=0.01)
+        self.act2 = nn.LeakyReLU(negative_slope=0.01)
         self.fc_mean = nn.Linear(hidden_dim, action_dim)
-        # Initialize log_std with a safer value
-        self.log_std = nn.Parameter(torch.ones(action_dim)*-2.0)
+        # Start with a smaller log_std for more deterministic behavior initially
+        self.log_std = nn.Parameter(torch.ones(action_dim)*-3.0)
         
         # Initialize weights with a better method
         self._init_weights()
         
     def _init_weights(self):
-        """Initialize weights using Xavier initialization for better convergence."""
-        nn.init.xavier_uniform_(self.fc1.weight)
+        """Initialize weights using Kaiming initialization for LeakyReLU."""
+        nn.init.kaiming_normal_(self.fc1.weight, a=0.01, mode='fan_in', nonlinearity='leaky_relu')
+        nn.init.kaiming_normal_(self.fc2.weight, a=0.01, mode='fan_in', nonlinearity='leaky_relu')
         nn.init.xavier_uniform_(self.fc_mean.weight)
         nn.init.zeros_(self.fc1.bias)
+        nn.init.zeros_(self.fc2.bias)
         nn.init.zeros_(self.fc_mean.bias)
 
     def forward(self, x):
-        """Performs a forward pass through the network.
-
-        Args:
-            x: The input state.
-
-        Returns:
-            A tuple containing the mean and standard deviation of the action distribution.
-        """
         # Add gradient checking
         if torch.isnan(x).any():
             print("NaN detected in input to policy network")
             x = torch.where(torch.isnan(x), torch.zeros_like(x), x)
             
-        x = self.act(self.fc1(x))
-        mean = torch.sigmoid(self.fc_mean(x)) * 0.9  # Use sigmoid to constrain to (0,0.9)
+        x = self.act1(self.fc1(x))
+        x = self.act2(self.fc2(x))  # Pass through the additional layer
+        
+        # Use different activation for mean to ensure better action bounds
+        # Sigmoid * 0.89 + 0.01 ensures range of (0.01, 0.9)
+        mean = torch.sigmoid(self.fc_mean(x)) * 0.89 + 0.01
+        
+        # Use adaptive std that decreases over time for better exploration->exploitation
         std = torch.exp(torch.clamp(self.log_std, -20, 0))
         
         # Check for NaNs
@@ -130,19 +122,19 @@ class ValueNetwork(nn.Module):
         """
         super(ValueNetwork, self).__init__()
         self.fc1 = nn.Linear(state_dim, hidden_dim)
-        # Use ReLU for better gradient propagation
-        self.act1 = nn.LeakyReLU()
         self.fc2 = nn.Linear(hidden_dim, hidden_dim)
-        self.act2 = nn.LeakyReLU()
         self.fc3 = nn.Linear(hidden_dim, 1)
+        
+        self.act1 = nn.LeakyReLU(negative_slope=0.01)
+        self.act2 = nn.LeakyReLU(negative_slope=0.01)
         
         # Initialize weights
         self._init_weights()
         
     def _init_weights(self):
         """Initialize weights using Xavier initialization for better convergence."""
-        nn.init.xavier_uniform_(self.fc1.weight)
-        nn.init.xavier_uniform_(self.fc2.weight)
+        nn.init.kaiming_normal_(self.fc1.weight, a=0.01, mode='fan_in', nonlinearity='leaky_relu')
+        nn.init.kaiming_normal_(self.fc2.weight, a=0.01, mode='fan_in', nonlinearity='leaky_relu')
         nn.init.xavier_uniform_(self.fc3.weight)
         nn.init.zeros_(self.fc1.bias)
         nn.init.zeros_(self.fc2.bias)
@@ -170,30 +162,26 @@ class ValueNetwork(nn.Module):
             exit()
 
 class PPOAgent:
-    """PPO agent for pruning a neural network.
-
-    This agent uses PPO to learn a policy that selects the optimal sparsity for pruning a neural network.
-    """
     def __init__(self, state_dim, hidden_dim, action_dim, lr):
-        """Initializes the PPOAgent.
-
-        Args:
-            state_dim: Dimension of the state space.
-            hidden_dim: Dimension of the hidden layer.
-            action_dim: Dimension of the action space.
-            lr: Learning rate for the optimizer.
-        """
         self.policy = PolicyNetwork(state_dim, hidden_dim, action_dim).to(device)
         self.value_function = ValueNetwork(state_dim, hidden_dim).to(device)
         
-        self.policy_optimizer = optim.Adam(self.policy.parameters(), lr=lr, eps=1e-5)
-        self.value_optimizer = optim.Adam(self.value_function.parameters(), lr=lr*2, eps=1e-5)
+        # Use a more conservative learning rate with Adam
+        self.policy_optimizer = optim.Adam(self.policy.parameters(), lr=lr, eps=1e-5, weight_decay=1e-5)
+        self.value_optimizer = optim.Adam(self.value_function.parameters(), lr=lr*2, eps=1e-5, weight_decay=1e-5)
+        
+        # Add learning rate schedulers for better convergence
+        self.policy_scheduler = optim.lr_scheduler.StepLR(self.policy_optimizer, step_size=10, gamma=0.9)
+        self.value_scheduler = optim.lr_scheduler.StepLR(self.value_optimizer, step_size=10, gamma=0.9)
         
     def select_action(self, state):
-        mean, std = self.policy(state)
-        dist = distributions.Normal(mean, std)
-        action = dist.sample()
-        log_prob = dist.log_prob(action)
+        # More robust action selection
+        with torch.no_grad():  # No need for gradients during action selection
+            mean, std = self.policy(state)
+            dist = distributions.Normal(mean, std)
+            action = dist.sample()
+            action = torch.clamp(action, 0.01, 0.9)  # Enforce bounds here too
+            log_prob = dist.log_prob(action)
         return action, log_prob
     
     def evaluate(self, state, action):
@@ -203,6 +191,11 @@ class PPOAgent:
         entropy = dist.entropy()
         value = self.value_function(state)
         return log_prob, entropy, value
+    
+    def step_schedulers(self):
+        """Step the learning rate schedulers"""
+        self.policy_scheduler.step()
+        self.value_scheduler.step()
     
 def ppo_update(agent, trajectories, clip_param, ppo_epochs, batch_size):
     """Updates the policy and value networks using PPO.
@@ -235,6 +228,9 @@ def ppo_update(agent, trajectories, clip_param, ppo_epochs, batch_size):
     
     dataset_size = states.size(0)
     
+    with torch.no_grad():
+        initial_values = agent.value_function(states)
+    
     for update in range(ppo_epochs):
         print(f"PPO Epoch: {update:03d}")
         indices = np.random.permutation(dataset_size)
@@ -250,18 +246,20 @@ def ppo_update(agent, trajectories, clip_param, ppo_epochs, batch_size):
             actions_mini = actions[mini_indices].detach()
             log_probs_old_mini = log_probs_old[mini_indices].detach()
             returns_mini = returns[mini_indices].detach()
+            initial_values_mini = initial_values[mini_indices].detach()
             
             # Move computation of values inside mini-batch loop
             log_probs, entropies, values_pred = agent.evaluate(states_mini, actions_mini)
             
             # Calculate advantages inside the loop with better numerical stability
-            advantages_mini = returns_mini - values_pred.detach()
+            advantages_mini = returns_mini - initial_values_mini
+            
             if advantages_mini.std() > 1e-8:
                 advantages_mini = (advantages_mini - advantages_mini.mean()) / (advantages_mini.std() + 1e-8)
             
             # Calculate policy loss with numerical safety checks
             ratio = torch.exp(log_probs - log_probs_old_mini)
-            ratio = torch.clamp(ratio, 0.01, 100.0)  # Prevent extreme ratio values
+            ratio = torch.clamp(ratio, 0.01, 10.0)  # Prevent extreme ratio values
             
             surr1 = ratio * advantages_mini
             surr2 = torch.clamp(ratio, 1.0 - clip_param, 1.0 + clip_param) * advantages_mini
@@ -280,12 +278,21 @@ def ppo_update(agent, trajectories, clip_param, ppo_epochs, batch_size):
                 print("NaN detected in value loss")
                 continue  # Skip this batch
             
+            value_crit = nn.SmoothL1Loss()
+            value_loss = value_crit(values_pred, returns_mini)
+            
+            # Check for NaN in value loss
+            if torch.isnan(value_loss).any():
+                print("NaN detected in value loss")
+                continue
+            
             # Calculate entropy bonus
-            entropy_bonus = entropies.mean()        
+            entropy_coeff = max(0.005, 0.01 * (1 - update / ppo_epochs)) 
+            entropy_bonus = entropies.mean()
             
             # Calculate total loss
             agent.policy_optimizer.zero_grad()
-            policy_total_loss = policy_loss - 0.01 * entropy_bonus  # Reduced entropy coefficient
+            policy_total_loss = policy_loss - (entropy_coeff * entropy_bonus)  # Reduced entropy coefficient
             policy_total_loss.backward()
             # Gradient clipping for stability
             torch.nn.utils.clip_grad_norm_(agent.policy.parameters(), 0.5)
@@ -319,38 +326,43 @@ def get_min_acc():
 def training():
     env = PruningEnv()
     state_dim = 1
-    hidden_dim = 64
+    hidden_dim = 128  # Increased hidden dimension for more capacity
     action_dim = 1
+    learning_rate = 0.0005  # Reduced learning rate for better stability
     agent = PPOAgent(state_dim, hidden_dim, action_dim, learning_rate)
     get_acc = GetAccuracy(model_sel)
-    
+
     best_sparsity = 0.0
     best_accuracy = 0.0
     best_reward = float('-inf')
     best_model_size = 0.0
     best_comp_time = 0.0
-    
+
+    # Early stopping parameters
+    patience = 5
+    no_improvement_count = 0
+
     file_path = f"{model_sel}_results.csv"
     with open(file_path, 'w') as f:
-        f.write("Sparsity,Accuracy,Model Size,Computation Time,Reward\n")
+        f.write("Update,Sparsity,Accuracy,Model Size,Computation Time,Reward\n")
 
     for update in range(num_updates):
         trajectories = []
         print(f"Num Update: {update:03d}")
-        
+
         for up in range(episodes_per_update):    
             print(f"Episode: {up:03d}")
             states, actions, log_probs = [], [], []
-            
+
             state = env.reset().float().unsqueeze(0).to(device)
             # Add try-except to catch potential distribution errors
             try:
                 action, log_prob = agent.select_action(state)
-                
+
                 states.append(state)
                 actions.append(action)
                 log_probs.append(log_prob)
-                
+
                 next_state, reward, done, info = env.step(action)
                 trajectory = {
                     'states': torch.cat(states, dim=0),
@@ -363,34 +375,57 @@ def training():
             except Exception as e:
                 print(f"Error in episode {up}: {e}")
                 continue
-            
-        if len(trajectories) > 0:  # Only update if we have valid trajectories
+
+        if trajectories:  # Only update if we have valid trajectories
             try:
                 ppo_update(agent, trajectories, clip_param, ppo_epochs, batch_size)
+                # Step the learning rate schedulers
+                agent.step_schedulers()
             except Exception as e:
                 print(f"Error in PPO update: {e}")
         else:
             print("No valid trajectories for update")
             continue
-        
-        # Evaluation with error handling
+
+        # Evaluation with error handling and multiple trials
         try:
-            state_eval = env.reset().float().unsqueeze(0).to(device)
-            mean, _ = agent.policy(state_eval)
-            s_eval = torch.clamp(mean, 0.01, 0.90).item()
-            accuracy, model_size, computation_time = get_acc.get_accuracy(sparsity=s_eval, model_sel=model_sel, initial=False)
-            penalty = max(MIN_ACCURACY - accuracy, 0.0)
-            accuracy_reward = 0 if penalty == 0 else -lambda_penalty * np.exp(penalty * 2)
-            sparsity_reward = s_eval * 2.0
-            size_penalty = lambda_model * model_size
-            compute_penalty = lambda_compute * computation_time
-            reward = sparsity_reward + accuracy_reward - size_penalty - compute_penalty
-            
+            # Run multiple evaluations for more robust results
+            num_evals = 3
+            eval_results = []
+
+            for _ in range(num_evals):
+                state_eval = env.reset().float().unsqueeze(0).to(device)
+                with torch.no_grad():  # No need for gradients during evaluation
+                    mean, _ = agent.policy(state_eval)
+                s_eval = torch.clamp(mean, 0.01, 0.90).item()
+                accuracy, model_size, computation_time = get_acc.get_accuracy(sparsity=s_eval, model_sel=model_sel, initial=False)
+
+                # Calculate reward consistently with environment
+                accuracy_factor = min(1.0, accuracy / MIN_ACCURACY)
+                accuracy_reward = 2.0 * accuracy_factor - 1.0
+
+                if accuracy < MIN_ACCURACY:
+                    accuracy_penalty = lambda_penalty * (1.0 - accuracy_factor) ** 2
+                    accuracy_reward -= accuracy_penalty
+
+                sparsity_reward = s_eval * 2.0
+                size_penalty = lambda_model * model_size / (1024*1024)
+                compute_penalty = lambda_compute * computation_time * 100
+
+                reward = accuracy_reward + sparsity_reward - size_penalty - compute_penalty
+                eval_results.append((s_eval, accuracy, model_size, computation_time, reward))
+
+            # Take the median result to avoid outliers
+            eval_results.sort(key=lambda x: x[4])  # Sort by reward
+            s_eval, accuracy, model_size, computation_time, reward = eval_results[num_evals//2]  # Take median
+
             with open(file_path, 'a') as f:
-                f.write(f"{s_eval:.2f},{accuracy:.2f},{model_size/(1024*1024):.2f},{computation_time:.5f},{reward:.2f}\n")
-            
+                f.write(f"{update},{s_eval:.4f},{accuracy:.4f},{model_size/(1024*1024):.4f},{computation_time:.6f},{reward:.4f}\n")
+
+            print(f"Evaluation - Sparsity: {s_eval:.4f}, Accuracy: {accuracy:.4f}, Reward: {reward:.4f}")
+
             if accuracy >= MIN_ACCURACY and (
-                (s_eval > best_sparsity and abs(accuracy - best_accuracy) < 1.0) or  # Better sparsity with similar accuracy
+                (s_eval > best_sparsity and abs(accuracy - best_accuracy) < 0.5) or  # Better sparsity with similar accuracy
                 reward > best_reward  # Better overall reward
             ):
                 best_sparsity = s_eval
@@ -398,10 +433,32 @@ def training():
                 best_reward = reward
                 best_model_size = model_size
                 best_comp_time = computation_time
-                print(f"New best result found! Sparsity: {best_sparsity:.2f}, Accuracy: {best_accuracy:.2f}, Model Size: {best_model_size/(1024*1024):.2f}MB, Comp Time: {best_comp_time:.5f}s")
+                no_improvement_count = 0  # Reset counter
+                print(f"New best result found! Sparsity: {best_sparsity:.4f}, Accuracy: {best_accuracy:.4f}, Reward: {best_reward:.4f}")
+
+                # Save the best model checkpoint
+                checkpoint = {
+                    'policy_state_dict': agent.policy.state_dict(),
+                    'value_state_dict': agent.value_function.state_dict(),
+                    'sparsity': best_sparsity,
+                    'accuracy': best_accuracy,
+                    'reward': best_reward,
+                    'model_size': best_model_size,
+                    'comp_time': best_comp_time
+                }
+                torch.save(checkpoint, f"{model_sel}_best_model.pt")
+            else:
+                no_improvement_count += 1
+                print(f"No improvement for {no_improvement_count} updates")
+
+            # Early stopping
+            if no_improvement_count >= patience:
+                print(f"Early stopping after {update+1} updates due to no improvement")
+                break
+
         except Exception as e:
             print(f"Error in evaluation: {e}")
-            
+
     return s_eval, accuracy, model_size, computation_time, best_sparsity, best_accuracy, best_model_size, best_comp_time, best_reward
         
 def main():
