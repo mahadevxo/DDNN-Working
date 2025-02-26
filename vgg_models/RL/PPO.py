@@ -259,7 +259,7 @@ def training():
     best_model_size = 0.0
     best_comp_time = 0.0
     
-    file_path = f"results/{model_sel}_results.csv"
+    file_path = f"{model_sel}_results.csv"
     with open(file_path, 'w') as f:
         f.write("Sparsity,Accuracy,Model Size,Computation Time,Reward\n")
 
