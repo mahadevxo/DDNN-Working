@@ -6,17 +6,17 @@ import torch.distributions as distributions
 import numpy as np
 
 MIN_ACCURACY = 0.75        # Minimum acceptable accuracy
-lambda_penalty = 100.0     # Penalty coefficient if accuracy < MIN_ACCURACY
-lambda_model = 0.002       # Penalty coefficient for model size
-lambda_compute = 0.009     # Penalty coefficient for computing time
+lambda_penalty = 500.0     # Penalty coefficient if accuracy < MIN_ACCURACY
+lambda_model = 0.001       # Penalty coefficient for model size
+lambda_compute = 0.005     # Penalty coefficient for computing time
 
 gamma = 0.99               # Discount factor (not used much in one-step episodes)
 clip_param = 0.2           # PPO clipping parameter
-ppo_epochs = 4             # PPO epochs per update
-batch_size = 64            # Mini-batch size for PPO update
-learning_rate = 0.01      # Learning rate for policy and value networks
-num_updates = 25          # Number of PPO update iterations
-episodes_per_update = 8   # Episodes to collect per update
+ppo_epochs = 5             # PPO epochs per update
+batch_size = 32            # Mini-batch size for PPO update
+learning_rate = 0.005     # Learning rate for policy and value networks
+num_updates = 30          # Number of PPO update iterations
+episodes_per_update = 12   # Episodes to collect per update
 
 device = 'mps' if torch.backends.mps.is_available() else 'cuda' if torch.cuda.is_available() else 'cpu'
 
@@ -43,10 +43,15 @@ class PruningEnv:
         Returns:
             A tuple containing the next state, reward, done flag, and info dictionary.
         """
-        s = torch.clamp(action, 0.0, 0.99)
+        s = torch.clamp(action, 0.0, 0.90)
         accuracy, model_size, computation_time = GetAccuracy(model_sel).get_accuracy(sparsity=s.item(), model_sel=model_sel, initial=False)
         penalty = max(MIN_ACCURACY - accuracy, 0.0)
-        reward = s.item() - lambda_penalty * (penalty ** 2) - lambda_model * model_size - lambda_compute * computation_time
+        accuracy_reward = 0 if penalty == 0 else -lambda_penalty * np.exp(penalty * 2)
+        sparsity_reward = s.item() * 2.0
+        size_penalty = lambda_model * model_size
+        compute_penalty = lambda_compute * computation_time
+        
+        reward = accuracy_reward + sparsity_reward - size_penalty - compute_penalty
         
         done = True
         next_state = self.state
@@ -71,7 +76,7 @@ class PolicyNetwork(nn.Module):
         self.fc1 = nn.Linear(state_dim, hidden_dim)
         self.act = nn.Tanh()
         self.fc_mean = nn.Linear(hidden_dim, action_dim)
-        self.log_std = nn.Parameter(torch.zeros(action_dim))
+        self.log_std = nn.Parameter(torch.ones(action_dim)*-1.0)
 
     def forward(self, x):
         """Performs a forward pass through the network.
@@ -84,7 +89,7 @@ class PolicyNetwork(nn.Module):
         """
         x = self.act(self.fc1(x))
         mean = self.fc_mean(x)
-        std = torch.exp(self.log_std)
+        std = torch.exp(torch.clamp(self.log_std, -20, 0))
         return mean, std
     
 class ValueNetwork(nn.Module):
@@ -101,13 +106,16 @@ class ValueNetwork(nn.Module):
         """
         super(ValueNetwork, self).__init__()
         self.fc1 = nn.Linear(state_dim, hidden_dim)
-        self.act = nn.Tanh()
-        self.fc2 = nn.Linear(hidden_dim, 1)
+        self.act1 = nn.Tanh()
+        self.fc2 = nn.Linear(hidden_dim, hidden_dim)
+        self.act2 = nn.Tanh()
+        self.fc3 = nn.Linear(hidden_dim, 1)
 
     def forward(self, x):
         try:
-            x = self.act(self.fc1(x))
-            x = self.fc2(x)
+            x = self.act1(self.fc1(x))
+            x = self.act2(self.fc2(x))
+            x = self.fc3(x)
             return x
         except Exception as exp:
             print(x, "Exception: ", exp)
@@ -129,10 +137,9 @@ class PPOAgent:
         """
         self.policy = PolicyNetwork(state_dim, hidden_dim, action_dim).to(device)
         self.value_function = ValueNetwork(state_dim, hidden_dim).to(device)
-        self.optimizer = optim.Adam(
-            list(self.policy.parameters()) + list(self.value_function.parameters()),
-            lr = lr
-        )
+        
+        self.policy_optimizer = optim.Adam(self.policy.parameters(), lr=lr)
+        self.value_optimizer = optim.Adam(self.value_function.parameters(), lr=lr*2)
         
     def select_action(self, state):
         mean, std = self.policy(state)
@@ -189,6 +196,8 @@ def ppo_update(agent, trajectories, clip_param, ppo_epochs, batch_size):
             
             # Calculate advantages inside the loop
             advantages_mini = returns_mini - values_pred.detach()
+            advantages_mini = (advantages_mini - advantages_mini.mean()) / (advantages_mini.std() + 1e-8)
+
             
             # Calculate policy loss
             ratio = torch.exp(log_probs - log_probs_old_mini)
@@ -201,15 +210,22 @@ def ppo_update(agent, trajectories, clip_param, ppo_epochs, batch_size):
             value_loss = nn.MSELoss()(values_pred, returns_mini)
             
             # Calculate entropy bonus
-            entropy_bonus = entropies.mean()
+            entropy_bonus = entropies.mean()        
             
             # Calculate total loss
-            loss = policy_loss + 0.5 * value_loss - 0.01 * entropy_bonus
+            agent.policy_optimizer.zero_grad()
+            policy_total_loss = policy_loss - 0.02 * entropy_bonus  # Increased entropy coefficient
+            policy_total_loss.backward()
+            # ADDED: Gradient clipping for stability
+            torch.nn.utils.clip_grad_norm_(agent.policy.parameters(), 0.5)
+            agent.policy_optimizer.step()
             
-            # Perform optimization step
-            agent.optimizer.zero_grad()
-            loss.backward()
-            agent.optimizer.step()
+            # Value update
+            agent.value_optimizer.zero_grad()
+            value_loss.backward()
+            torch.nn.utils.clip_grad_norm_(agent.value_function.parameters(), 0.5)
+            agent.value_optimizer.step()
+
 
 """Main function for training the PPO agent.
 
@@ -246,6 +262,12 @@ def main():
     hidden_dim = 64
     action_dim = 1
     agent = PPOAgent(state_dim, hidden_dim, action_dim, learning_rate)
+    
+    best_sparsity = 0.0
+    best_accuracy = 0.0
+    best_reward = float('-inf')
+    best_model_size = 0.0
+    best_comp_time = 0.0
 
     for update in range(num_updates):
         trajectories = []
@@ -278,19 +300,40 @@ def main():
         
         state_eval = env.reset().float().unsqueeze(0).to(device)
         mean, _ = agent.policy(state_eval)
-        s_eval = torch.clamp(mean, 0.0, 0.99).item()
+        s_eval = torch.clamp(mean, 0.0, 0.90).item()
         accuracy, model_size, computation_time = get_acc.get_accuracy(sparsity=s_eval, model_sel=model_sel, initial=False)
         penalty = max(MIN_ACCURACY - accuracy, 0.0)
-        reward = s_eval - lambda_penalty * (penalty ** 2) - lambda_model * model_size - lambda_compute * computation_time
+        accuracy_reward = 0 if penalty == 0 else -lambda_penalty * np.exp(penalty * 2)
+        sparsity_reward = s_eval * 2.0
+        size_penalty = lambda_model * model_size
+        compute_penalty = lambda_compute * computation_time
+        reward = sparsity_reward + accuracy_reward - size_penalty - compute_penalty
         
-        print(f"Update: {update:02d}, Sparsity: {s_eval:.4f}, Reward: {reward:.6f}, Accuracy: {accuracy:.2f}, Model Size: {model_size/(1024*1024):.2f}MB, Computation Time: {computation_time:.5f}s")
+        if accuracy >= MIN_ACCURACY and (
+            (s_eval > best_sparsity and abs(accuracy - best_accuracy) < 1.0) or  # Better sparsity with similar accuracy
+            reward > best_reward  # Better overall reward
+        ):
+            best_sparsity = s_eval
+            best_accuracy = accuracy
+            best_reward = reward
+            best_model_size = model_size
+            best_comp_time = computation_time
+            print(f"New best result found! Sparsity: {best_sparsity:.2f}, Accuracy: {best_accuracy:.2f}, Model Size: {best_model_size/(1024*1024):.2f}MB, Comp Time: {best_comp_time:.5f}s")
             
-    print("Training completed, final sparsity: {:.2f}".format(s_eval))
+            
+    print("\n--- Best Results ---")
+    print("Best sparsity: {:.2f}".format(best_sparsity))
+    print("Best accuracy: {:.2f}".format(best_accuracy))
+    print("Best model size: {:.2f}MB".format(best_model_size/(1024*1024)))
+    print("Best computation time: {:.5f}s".format(best_comp_time))
+    print("Best reward: {:.6f}".format(best_reward))
+    
+    # Also show final results
+    print("\n--- Final Results ---")
+    print("Final sparsity: {:.2f}".format(s_eval))
     print("Final accuracy: {:.2f}".format(accuracy))
     print("Final model size: {:.2f}MB".format(model_size/(1024*1024)))
     print("Final computation time: {:.5f}s".format(computation_time))
     
 if __name__ == '__main__':
-    # Enable anomaly detection for debugging (uncomment if needed)
-    # torch.autograd.set_detect_anomaly(True)
     main()
