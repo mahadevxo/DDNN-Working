@@ -317,13 +317,13 @@ def get_min_acc():
     get_acc = GetAccuracy(model_sel)
 
     print(f"Initial Accuracy: {get_acc.get_accuracy(sparsity=0.0, model_sel=model_sel, initial=True)[0]:.2f}")
-    min_acc = input("Enter minimum acceptable accuracy (Default: 0.75): ")
-    
-    
+    min_acc = int(input("Enter minimum acceptable accuracy (Default: 0.75): "))
+
+
     if min_acc != "":
         if min_acc > 1:
-            min_acc = min_acc / 100
-        
+            min_acc /= 100
+
         global MIN_ACCURACY
         MIN_ACCURACY = float(min_acc)
         print(f"Minimum acceptable accuracy: {MIN_ACCURACY:.2f}")
