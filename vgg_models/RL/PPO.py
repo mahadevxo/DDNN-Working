@@ -284,7 +284,7 @@ def get_min_acc():
 
     get_acc = GetAccuracy(model_sel)
 
-    print(f"Initial Accuracy: {get_acc.get_accuracy(sparsity=0.0, model_sel=model_sel, initial=True)[0]:.2f*100}%")
+    print(f"Initial Accuracy: {get_acc.get_accuracy(sparsity=0.0, model_sel=model_sel, initial=True)[0]:.2f}")
     min_acc = int(input("Enter minimum acceptable accuracy (Default: 75): "))
 
 
@@ -294,7 +294,7 @@ def get_min_acc():
 
         global MIN_ACCURACY
         MIN_ACCURACY = float(min_acc)
-    print(f"Minimum acceptable accuracy: {MIN_ACCURACY:.2f*100}%")
+    print(f"Minimum acceptable accuracy: {MIN_ACCURACY:.2f}")
 
 
 def collect_trajectories(env, agent, episodes_per_update):
@@ -417,7 +417,7 @@ def training():
             with open(file_path, 'a') as f:
                 f.write(f"{update},{s_eval:.4f},{accuracy:.4f},{model_size/(1024*1024):.4f},{computation_time:.6f},{reward:.4f}\n")
 
-            print(f"Evaluation - Sparsity: {s_eval:.4f}, Accuracy: {accuracy:.4f*100}%, Reward: {reward:.4f}")
+            print(f"Evaluation - Sparsity: {s_eval:.4f}, Accuracy: {accuracy:.4f}, Reward: {reward:.4f}")
 
             if accuracy >= MIN_ACCURACY and (
                 (s_eval > best_sparsity and abs(accuracy - best_accuracy) < 0.5) or  # Better sparsity with similar accuracy
@@ -429,7 +429,7 @@ def training():
                 best_model_size = model_size
                 best_comp_time = computation_time
                 no_improvement_count = 0  # Reset counter
-                print(f"New best result found! Sparsity: {best_sparsity:.4f}, Accuracy: {best_accuracy:.4f*100}%, Reward: {best_reward:.4f}")
+                print(f"New best result found! Sparsity: {best_sparsity:.4f}, Accuracy: {best_accuracy:.4f}, Reward: {best_reward:.4f}")
 
                 # Save the best model checkpoint
                 save_best_model(agent, best_sparsity, best_accuracy, best_reward, best_model_size, best_comp_time)
@@ -470,7 +470,7 @@ def main():
                 
         print("\n--- Best Results ---")
         print("Best sparsity: {:.2f}".format(best_sparsity))
-        print("Best accuracy: {:.2f*100%}".format(best_accuracy))
+        print("Best accuracy: {:.2f}".format(best_accuracy))
         print("Best model size: {:.2f}MB".format(best_model_size/(1024*1024)))
         print("Best computation time: {:.5f}s".format(best_comp_time))
         print("Best reward: {:.6f}".format(best_reward))
@@ -478,7 +478,7 @@ def main():
         # Also show final results
         print("\n--- Final Results ---")
         print("Final sparsity: {:.2f}".format(s_eval))
-        print("Final accuracy: {:.2f*100}%".format(accuracy))
+        print("Final accuracy: {:.2f}".format(accuracy))
         print("Final model size: {:.2f}MB".format(model_size/(1024*1024)))
         print("Final computation time: {:.5f}s".format(computation_time))
     except Exception as e:
