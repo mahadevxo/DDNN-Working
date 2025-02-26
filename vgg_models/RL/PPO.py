@@ -326,7 +326,7 @@ def get_min_acc():
 
         global MIN_ACCURACY
         MIN_ACCURACY = float(min_acc)
-        print(f"Minimum acceptable accuracy: {MIN_ACCURACY:.2f}")
+    print(f"Minimum acceptable accuracy: {MIN_ACCURACY:.2f}")
         
 
 def training():
