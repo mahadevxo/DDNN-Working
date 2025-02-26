@@ -1,0 +1,26 @@
+@startuml
+
+' Sequence Diagram
+title Pruning with Reinforcement Learning
+autonumber
+participant Agent
+participant PruningEnv
+participant GetAccuracy
+participant PolicyNetwork
+participant distributions.Normal
+
+Agent -> PruningEnv : reset()
+PruningEnv -> Agent : state
+
+Agent -> Agent : select_action(state)
+Agent -> PolicyNetwork : forward(state)
+PolicyNetwork -> Agent : mean, std
+Agent -> distributions.Normal : sample()
+distributions.Normal -> Agent : action, log_prob
+Agent -> PruningEnv : action
+
+PruningEnv -> PruningEnv : step(action)
+PruningEnv -> GetAccuracy : get_accuracy(sparsity, model_sel, initial=False)
+GetAccuracy -> PruningEnv : accuracy, model_size, computation_time
+PruningEnv -> Agent : next_state, reward, done, info
+@enduml

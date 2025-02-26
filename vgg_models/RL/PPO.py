@@ -22,7 +22,6 @@ episodes_per_update = 12   # Episodes to collect per update
 device = 'mps' if torch.backends.mps.is_available() else 'cuda' if torch.cuda.is_available() else 'cpu'
 
 model_sel = input("Enter model selection (vgg16, vgg11, vgg19, alexnet): ")
-
 print(f"Selected model: {model_sel}")
 
 
@@ -47,7 +46,6 @@ class PruningEnv:
         """
         s = torch.clamp(action, 0.01, 0.90)  # Avoid extreme values close to 0
         accuracy, model_size, computation_time = GetAccuracy(model_sel).get_accuracy(sparsity=s.item(), model_sel=model_sel, initial=False)
-        
         penalty = max(MIN_ACCURACY - accuracy, 0.0)
         accuracy_reward = 0 if penalty == 0 else -lambda_penalty * np.exp(penalty * 2)
         sparsity_reward = s.item() * 2.0
@@ -88,7 +86,6 @@ class PolicyNetwork(nn.Module):
     def forward(self, x):
         # Add gradient checking
         if torch.isnan(x).any():
-            print("NaN detected in input to policy network")
             x = torch.where(torch.isnan(x), torch.zeros_like(x), x)
             
         x = self.act1(self.fc1(x))
@@ -159,7 +156,7 @@ class ValueNetwork(nn.Module):
             return x
         except Exception as exp:
             print(x, "Exception: ", exp)
-            exit()
+            raise
 
 class PPOAgent:
     def __init__(self, state_dim, hidden_dim, action_dim, lr):
