@@ -1,3 +1,4 @@
+from isort import file
 from GetAccuracy import GetAccuracy
 import torch
 import torch.nn as nn
@@ -258,6 +259,10 @@ def training():
     best_reward = float('-inf')
     best_model_size = 0.0
     best_comp_time = 0.0
+    
+    file_path = f"results/{model_sel}_results.csv"
+    with open(file_path, 'w') as f:
+        f.write("Sparsity,Accuracy,Model Size,Computation Time,Reward\n")
 
     for update in range(num_updates):
         trajectories = []
@@ -299,6 +304,8 @@ def training():
         compute_penalty = lambda_compute * computation_time
         reward = sparsity_reward + accuracy_reward - size_penalty - compute_penalty
         
+        f.write(f"{s_eval:.2f},{accuracy:.2f},{model_size/(1024*1024):.2f},{computation_time:.5f},{reward:.2f}\n")
+        
         if accuracy >= MIN_ACCURACY and (
             (s_eval > best_sparsity and abs(accuracy - best_accuracy) < 1.0) or  # Better sparsity with similar accuracy
             reward > best_reward  # Better overall reward
@@ -309,7 +316,7 @@ def training():
             best_model_size = model_size
             best_comp_time = computation_time
             print(f"New best result found! Sparsity: {best_sparsity:.2f}, Accuracy: {best_accuracy:.2f}, Model Size: {best_model_size/(1024*1024):.2f}MB, Comp Time: {best_comp_time:.5f}s")
-            
+    f.close()
     return s_eval, accuracy, model_size, computation_time, best_sparsity, best_accuracy, best_model_size, best_comp_time, best_reward
         
 def main():
