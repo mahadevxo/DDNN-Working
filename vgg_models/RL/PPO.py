@@ -1,4 +1,3 @@
-from isort import file
 from GetAccuracy import GetAccuracy
 import torch
 import torch.nn as nn
