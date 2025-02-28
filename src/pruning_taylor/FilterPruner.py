@@ -63,19 +63,19 @@ class FilterPruner:
         filters_to_prune = self.lowest_ranking_filters(num_filters_to_prune)
         
         filters_to_prune_per_layer = {}
-        for (l, f, _) in filters_to_prune:
-            if l not in filters_to_prune_per_layer:
-                filters_to_prune_per_layer[l] = []
-            filters_to_prune_per_layer[l].append(f)
+        for (layer_n, f, _) in filters_to_prune:
+            if layer_n not in filters_to_prune_per_layer:
+                filters_to_prune_per_layer[layer_n] = []
+            filters_to_prune_per_layer[layer_n].append(f)
         
-        for l in filters_to_prune_per_layer:
-            filters_to_prune_per_layer[l] = sorted(filters_to_prune_per_layer[l])
-            for i in range(len(filters_to_prune_per_layer[l])):
-                filters_to_prune_per_layer[l][i] = filters_to_prune_per_layer[l][i] - i
+        for layer_n in filters_to_prune_per_layer:
+            filters_to_prune_per_layer[layer_n] = sorted(filters_to_prune_per_layer[layer_n])
+            for i in range(len(filters_to_prune_per_layer[layer_n])):
+                filters_to_prune_per_layer[layer_n][i] = filters_to_prune_per_layer[layer_n][i] - i
         
         filters_to_prune = []
-        for l in filters_to_prune_per_layer:
-            for i in filters_to_prune_per_layer[l]:
-                filters_to_prune.append((l, i))
+        for layer_n in filters_to_prune_per_layer:
+            for i in filters_to_prune_per_layer[layer_n]:
+                filters_to_prune.append((layer_n, i))
         
         return filters_to_prune
