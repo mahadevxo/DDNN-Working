@@ -1,0 +1,191 @@
+Original Accuracy: 52.15%
+Original Model Size: 527.79 MB
+Enter minimum acceptable accuracy (0-1): Minimum Accuracy: 40.0%
+Total Filters to prune: 2112 For Pruning Percentage: 50.0
+Ranking filters
+Layers that will be pruned {24: 297, 5: 37, 10: 98, 19: 267, 26: 278, 17: 310, 28: 297, 0: 17, 21: 266, 14: 101, 7: 30, 12: 93, 2: 21}
+Pruning Filters
+Filters Pruned, 50.00% of original left
+Fine Tuning
+Epoch 1/10
+Validation Accuracy: 0.15%
+Epoch 2/10
+Validation Accuracy: 0.45%
+Epoch 3/10
+Validation Accuracy: 1.40%
+Epoch 4/10
+Validation Accuracy: 2.20%
+Epoch 5/10
+Validation Accuracy: 2.10%
+Epoch 6/10
+Validation Accuracy: 3.50%
+Epoch 7/10
+Validation Accuracy: 4.00%
+Epoch 8/10
+Validation Accuracy: 4.40%
+Epoch 9/10
+Validation Accuracy: 6.10%
+Epoch 10/10
+Validation Accuracy: 8.10%
+Accuracy after fine tuning: 7.50%
+Model Size after fine tuning: 257.19 MB
+Finished
+Final Accuracy: 0.07%
+Final Model Size: 257.19 MB
+Total Filters to prune: 1056 For Pruning Percentage: 25.0
+Ranking filters
+Layers that will be pruned {28: 164, 14: 44, 12: 40, 17: 154, 10: 49, 26: 142, 19: 136, 24: 154, 21: 119, 0: 5, 7: 16, 2: 11, 5: 22}
+Pruning Filters
+Filters Pruned, 75.00% of original left
+Fine Tuning
+Epoch 1/10
+Validation Accuracy: 26.10%
+Epoch 2/10
+Validation Accuracy: 33.55%
+Epoch 3/10
+Validation Accuracy: 35.45%
+Epoch 4/10
+Validation Accuracy: 38.05%
+Epoch 5/10
+Validation Accuracy: 39.50%
+Epoch 6/10
+Validation Accuracy: 42.80%
+Epoch 7/10
+Validation Accuracy: 42.85%
+Epoch 8/10
+Validation Accuracy: 43.85%
+Epoch 9/10
+Validation Accuracy: 42.00%
+Epoch 10/10
+Validation Accuracy: 45.40%
+Accuracy after fine tuning: 43.95%
+Model Size after fine tuning: 376.83 MB
+Finished
+Final Accuracy: 0.45%
+Final Model Size: 376.83 MB
+Total Filters to prune: 1584 For Pruning Percentage: 37.5
+Ranking filters
+Layers that will be pruned {19: 205, 14: 69, 26: 221, 24: 236, 12: 63, 28: 226, 21: 176, 17: 225, 10: 77, 7: 26, 5: 31, 0: 13, 2: 16}
+Pruning Filters
+Filters Pruned, 62.50% of original left
+Fine Tuning
+Epoch 1/10
+Validation Accuracy: 3.65%
+Epoch 2/10
+Validation Accuracy: 8.10%
+Epoch 3/10
+Validation Accuracy: 12.85%
+Epoch 4/10
+Validation Accuracy: 17.20%
+Epoch 5/10
+Validation Accuracy: 21.60%
+Epoch 6/10
+Validation Accuracy: 21.45%
+Epoch 7/10
+Validation Accuracy: 25.00%
+Epoch 8/10
+Validation Accuracy: 24.60%
+Epoch 9/10
+Validation Accuracy: 28.40%
+Epoch 10/10
+Validation Accuracy: 26.95%
+Accuracy after fine tuning: 29.90%
+Model Size after fine tuning: 319.49 MB
+Finished
+Final Accuracy: 0.27%
+Final Model Size: 319.49 MB
+Total Filters to prune: 1320 For Pruning Percentage: 31.25
+Ranking filters
+Layers that will be pruned {17: 198, 14: 49, 24: 189, 19: 176, 28: 188, 26: 177, 21: 157, 10: 57, 7: 22, 5: 24, 12: 58, 0: 10, 2: 15}
+Pruning Filters
+Filters Pruned, 68.75% of original left
+Fine Tuning
+Epoch 1/10
+Validation Accuracy: 11.20%
+Epoch 2/10
+Validation Accuracy: 20.35%
+Epoch 3/10
+Validation Accuracy: 26.55%
+Epoch 4/10
+Validation Accuracy: 30.60%
+Epoch 5/10
+Validation Accuracy: 29.85%
+Epoch 6/10
+Validation Accuracy: 31.45%
+Epoch 7/10
+Validation Accuracy: 34.70%
+Epoch 8/10
+Validation Accuracy: 36.30%
+Epoch 9/10
+Validation Accuracy: 34.10%
+Epoch 10/10
+Validation Accuracy: 37.25%
+Accuracy after fine tuning: 36.70%
+Model Size after fine tuning: 353.19 MB
+Finished
+Final Accuracy: 0.37%
+Final Model Size: 353.19 MB
+Total Filters to prune: 1188 For Pruning Percentage: 28.125
+Ranking filters
+Layers that will be pruned {17: 166, 24: 178, 14: 45, 21: 139, 26: 160, 12: 55, 28: 179, 10: 50, 19: 158, 5: 19, 7: 17, 2: 13, 0: 9}
+Pruning Filters
+Filters Pruned, 71.88% of original left
+Fine Tuning
+Epoch 1/10
+Validation Accuracy: 20.25%
+Epoch 2/10
+Validation Accuracy: 27.65%
+Epoch 3/10
+Validation Accuracy: 33.25%
+Epoch 4/10
+Validation Accuracy: 33.50%
+Epoch 5/10
+Validation Accuracy: 36.30%
+Epoch 6/10
+Validation Accuracy: 36.15%
+Epoch 7/10
+Validation Accuracy: 37.30%
+Epoch 8/10
+Validation Accuracy: 41.05%
+Epoch 9/10
+Validation Accuracy: 40.00%
+Epoch 10/10
+Validation Accuracy: 39.90%
+Accuracy after fine tuning: 41.10%
+Model Size after fine tuning: 362.58 MB
+Finished
+Final Accuracy: 0.40%
+Final Model Size: 362.58 MB
+Total Filters to prune: 1254 For Pruning Percentage: 29.6875
+Ranking filters
+Layers that will be pruned {26: 166, 19: 158, 14: 62, 12: 55, 28: 187, 24: 183, 21: 145, 17: 180, 5: 20, 10: 54, 2: 17, 7: 17, 0: 10}
+Pruning Filters
+Filters Pruned, 70.31% of original left
+Fine Tuning
+Epoch 1/10
+Validation Accuracy: 14.40%
+Epoch 2/10
+Validation Accuracy: 21.30%
+Epoch 3/10
+Validation Accuracy: 28.40%
+Epoch 4/10
+Validation Accuracy: 31.65%
+Epoch 5/10
+Validation Accuracy: 35.55%
+Epoch 6/10
+Validation Accuracy: 32.80%
+Epoch 7/10
+Validation Accuracy: 37.75%
+Epoch 8/10
+Validation Accuracy: 39.20%
+Epoch 9/10
+Validation Accuracy: 38.80%
+Epoch 10/10
+Validation Accuracy: 36.30%
+Accuracy after fine tuning: 37.70%
+Model Size after fine tuning: 355.30 MB
+Finished
+Final Accuracy: 0.37%
+Final Model Size: 355.30 MB
+Best pruning percentage: 28.12% yields final accuracy: 40.60%
+Recommended pruning percentage: 28.12%
