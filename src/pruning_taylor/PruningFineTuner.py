@@ -138,7 +138,7 @@ class PruningFineTuner:
             optimizer = optim.SGD(self.model.parameters(), lr=0.001, momentum=0.9)
             scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='max', factor=0.5, patience=1)
             best_accuracy = 0.0
-            num_finetuning_epochs = 10
+            num_finetuning_epochs = 5
             for _ in range(num_finetuning_epochs):
                 self.train_epoch(optimizer, rank_filter=False)
                 val_accuracy = self.test(self.model)[0]
@@ -152,3 +152,28 @@ class PruningFineTuner:
         size_mb = self.get_model_size(self.model)
         print(f"Model Size after fine tuning: {size_mb:.2f} MB")
         return [acc_pre_fine_tuning ,acc_time[0], acc_time[1], size_mb]
+    
+    def reset(self):
+        """Clear memory resources completely"""
+        if hasattr(self, 'model'):
+            del self.model
+
+        if hasattr(self, 'pruner'):
+            del self.pruner
+
+        if hasattr(self, 'dataloader'):
+            del self.dataloader
+
+        # Clear any other stored objects
+        for attr in list(self.__dict__.keys()):
+            if attr not in ['device'] and hasattr(self, attr):
+                delattr(self, attr)
+
+        # Force garbage collection
+        import gc
+        gc.collect()
+
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+        elif torch.backends.mps.is_available():
+            torch.mps.empty_cache()

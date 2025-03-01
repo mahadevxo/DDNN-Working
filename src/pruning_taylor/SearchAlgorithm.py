@@ -78,6 +78,11 @@ class SearchAlgorithm:
             reward += self.BAD_REWARD_SIZE * math.abs(diff_size)
 
         return reward
+    
+    def _find_starting_point(self):
+        p = self.min_accuracy
+        a = self.init_acc
+        return round(a/p * 100, 3)
 
     def new_algo(self):
         '''
@@ -91,11 +96,6 @@ class SearchAlgorithm:
         then we compute the ratio between then 50/20 * 100 = 25
         we start with a pruning ratio of 25% rather than start at the mid
         25% may not be the best option but it converges faster
-        
-        between 0 and 1
-        acc = 0.7
-        computation_time = 0.25
-        model_size = 0.05
         
         reward function for accuracy:
         if acc > threshold: reward -0.2 * (acc - threshold)
@@ -117,7 +117,8 @@ class SearchAlgorithm:
         [pruning amount, acc, computation time, model size] or we can have the reward function instead
         
         + 0.25 * comp_time + 0.05 * model_size
-        
         '''
+        
+        best_percentage = 0.0
         
         return

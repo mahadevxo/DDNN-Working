@@ -9,13 +9,13 @@ class FilterPruner:
         
     def reset(self):
         self.filter_ranks = {}
+        self.activations = []
+        self.gradients = []
+        self.activation_to_layer = {}
+        self.grad_index = 0
         
     def forward(self, x):
         self.activations = []
-        self.gradients = []
-        self.grad_index = 0
-        self.activation_to_layer = {}
-        
         self.model.eval()
         self.model.zero_grad()
         
