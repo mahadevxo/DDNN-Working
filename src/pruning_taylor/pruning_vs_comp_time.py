@@ -12,11 +12,11 @@ def main():
     print(f"Number of pruning percentages: {len(pruning_amounts)}")
     
     with open("pruning_vs_comp_time.csv", mode='w') as file:
-        file.write("Pruning Percentage, Accuracy, Compute Time, Model Size\n")
+        file.write("Pruning Percentage, Accuracy Before Fine Tuning, Accuracy, Compute Time, Model Size\n")
         for pruning_amount in pruning_amounts:
-            acc, time, model_size = pruning_fine_tuner.prune(pruning_amount)
-            data = (f"Pruning Percentage: {pruning_amount:.2f}%, Accuracy: {acc:.2f}, Compute Time: {time:.2f}, Model Size: {model_size:.2f} MB")
+            data = pruning_fine_tuner.prune(pruning_amount)
             print(data)
+            data = ', '.join(map(str, data))
             file.write(data + '\n')
     
     print("Done")
