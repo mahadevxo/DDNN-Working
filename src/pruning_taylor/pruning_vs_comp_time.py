@@ -19,6 +19,7 @@ def main():
             pre_acc, pre_comp = pre[0], pre[1]
             acc, comp_time, size = data[1], data[2], data[3]
             data = f"{pruning_amount}, {pre_acc}, {acc}, {pre_comp}, {comp_time}, {size}"
+            print(data)
             file.write(data + '\n')
     
     print("Done")
