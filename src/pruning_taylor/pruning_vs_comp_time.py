@@ -5,8 +5,8 @@ import torch
 
 def main():
     device = 'mps' if torch.backends.mps.is_available() else 'cuda' if torch.cuda.is_available() else 'cpu'
-    model = models.vgg16(weights=models.VGG16_Weights.IMAGENET1K_V1)
-    pruning_fine_tuner = PruningFineTuner(model).to(device)
+    model = models.vgg16(weights=models.VGG16_Weights.IMAGENET1K_V1).to(device)
+    pruning_fine_tuner = PruningFineTuner(model)
     
     pruning_amounts = numpy.linspace(0.1, 0.9, 9)
     
