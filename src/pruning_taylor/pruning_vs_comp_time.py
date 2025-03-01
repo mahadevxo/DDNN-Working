@@ -16,10 +16,10 @@ def free_memory():
 
 def main():
     device = 'mps' if torch.backends.mps.is_available() else 'cuda' if torch.cuda.is_available() else 'cpu'
-    pruning_amounts = numpy.arange(0.0, 60.0, 2.0)
+    pruning_amounts = numpy.arange(30.0, 60.0, 2.0)
     print(f"Number of pruning percentages: {len(pruning_amounts)}")
     
-    with open("pruning_vs_comp_time.csv", mode='w') as file:
+    with open("pruning_vs_comp_time.csv", mode='a') as file:
         file.write("Pruning Amount, Pre-Accuracy, Accuracy, Pre-Pruning Time, Post-Pruning Time, Size\n")
         for i, pruning_amount in enumerate(pruning_amounts):
             try:
