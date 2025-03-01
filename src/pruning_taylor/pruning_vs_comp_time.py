@@ -8,7 +8,7 @@ def main():
     model = models.vgg16(weights=models.VGG16_Weights.IMAGENET1K_V1).to(device)
     pruning_fine_tuner = PruningFineTuner(model)
     
-    pruning_amounts = numpy.arange(0.0, 100.0, 5.0)
+    pruning_amounts = numpy.arange(0.0, 60.0, 1.0)
     print(f"Number of pruning percentages: {len(pruning_amounts)}")
     
     with open("pruning_vs_comp_time.csv", mode='w') as file:
