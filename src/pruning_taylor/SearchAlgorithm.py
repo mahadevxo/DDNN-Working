@@ -1,4 +1,3 @@
-from cycler import V
 import torch
 from torchvision.models import models
 from PruningFineTuner import PruningFineTuner
