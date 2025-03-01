@@ -1,4 +1,4 @@
-from torchvision.models import models
+from torchvision import models as models
 from PruningFineTuner import PruningFineTuner
 import numpy
 import torch
