@@ -2,6 +2,7 @@ from torchvision import models as models
 from PruningFineTuner import PruningFineTuner
 import numpy
 import torch
+import gc
 
 def main():
     device = 'mps' if torch.backends.mps.is_available() else 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -17,11 +18,15 @@ def main():
             pre = data[0]
             pre_acc, pre_comp = pre[0], pre[1]
             acc, comp_time, size = data[1], data[2], data[3]
-            data = f"{pruning_amount}, {pre_acc}, {acc}, {pre_comp}, {comp_time}, {size}"
-            print(data)
-            file.write(data + '\n')
+            entry = f"{pruning_amount}, {pre_acc}, {acc}, {pre_comp}, {comp_time}, {size}"
+            print(entry)
+            file.write(entry + '\n')
+            file.flush()
             del pruning_fine_tuner
             del model
+            gc.collect()
+            if device == 'cuda':
+                torch.cuda.empty_cache()
     
     print("Done")
 
