@@ -11,6 +11,7 @@
         "functionsprune",
         "GFLOPs",
         "imagenet",
+        "IMAGETNET",
         "imsave",
         "jetson",
         "kaiming",

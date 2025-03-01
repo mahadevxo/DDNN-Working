@@ -147,10 +147,11 @@ class PruningFineTuner:
             scheduler.step(val_accuracy)
             if val_accuracy > best_accuracy:
                 best_accuracy = val_accuracy
-        print(f"Accuracy after fine tuning: {(self.test(self.model))[0]*100:.2f}%")
+        acc_time = self.test(self.model)
+        
+        
+        print("Finished Pruning for", pruning_percentage)
+        print(f"Accuracy after fine tuning: {acc_time[0]*100:.2f}%")
         size_mb = self.get_model_size(self.model)
         print(f"Model Size after fine tuning: {size_mb:.2f} MB")
-
-        print("Finished")
-        print(f"Final Accuracy: {(self.test(self.model)*100)[0]:.2f}%")
-        print(f'Final Model Size: {self.get_model_size(self.model):.2f} MB')
+        return [acc_time[0], acc_time[1], size_mb]

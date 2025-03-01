@@ -3,3 +3,6 @@ rc/pruning_RL/__pycache__
 src/pruning_RL/imagenet-mini
 src/MVCNN_org/MVCNN-Jetson_stage_1
 src/MVCNN_org/MVCNN-Jetson_stage_2
+**.DS_Store
+**.ipynb_checkpoints
+**/__pycache__
