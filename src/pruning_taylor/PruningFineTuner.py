@@ -98,6 +98,7 @@ class PruningFineTuner:
         return total_size / (1024 ** 2)
     
     def prune(self, pruning_percentage):
+        # sourcery skip: extract-method, inline-immediately-returned-variable
         self.model.train()
 
         for param in self.model.features.parameters():
@@ -134,21 +135,22 @@ class PruningFineTuner:
 
         # Test and fine tune model once after pruning
         acc_pre_fine_tuning = self.test(model)
-        print(f"Accuracy before fine tuning: {acc_pre_fine_tuning[0]*100:.2f}%")
-        print("Fine Tuning")
-        optimizer = optim.SGD(self.model.parameters(), lr=0.001, momentum=0.9)
-        scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='max', factor=0.5, patience=1)
-        best_accuracy = 0.0
-        num_finetuning_epochs = 10  # Increased number of epochs
-        for epoch in range(num_finetuning_epochs):
-            print(f"Epoch {epoch+1}/{num_finetuning_epochs}")
-            self.train_epoch(optimizer, rank_filter=False)
-            val_accuracy = self.test(self.model)[0]
-            print(f"Validation Accuracy: {(val_accuracy*100):.2f}%")
-            scheduler.step(val_accuracy)
-            if val_accuracy > best_accuracy:
-                best_accuracy = val_accuracy
-        acc_time = self.test(self.model)
+        if pruning_percentage != 0.0:
+            print(f"Accuracy before fine tuning: {acc_pre_fine_tuning[0]*100:.2f}%")
+            print("Fine Tuning")
+            optimizer = optim.SGD(self.model.parameters(), lr=0.001, momentum=0.9)
+            scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='max', factor=0.5, patience=1)
+            best_accuracy = 0.0
+            num_finetuning_epochs = 10  # Increased number of epochs
+            for epoch in range(num_finetuning_epochs):
+                print(f"Epoch {epoch+1}/{num_finetuning_epochs}")
+                self.train_epoch(optimizer, rank_filter=False)
+                val_accuracy = self.test(self.model)[0]
+                print(f"Validation Accuracy: {(val_accuracy*100):.2f}%")
+                scheduler.step(val_accuracy)
+                if val_accuracy > best_accuracy:
+                    best_accuracy = val_accuracy
+            acc_time = self.test(self.model)
         
         
         print("Finished Pruning for", pruning_percentage)
