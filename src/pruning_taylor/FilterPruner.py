@@ -3,7 +3,7 @@ from operator import itemgetter
 import torch
 class FilterPruner:
     def __init__(self, model):
-        self.DEVICE = 'mps' if torch.backends.mps.is_available() else 'cuda' if torch.cuda.is_available() else 'cpu'
+        self.device = 'mps' if torch.backends.mps.is_available() else 'cuda' if torch.cuda.is_available() else 'cpu'
         self.model = model
         self.reset()
         

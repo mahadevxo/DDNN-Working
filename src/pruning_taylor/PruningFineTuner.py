@@ -12,7 +12,7 @@ class PruningFineTuner:
         self.train_path = 'imagenet-mini/train'
         self.test_path = 'imagenet-mini/val'
         self.device = 'mps' if torch.backends.mps.is_available() else 'cuda' if torch.cuda.is_available() else 'cpu'
-        self.model = model.to(self.device)  # move model to device
+        self.model = model.to(self.device)
         self.criterion = torch.nn.CrossEntropyLoss()
         self.pruner = FilterPruner(self.model)
         

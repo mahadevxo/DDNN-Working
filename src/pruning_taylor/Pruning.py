@@ -45,33 +45,33 @@ class Pruning:
             bias=(conv.bias is not None),
         )
         
-    def _prune_conv_layer(self, conv, new_conv, filter_index, device = 'mps'):
+    def _prune_conv_layer(self, conv, new_conv, filter_index):
         old_weights = conv.weight.data.cpu().numpy()
         new_weights = new_conv.weight.data.cpu().numpy()
         
         new_weights[:filter_index, :, :, :] = old_weights[:filter_index, :, :, :]
         new_weights[filter_index:, :, :, :] = old_weights[filter_index+1:, :, :, :]
         
-        new_conv.weight.data = torch.from_numpy(new_weights).to(device)
+        new_conv.weight.data = torch.from_numpy(new_weights).to(self.device)
         bias_numpy = conv.bias.data.cpu().numpy()
         
         bias = np.zeros(shape=(bias_numpy.shape[0] - 1), dtype=np.float32)
         bias[:filter_index] = bias_numpy[:filter_index]
         bias[filter_index:] = bias_numpy[filter_index+1:]
         
-        new_conv.bias.data = torch.from_numpy(bias).to(device)
+        new_conv.bias.data = torch.from_numpy(bias).to(self.device)
     
-    def _prune_next_conv_layer(self, next_conv, new_next_conv, filter_index, device = 'mps'):
+    def _prune_next_conv_layer(self, next_conv, new_next_conv, filter_index):
         old_weights = next_conv.weight.data.cpu().numpy()
         new_weights = new_next_conv.weight.data.cpu().numpy()
         
         new_weights[:, :filter_index, :, :] = old_weights[:, :filter_index, :, :]
         new_weights[:, filter_index:, :, :] = old_weights[:, filter_index+1:, :, :]
         
-        new_next_conv.weight.data = torch.from_numpy(new_weights).to(device)
-        new_next_conv.bias.data = next_conv.bias.data.to(device)
+        new_next_conv.weight.data = torch.from_numpy(new_weights).to(self.device)
+        new_next_conv.bias.data = next_conv.bias.data.to(self.device)
     
-    def _prune_last_conv_layer(self, model, conv, new_conv, layer_index, filter_index, device = 'mps'):
+    def _prune_last_conv_layer(self, model, conv, new_conv, layer_index, filter_index):
         model.features = torch.nn.Sequential(
             *(self.replace_layers(model.features, i, [layer_index], \
                 [new_conv]) for i, _ in enumerate(model.features)))
@@ -102,8 +102,8 @@ class Pruning:
         new_weights[:, filter_index * params_per_input_channel:] = \
             old_weights[:, (filter_index + 1) * params_per_input_channel:]
             
-        new_linear_layer.weight.data = torch.from_numpy(new_weights).to(device)
-        new_linear_layer.bias.data = old_linear_layer.bias.data.to(device)
+        new_linear_layer.weight.data = torch.from_numpy(new_weights).to(self.device)
+        new_linear_layer.bias.data = old_linear_layer.bias.data.to(self.device)
         
         model.classifier = torch.nn.Sequential(
             *(self._replace_layers(model.classifier, i, [layer_index], \
@@ -111,7 +111,7 @@ class Pruning:
         
         return model
     
-    def prune_vgg_conv_layer(self, model, layer_index, filter_index, device='mps'):
+    def prune_vgg_conv_layer(self, model, layer_index, filter_index):
         _, conv = list(model.features._modules.items())[layer_index]
         next_conv = self._get_next_conv(model, layer_index)
         new_conv = self._create_new_conv(conv)
@@ -130,5 +130,5 @@ class Pruning:
             model.features = torch.nn.Sequential(*modules)
         else:
             # Use _prune_last_conv_layer to update classifier layers for the last conv layer
-            model = self._prune_last_conv_layer(model, conv, new_conv, layer_index, filter_index, device)
+            model = self._prune_last_conv_layer(model, conv, new_conv, layer_index, filter_index)
         return model
