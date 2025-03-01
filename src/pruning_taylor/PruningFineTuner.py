@@ -1,4 +1,3 @@
-
 from torchvision import datasets, transforms
 from torch.utils.data import DataLoader, Subset
 import torch
@@ -7,6 +6,8 @@ import random
 import time
 from FilterPruner import FilterPruner
 from Pruning import Pruning
+import gc
+
 class PruningFineTuner:
     def __init__(self, model):
         self.train_path = 'imagenet-mini/train'
@@ -31,22 +32,22 @@ class PruningFineTuner:
         return DataLoader(subset_dataset, batch_size=32, shuffle=True, num_workers=1)
     
     def train_batch(self, optimizer, train_dataset, rank_filter=False):
-        
         for image, label in train_dataset:
             image = image.to(self.device)
             label = label.to(self.device)
-            
+
             self.model.zero_grad()
             input = image
-            if rank_filter:
-                output = self.pruner.forward(input)
-                self.criterion(output, label).backward()
-            else:
-                # Fix: Calculate loss first and then call backward on it
-                output = self.model(input)
-                loss = self.criterion(output, label)
-                loss.backward()
+            output = self.pruner.forward(input) if rank_filter else self.model(input)
+            loss = self.criterion(output, label)
+            loss.backward()
+            if optimizer is not None:
                 optimizer.step()
+            # Clear intermediate variables and free memory
+            del image, label, input, output, loss
+            gc.collect()
+            if self.device == 'cuda':
+                torch.cuda.empty_cache()
     
     def train_epoch(self, optimizer = None, rank_filter = False):
         train_dataset = self.get_images(self.train_path)
@@ -108,7 +109,6 @@ class PruningFineTuner:
         print("Total Filters to prune:", total_filters_to_prune, "For Pruning Percentage:", pruning_percentage)
 
         # Rank and get the candidates to prune (exactly total_filters_to_prune)
-        print('Ranking filters')
         prune_targets = self.get_candidates_to_prune(total_filters_to_prune)
         layers_pruned = {}
         for layer_index, filter_index in prune_targets:
@@ -130,20 +130,16 @@ class PruningFineTuner:
                     layer.bias.data = layer.bias.data.float()
 
         self.model = model.to(self.device)
-        pruned_ratio = 100 * float(self.total_num_filters())/original_filters
-        print(f"Filters Pruned, {pruned_ratio:.2f}% of original left")
 
         # Test and fine tune model once after pruning
         acc_pre_fine_tuning = self.test(model)
         if pruning_percentage != 0.0:
             print(f"Accuracy before fine tuning: {acc_pre_fine_tuning[0]*100:.2f}%")
-            print("Fine Tuning")
             optimizer = optim.SGD(self.model.parameters(), lr=0.001, momentum=0.9)
             scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='max', factor=0.5, patience=1)
             best_accuracy = 0.0
-            num_finetuning_epochs = 10  # Increased number of epochs
-            for epoch in range(num_finetuning_epochs):
-                print(f"Epoch {epoch+1}/{num_finetuning_epochs}")
+            num_finetuning_epochs = 10
+            for _ in range(num_finetuning_epochs):
                 self.train_epoch(optimizer, rank_filter=False)
                 val_accuracy = self.test(self.model)[0]
                 print(f"Validation Accuracy: {(val_accuracy*100):.2f}%")
