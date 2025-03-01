@@ -5,7 +5,7 @@ import torch
 
 def main():
     device = 'mps' if torch.backends.mps.is_available() else 'cuda' if torch.cuda.is_available() else 'cpu'
-    pruning_amounts = numpy.arange(0.0, 60.0, 1.0)
+    pruning_amounts = numpy.arange(0.0, 60.0, 2.0)
     print(f"Number of pruning percentages: {len(pruning_amounts)}")
     
     with open("pruning_vs_comp_time.csv", mode='w') as file:
