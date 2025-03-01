@@ -21,6 +21,7 @@ def main():
             print(data)
             file.write(data + '\n')
             del pruning_fine_tuner
+            del model
     
     print("Done")
 
