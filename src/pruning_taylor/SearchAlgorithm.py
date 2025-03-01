@@ -1,10 +1,10 @@
 import torch
-from torchvision.models import models
+from torchvision import models
 from PruningFineTuner import PruningFineTuner
 import math
 
 class SearchAlgorithm:
-    def __init__(self, original_model, min_accuracy,
+    def __init__(self, original_model, min_accuracy=None,
                  init_acc = None, init_comp = None,
                  init_size = None):
         self.original_model = original_model
@@ -22,7 +22,7 @@ class SearchAlgorithm:
         self.GOOD_REWARD_SIZE = 7
         self.BAD_REWARD_SIZE = -10
         
-    def heuristic_search(self, max_iter=6):
+    def heuristic_binary_search(self,max_iter=6):
         """
         Heuristic search to find the best pruning percentage that gets final accuracy
         as close to (but not lower than) min_accuracy, optimized for lower memory usage.

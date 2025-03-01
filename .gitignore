@@ -6,3 +6,4 @@ src/MVCNN_org/MVCNN-Jetson_stage_2
 **.DS_Store
 **.ipynb_checkpoints
 **/__pycache__
+**/*.numbers
