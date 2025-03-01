@@ -16,6 +16,7 @@ class FilterPruner:
         
     def forward(self, x):
         self.activations = []
+        self.grad_index = 0  # Reset grad_index before each forward pass
         self.model.eval()
         self.model.zero_grad()
         
@@ -23,28 +24,43 @@ class FilterPruner:
         for layer_index, layer in enumerate(self.model.features):
             x = layer(x)
             if isinstance(layer, torch.nn.modules.conv.Conv2d):
-                x.register_hook(self.compute_rank)
+                # Store the activation before registering hook to ensure consistency
                 self.activations.append(x)
                 self.activation_to_layer[activation_index] = layer_index
+                # Register hook on this specific activation
+                x.register_hook(lambda grad, idx=activation_index: self.compute_rank(grad, idx))
                 activation_index += 1
         x = x.view(x.size(0), -1)
         x = self.model.classifier(x)
-        return x  # Changed: return the computed output, not self.model(x)
+        return x
     
-    def compute_rank(self, grad):
-        activation_index = len(self.activations) - self.grad_index - 1
+    def compute_rank(self, grad, activation_index):
+        """Compute rank of the filters using Taylor expansion.
+        
+        Args:
+            grad: The gradient of the criterion with respect to the output of the layer
+            activation_index: The index of the activation in self.activations
+        """
+        # Safety check to ensure activation_index is valid
+        if activation_index >= len(self.activations) or activation_index < 0:
+            print(f"Warning: Invalid activation_index {activation_index}, max is {len(self.activations)-1}")
+            return
+            
         activation = self.activations[activation_index]
         
+        # Compute Taylor criterion
         taylor = activation * grad
         
+        # Average across batch and spatial dimensions
         taylor = taylor.mean(dim=(0, 2, 3)).data
         
+        # Initialize filter_ranks for this activation if not already done
         if activation_index not in self.filter_ranks:
             self.filter_ranks[activation_index] = torch.FloatTensor(activation.size(1)).zero_()
             self.filter_ranks[activation_index] = self.filter_ranks[activation_index].to(self.device)
             
+        # Update the ranks
         self.filter_ranks[activation_index] += taylor
-        self.grad_index += 1
         
     def lowest_ranking_filters(self, num):
         data = []

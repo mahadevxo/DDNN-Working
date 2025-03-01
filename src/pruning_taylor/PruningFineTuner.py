@@ -33,21 +33,42 @@ class PruningFineTuner:
     
     def train_batch(self, optimizer, train_dataset, rank_filter=False):
         for image, label in train_dataset:
-            image = image.to(self.device)
-            label = label.to(self.device)
+            try:
+                image = image.to(self.device)
+                label = label.to(self.device)
 
-            self.model.zero_grad()
-            input = image
-            output = self.pruner.forward(input) if rank_filter else self.model(input)
-            loss = self.criterion(output, label)
-            loss.backward()
-            if optimizer is not None:
-                optimizer.step()
-            # Clear intermediate variables and free memory
-            del image, label, input, output, loss
-            gc.collect()
-            if self.device == 'cuda':
-                torch.cuda.empty_cache()
+                self.model.zero_grad()
+                input = image
+                
+                # Make sure pruner is reset properly if we're ranking filters
+                if rank_filter:
+                    self.pruner.reset()
+                    output = self.pruner.forward(input)
+                else:
+                    output = self.model(input)
+                    
+                loss = self.criterion(output, label)
+                loss.backward()
+                
+                if optimizer is not None:
+                    optimizer.step()
+                    
+            except Exception as e:
+                print(f"Error during training: {str(e)}")
+                # Continue with next batch if there's an error
+                continue
+            finally:
+                # Clear intermediate variables and free memory
+                del image, label
+                if 'input' in locals(): 
+                    del input
+                if 'output' in locals(): 
+                    del output
+                if 'loss' in locals(): 
+                    del loss
+                gc.collect()
+                if self.device == 'cuda':
+                    torch.cuda.empty_cache()
     
     def train_epoch(self, optimizer = None, rank_filter = False):
         train_dataset = self.get_images(self.train_path)
