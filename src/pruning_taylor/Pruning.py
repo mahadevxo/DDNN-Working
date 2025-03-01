@@ -73,7 +73,7 @@ class Pruning:
     
     def _prune_last_conv_layer(self, model, conv, new_conv, layer_index, filter_index):
         model.features = torch.nn.Sequential(
-            *(self.replace_layers(model.features, i, [layer_index], \
+            *(self._replace_layers(model.features, i, [layer_index], \
                 [new_conv]) for i, _ in enumerate(model.features)))
         
         layer_index = 0
