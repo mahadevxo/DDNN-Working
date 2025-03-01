@@ -27,20 +27,18 @@ def main():
             # Clear memory before creating a new model
             free_memory()
             
-            # Create model with no_grad to prevent gradient storage
-            with torch.no_grad():
-                model = models.vgg16(weights=models.VGG16_Weights.IMAGENET1K_V1).to(device)
-                model.eval()  # Set to eval mode to prevent storing stats
-                
-                pruning_fine_tuner = PruningFineTuner(model)
-                data = pruning_fine_tuner.prune(pruning_amount)
-                pre = data[0]
-                pre_acc, pre_comp = pre[0], pre[1]
-                acc, comp_time, size = data[1], data[2], data[3]
-                entry = f"{pruning_amount}, {pre_acc}, {acc}, {pre_comp}, {comp_time}, {size}"
-                print(entry)
-                file.write(entry + '\n')
-                file.flush()
+            model = models.vgg16(weights=models.VGG16_Weights.IMAGENET1K_V1).to(device)
+            model.eval()  # Set to eval mode to prevent storing stats
+            
+            pruning_fine_tuner = PruningFineTuner(model)
+            data = pruning_fine_tuner.prune(pruning_amount)
+            pre = data[0]
+            pre_acc, pre_comp = pre[0], pre[1]
+            acc, comp_time, size = data[1], data[2], data[3]
+            entry = f"{pruning_amount}, {pre_acc}, {acc}, {pre_comp}, {comp_time}, {size}"
+            print(entry)
+            file.write(entry + '\n')
+            file.flush()
             
             # Proper cleanup after each iteration
             pruning_fine_tuner.reset()
