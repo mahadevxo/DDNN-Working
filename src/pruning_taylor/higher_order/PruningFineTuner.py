@@ -27,7 +27,7 @@ class PruningFineTuner:
                             std=[0.229, 0.224, 0.225]),
     ])
         data_dataset = datasets.ImageFolder(folder_path, transform=transform)
-        indices = random.sample(range(len(data_dataset)), num_samples)
+        indices = list(range(0, len(data_dataset), 30))[:num_samples]
         subset_dataset = Subset(data_dataset, indices)
         return DataLoader(subset_dataset, batch_size=32, shuffle=True, num_workers=2)
     
