@@ -1,5 +1,4 @@
 import torchvision.models as models
-import matplotlib.pyplot as plt
 from PruningFineTuner import PruningFineTuner
 
 def main():
@@ -9,12 +8,12 @@ def main():
     top1_accuracies = []
 
     with open ('results_1.csv', 'w') as f:
-        f.write('Pruning Ratio, Top-1 Accuracy, Top-5 Accuracy, Model Size, Compute Time\n')
+        f.write('Pruning Ratio, Accuracy, Model Size, Compute Time\n')
         for ratio in pruning_ratios:
-            tuner = PruningFineTuner(model)
+            tuner = PruningFineTuner(model, 1) # Taylor Order 1
             results = tuner.prune(ratio)  # results: [pre_fine_tuning_acc, raw_acc, compute_time, size_mb]
             top1_accuracies.append(results[1])
-            data = f"Pruning {ratio}%: Top-1 Accuracy = {results[1]:.2f}%, Top-5 Accuracy = {results[2]:.2f}%, Model Size = {results[4]:.2f}MB, Compute Time = {results[3]:.2f}s"
+            data = f"{results[1]}, {results[3]}, {results[2]}"
             print(data)
             f.write(f"{ratio}, {data}\n")
             # Reload the model for the next iteration

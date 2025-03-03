@@ -2,9 +2,10 @@ from heapq import nsmallest
 from operator import itemgetter
 import torch
 class FilterPruner:
-    def __init__(self, model):
+    def __init__(self, model, taylor=1):
         self.device = 'mps' if torch.backends.mps.is_available() else 'cuda' if torch.cuda.is_available() else 'cpu'
         self.model = model
+        self.taylor = taylor
         self.reset()
         
     def reset(self):
@@ -29,10 +30,12 @@ class FilterPruner:
             if isinstance(layer, torch.nn.modules.conv.Conv2d):
                 self.activations.append(x)
                 self.activation_to_layer[activation_index] = layer_index
-                x.register_hook(lambda grad, idx=activation_index: self.compute_rank(grad, idx))
-                # Optionally register additional hooks for 2nd and 3rd order, e.g.:
-                x.register_hook(lambda grad, idx=activation_index: self.compute_rank_2nd_order(grad, idx))
-                x.register_hook(lambda grad, idx=activation_index: self.compute_rank_3rd_order(grad, idx))
+                if self.taylor == 1:
+                    x.register_hook(lambda grad, idx=activation_index: self.compute_rank(grad, idx))
+                elif self.taylor == 2:
+                    x.register_hook(lambda grad, idx=activation_index: self.compute_rank_2nd_order(grad, idx))
+                else:
+                    x.register_hook(lambda grad, idx=activation_index: self.compute_rank_3rd_order(grad, idx))
                 activation_index += 1
         x = x.view(x.size(0), -1)
         x = self.model.classifier(x)
