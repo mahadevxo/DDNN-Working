@@ -11,7 +11,7 @@ import gc
 class PruningFineTuner:
     def __init__(self, model):
         self.train_path = 'imagenet-mini/train'
-        self.test_path = 'imagenet-mini/val'
+        self.test_path = 'imagenet-val'
         self.device = 'mps' if torch.backends.mps.is_available() else 'cuda' if torch.cuda.is_available() else 'cpu'
         self.model = model.to(self.device)
         self.criterion = torch.nn.CrossEntropyLoss()
@@ -84,7 +84,7 @@ class PruningFineTuner:
         compute_time = 0
         
         with torch.no_grad():
-            for images, labels in self.get_images(self.test_path):
+            for images, labels in self.get_images(self.test_path, num_samples=10000):
                 # Fix: Properly move tensors to device and ensure return value is used
                 images = images.to(self.device)
                 labels = labels.to(self.device)
