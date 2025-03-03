@@ -27,9 +27,8 @@ def run_pruning_experiment(taylor_order, pruning_ratios):
             tuner.get_candidates_to_prune = lambda num: get_candidates_to_prune_order(tuner, num, taylor_order)
         # Prune and fine tune; prune() returns [acc_pre, acc_post, compute_time, model_size]
         result = tuner.prune(ratio)
-        final_top1 = result[1]
-        print(f"Taylor order {taylor_order} - Pruning {ratio}%: Top-1 Accuracy = {final_top1:.2f}%")
-        accuracies.append(final_top1)
+        print(f"Taylor order {taylor_order} - Pruning {ratio}%: Top-1 Accuracy = {result[1]*100:.2f}%, Top-5 Accuracy = {result[2]*100:.2f}%")
+        accuracies.append(result[1])
     return accuracies
 
 def main():
