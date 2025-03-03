@@ -11,13 +11,13 @@ import gc
 class PruningFineTuner:
     def __init__(self, model):
         self.train_path = 'imagenet-mini/train'
-        self.test_path = 'imagenet-mini/val'
+        self.test_path = 'imagenet-val/'
         self.device = 'mps' if torch.backends.mps.is_available() else 'cuda' if torch.cuda.is_available() else 'cpu'
         self.model = model.to(self.device)
         self.criterion = torch.nn.CrossEntropyLoss()
         self.pruner = FilterPruner(self.model)
         
-    def get_images(self, folder_path, num_samples=1000):
+    def get_images(self, folder_path, num_samples=5000):
         transform = transforms.Compose([
         transforms.Resize((224,224)),
         transforms.RandomHorizontalFlip(), 

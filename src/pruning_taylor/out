@@ -1,0 +1,78 @@
+Original Accuracy: 55.20%
+Original Model Size: 527.79 MB
+Enter minimum acceptable accuracy (0-1): 0.45
+Minimum Accuracy: 45.0%
+Total Filters to prune: 2112 For Pruning Percentage: 50.0
+Layers that will be pruned {21: 306, 26: 293, 19: 255, 28: 325, 24: 300, 17: 285, 10: 83, 5: 30, 12: 85, 14: 82, 0: 23, 7: 29, 2: 16}
+Pruning Filters
+Accuracy before fine tuning: 0.10%
+Validation Accuracy: 0.30%
+Validation Accuracy: 0.20%
+Validation Accuracy: 0.30%
+Validation Accuracy: 0.10%
+Validation Accuracy: 0.70%
+Finished Pruning for 50.0
+Accuracy after fine tuning: 0.60%
+Model Size after fine tuning: 235.71 MB
+Total Filters to prune: 1056 For Pruning Percentage: 25.0
+Layers that will be pruned {21: 121, 28: 191, 7: 14, 10: 32, 14: 41, 26: 165, 17: 152, 24: 149, 19: 134, 12: 29, 0: 8, 2: 7, 5: 13}
+Pruning Filters
+Accuracy before fine tuning: 2.30%
+Validation Accuracy: 19.50%
+Validation Accuracy: 28.10%
+Validation Accuracy: 31.10%
+Validation Accuracy: 30.60%
+Validation Accuracy: 31.00%
+Finished Pruning for 25.0
+Accuracy after fine tuning: 30.40%
+Model Size after fine tuning: 355.95 MB
+Total Filters to prune: 528 For Pruning Percentage: 12.5
+Layers that will be pruned {24: 61, 17: 78, 19: 61, 28: 122, 21: 76, 26: 73, 12: 18, 10: 17, 0: 3, 7: 4, 5: 4, 14: 10, 2: 1}
+Pruning Filters
+Accuracy before fine tuning: 17.70%
+Validation Accuracy: 46.20%
+Validation Accuracy: 42.30%
+Validation Accuracy: 45.00%
+Validation Accuracy: 49.40%
+Validation Accuracy: 54.00%
+Finished Pruning for 12.5
+Accuracy after fine tuning: 53.70%
+Model Size after fine tuning: 420.75 MB
+Total Filters to prune: 792 For Pruning Percentage: 18.75
+Layers that will be pruned {28: 159, 26: 127, 19: 94, 12: 21, 17: 83, 24: 123, 10: 27, 21: 106, 7: 14, 14: 29, 5: 5, 0: 4}
+Pruning Filters
+Accuracy before fine tuning: 5.30%
+Validation Accuracy: 30.80%
+Validation Accuracy: 35.90%
+Validation Accuracy: 38.10%
+Validation Accuracy: 39.70%
+Validation Accuracy: 40.10%
+Finished Pruning for 18.75
+Accuracy after fine tuning: 38.50%
+Model Size after fine tuning: 385.96 MB
+Total Filters to prune: 660 For Pruning Percentage: 15.625
+Layers that will be pruned {17: 89, 21: 69, 24: 94, 26: 110, 28: 130, 19: 86, 14: 20, 12: 21, 10: 20, 0: 4, 2: 3, 5: 9, 7: 5}
+Pruning Filters
+Accuracy before fine tuning: 8.00%
+Validation Accuracy: 35.20%
+Validation Accuracy: 41.30%
+Validation Accuracy: 44.70%
+Validation Accuracy: 44.90%
+Validation Accuracy: 49.20%
+Finished Pruning for 15.625
+Accuracy after fine tuning: 45.00%
+Model Size after fine tuning: 411.32 MB
+Total Filters to prune: 726 For Pruning Percentage: 17.1875
+Layers that will be pruned {28: 170, 26: 121, 24: 87, 7: 6, 21: 79, 17: 85, 19: 94, 12: 21, 0: 4, 10: 27, 2: 4, 14: 20, 5: 8}
+Pruning Filters
+Accuracy before fine tuning: 7.70%
+Validation Accuracy: 34.90%
+Validation Accuracy: 34.30%
+Validation Accuracy: 41.60%
+Validation Accuracy: 42.20%
+Validation Accuracy: 44.30%
+Finished Pruning for 17.1875
+Accuracy after fine tuning: 43.80%
+Model Size after fine tuning: 379.52 MB
+Best pruning percentage: 17.19% yields final accuracy: 45.10%
+Recommended pruning percentage: 17.19%

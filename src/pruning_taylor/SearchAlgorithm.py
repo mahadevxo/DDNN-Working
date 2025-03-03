@@ -82,7 +82,7 @@ class SearchAlgorithm:
     def _find_starting_point(self):
         p = self.min_accuracy
         a = self.init_acc
-        return round(a/p * 100, 3)
+        return round(a/p * 100, 3) 
 
     def new_algo(self):
         '''
