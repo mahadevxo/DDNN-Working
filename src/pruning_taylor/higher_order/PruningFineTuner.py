@@ -17,7 +17,7 @@ class PruningFineTuner:
         self.criterion = torch.nn.CrossEntropyLoss()
         self.pruner = FilterPruner(self.model, taylor)
         
-    def get_images(self, folder_path, num_samples=500):
+    def get_images(self, folder_path, num_samples=1000):
         transform = transforms.Compose([
         transforms.Resize((224,224)),
         transforms.RandomHorizontalFlip(), 
@@ -29,8 +29,20 @@ class PruningFineTuner:
         data_dataset = datasets.ImageFolder(folder_path, transform=transform)
         indices = random.sample(range(len(data_dataset)), num_samples)
         subset_dataset = Subset(data_dataset, indices)
-        return DataLoader(subset_dataset, batch_size=32, shuffle=True, num_workers=1)
+        return DataLoader(subset_dataset, batch_size=32, shuffle=True, num_workers=2)
     
+    def get_testing_images(self, folder_path, num_samples=2000):
+        transform = transforms.Compose([
+        transforms.Resize((224,224)),
+        transforms.ToTensor(),
+        transforms.Normalize(mean=[0.485, 0.456, 0.406], 
+                            std=[0.229, 0.224, 0.225]),
+    ])
+        data_dataset = datasets.ImageFolder(folder_path, transform=transform)
+        indices = list(0, len(data_dataset), 100)[:num_samples]
+        subset_dataset = Subset(data_dataset, indices)
+        return DataLoader(subset_dataset, batch_size=32, shuffle=False, num_workers=2)
+        
     def train_batch(self, optimizer, train_dataset, rank_filter=False):
         for image, label in train_dataset:
             try:
@@ -83,7 +95,7 @@ class PruningFineTuner:
         compute_time = 0
         
         with torch.no_grad():
-            for images, labels in self.get_images(self.test_path):
+            for images, labels in self.get_testing_images(self.test_path):
                 images = images.to(self.device)
                 labels = labels.to(self.device)
                 
