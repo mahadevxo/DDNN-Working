@@ -18,7 +18,7 @@ def run_pruning_experiment(taylor_order, pruning_ratios):
     accuracies = []
     for ratio in pruning_ratios:
         # Load a fresh VGG16 model
-        model = models.vgg16(models.VGG16_Weights.IMAGENET1K_V1)
+        model = models.vgg16(weights=models.VGG16_Weights.IMAGENET1K_V1)
         device = 'mps' if torch.backends.mps.is_available() else 'cuda' if torch.cuda.is_available() else 'cpu'
         model = model.to(device)
         tuner = PruningFineTuner(model)
@@ -47,7 +47,7 @@ def main():
     plt.title('Accuracy vs Pruning Ratio for VGG16')
     plt.legend()
     plt.grid(True)
-    plt.show()
+    plt.imsave('pruning_taylor_higher_order.png')
 
 if __name__ == '__main__':
     main()
