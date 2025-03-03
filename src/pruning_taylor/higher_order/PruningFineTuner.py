@@ -17,7 +17,7 @@ class PruningFineTuner:
         self.criterion = torch.nn.CrossEntropyLoss()
         self.pruner = FilterPruner(self.model, taylor)
         
-    def get_images(self, folder_path, num_samples=5000):
+    def get_images(self, folder_path, num_samples=500):
         transform = transforms.Compose([
         transforms.Resize((224,224)),
         transforms.RandomHorizontalFlip(), 
