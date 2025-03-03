@@ -5,7 +5,8 @@ import numpy as np
 def main():
     model = models.vgg16(weights=models.VGG16_Weights.IMAGENET1K_V1)
     
-    pruning_ratios = list(int(input("Enter the pruning ratio: ")))
+    pruning_ratios = [int(input("Enter the pruning ratio: "))]
+    print(pruning_ratios)
     if pruning_ratios is None:
         pruning_ratios = np.arange(0, 100, 10)
 
