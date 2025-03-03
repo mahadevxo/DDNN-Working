@@ -89,17 +89,31 @@ class FilterPruner:
         self.filter_ranks_3rd[activation_index] += taylor_3rd_order
         
     def lowest_ranking_filters(self, num):
+        # Use the appropriate rank dictionary based on taylor order.
+        if self.taylor == 2:
+            ranks = self.filter_ranks_2nd
+        elif self.taylor == 3:
+            ranks = self.filter_ranks_3rd
+        else:
+            ranks = self.filter_ranks
         data = []
-        for i in sorted(self.filter_ranks.keys()):
-            for j in range(self.filter_ranks[i].size(0)):
-                data.append((self.activation_to_layer[i], j, self.filter_ranks[i][j]))
+        for i in sorted(ranks.keys()):
+            for j in range(ranks[i].size(0)):
+                data.append((self.activation_to_layer[i], j, ranks[i][j]))
         return nsmallest(num, data, itemgetter(2))
     
     def normalize_ranks_per_layer(self):
-        for i in self.filter_ranks:
-            v = torch.abs(self.filter_ranks[i])
+        # Use the appropriate rank dictionary based on taylor order.
+        if self.taylor == 2:
+            ranks = self.filter_ranks_2nd
+        elif self.taylor == 3:
+            ranks = self.filter_ranks_3rd
+        else:
+            ranks = self.filter_ranks
+        for i in ranks:
+            v = torch.abs(ranks[i])
             v = v / torch.sqrt(torch.sum(v * v))
-            self.filter_ranks[i] = v.cpu()
+            ranks[i] = v.cpu()
             
     def get_pruning_plan(self, num_filters_to_prune):
         filters_to_prune = self.lowest_ranking_filters(num_filters_to_prune)
