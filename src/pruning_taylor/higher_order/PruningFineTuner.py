@@ -104,7 +104,7 @@ class PruningFineTuner:
                 # Top-5 accuracy
                 _, top5_indices = torch.topk(outputs, 5, dim=1)
                 for i in range(labels.size(0)):
-                    if labels[i] in top5_indices[i]:
+                    if labels[i].item() in top5_indices[i].tolist():
                         correct_top5 += 1
         
         accuracy = float(correct_top1/total)  # Raw accuracy (0-1 range)
