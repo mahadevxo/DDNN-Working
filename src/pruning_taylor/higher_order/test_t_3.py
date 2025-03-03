@@ -14,9 +14,9 @@ def main():
     #     print("No pruning ratio entered. Using default values.")
     # finally:
     #     if pruning_ratios is None:
-    #         pruning_ratios = np.arange(0, 100, 10)
+    #         pruning_ratios = np.arange(0, 100, 10).tolist()
     
-    pruning_ratios = np.arange(0, 100, 10)
+    pruning_ratios = np.arange(0, 100, 10).tolist()
 
     with open('results_3.csv', 'w') as f:
         f.write('Pruning Ratio, Accuracy, Compute Time, Model Size\n')
