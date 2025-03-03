@@ -35,12 +35,17 @@ class EnhancedPruning(Pruning):
         Returns:
             The pruned model
         """
+        # Add safety check - don't prune if this would result in a layer with 0 filters
+        conv_layers = [module for module in model.features if isinstance(module, torch.nn.Conv2d)]
+        if layer_index < len(conv_layers):
+            current_layer = conv_layers[layer_index]
+            # If this is the last filter, skip pruning this filter
+            if current_layer.out_channels <= 1:
+                print(f"Warning: Skipping pruning of layer {layer_index} to avoid creating a layer with 0 filters")
+                return model
+        
         # Call the original pruning method
         model = super().prune_vgg_conv_layer(model, layer_index, filter_index)
-        
-        # If preserving output size is enabled, make additional adjustments
-        if preserve_output_size:
-            model = self._adjust_for_preserved_output(model, layer_index)
             
         return model
     
@@ -152,7 +157,7 @@ class EnhancedPruning(Pruning):
         # Normalize the computed ranks
         pruner.normalize_ranks_per_layer()
         
-        # Get the pruning plan
+        # Get the pruning plan with safeguards against zero-filter layers
         filters_to_prune = pruner.get_pruning_plan(num_filters_to_prune)
         
         # Execute pruning
@@ -183,7 +188,19 @@ class EnhancedPruning(Pruning):
         
         # Process each layer group
         for layer_index in sorted(layer_groups.keys()):
-            filter_indices = sorted(layer_groups[layer_index], reverse=True)  # Process in reverse order
+            # Sort filter indices in descending order to avoid index shifting issues
+            filter_indices = sorted(layer_groups[layer_index], reverse=True)
+            
+            # Ensure we don't prune all filters in a layer
+            conv_layers = [module for module in model.features if isinstance(module, torch.nn.Conv2d)]
+            if layer_index < len(conv_layers):
+                current_layer = conv_layers[layer_index]
+                # Skip if pruning would leave less than one filter
+                if len(filter_indices) >= current_layer.out_channels:
+                    print(f"Warning: Adjusting pruning for layer {layer_index} to maintain at least one filter")
+                    # Keep at least one filter (skip the most important one)
+                    filter_indices = filter_indices[:-1]
+            
             for filter_index in filter_indices:
                 try:
                     model = self.prune_vgg_conv_layer(model, layer_index, filter_index)

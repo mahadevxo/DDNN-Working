@@ -1,298 +1,294 @@
 import torch
-from heapq import nsmallest
-from operator import itemgetter
 import numpy as np
+from collections import OrderedDict
+import torch.nn as nn
+import torch.nn.functional as F
 import gc
 
 class EnhancedFilterPruner:
-    def __init__(self, model, taylor_order=2, use_gradient_flow=True):
+    """
+    Enhanced filter pruner with higher-order Taylor expansion and safeguards
+    to prevent invalid pruning configurations.
+    """
+    
+    def __init__(self, model, taylor_order=2, use_gradient_flow=False):
         """
-        Enhanced Filter Pruner using higher-order Taylor approximation and gradient flow analysis.
+        Initialize the filter pruner.
         
         Args:
             model: The neural network model to prune
             taylor_order: Order of Taylor expansion (1, 2, or 3)
-            use_gradient_flow: Whether to incorporate gradient flow analysis
+            use_gradient_flow: Whether to use gradient flow analysis
         """
-        self.device = 'mps' if torch.backends.mps.is_available() else 'cuda' if torch.cuda.is_available() else 'cpu'
         self.model = model
         self.taylor_order = taylor_order
         self.use_gradient_flow = use_gradient_flow
-        self.reset()
+        self.device = next(model.parameters()).device
         
-        # Fix for gradient tracking
-        self.requires_grad_setup_done = False
+        # Register for storing activation and gradient info
+        self.activation_stats = {}
+        self.gradient_stats = {}
+        self.filter_ranks = {}
+        self.hooks = []
         
         print(f"Initialized filter pruner with Taylor order {taylor_order} on device {self.device}")
         
+        # Register forward and backward hooks
+        self._register_hooks()
+    
+    def _register_hooks(self):
+        """Register hooks to collect activations and gradients."""
+        self.hooks = []
+        for name, module in self.model.named_modules():
+            if isinstance(module, nn.Conv2d):
+                # Register forward hook for activations
+                self.hooks.append(
+                    module.register_forward_hook(
+                        lambda m, inp, out, name=name: self._record_activation(m, inp, out, name)
+                    )
+                )
+                
+                # Register backward hook for gradients
+                if module.weight.requires_grad:
+                    self.hooks.append(
+                        module.register_full_backward_hook(
+                            lambda m, grad_in, grad_out, name=name: self._record_gradient(m, grad_in, grad_out, name)
+                        )
+                    )
+    
     def reset(self):
+        """Reset all statistics and remove hooks."""
+        self.activation_stats = {}
+        self.gradient_stats = {}
         self.filter_ranks = {}
-        self.activations = []
-        self.gradients = []
-        self.second_gradients = []  # For second-order derivatives
-        self.third_gradients = []   # For third-order derivatives
-        self.gradient_flow = {}     # For gradient flow analysis
-        self.activation_to_layer = {}
-        self.grad_index = 0
         
-        # Free memory
-        gc.collect()
-        if self.device == 'cuda':
-            torch.cuda.empty_cache()
-        elif self.device == 'mps':
-            torch.mps.empty_cache()
+        # Remove hooks
+        for hook in self.hooks:
+            hook.remove()
+        self.hooks = []
     
-    def _ensure_gradient_tracking(self):
-        """Make sure gradients are properly tracked for all relevant tensors."""
-        if self.requires_grad_setup_done:
-            return
+    def _record_activation(self, module, inp, out, name):
+        """Record activations during forward pass."""
+        try:
+            # Store activations for each filter
+            if name not in self.activation_stats:
+                self.activation_stats[name] = []
             
-        # Enable gradient tracking for all parameters
-        self.model.train()
-        for param in self.model.parameters():
-            param.requires_grad = True
+            # Record memory usage
+            if torch.cuda.is_available():
+                memory = torch.cuda.memory_allocated() / (1024 * 1024)
+                print(f"Peak memory usage during forward pass: {memory:.2f} MB")
             
-        self.requires_grad_setup_done = True
-        
+            # Record only the necessary statistics to save memory
+            activations = out.detach()
+            
+            # For higher-order Taylor expansions, we need to keep activations
+            if self.taylor_order >= 2:
+                self.activation_stats[name].append(activations)
+            else:
+                # For first-order, just store norms to save memory
+                norms = torch.norm(activations, dim=(0, 2, 3))
+                self.activation_stats[name].append(norms)
+                
+        except Exception as e:
+            print(f"Error recording activation for {name}: {e}")
+    
+    def _record_gradient(self, module, grad_input, grad_output, name):
+        """Record gradients during backward pass."""
+        try:
+            if name not in self.gradient_stats:
+                self.gradient_stats[name] = []
+            
+            # Store gradients w.r.t output
+            grads = grad_output[0].detach()
+            
+            # For higher-order analysis
+            if self.taylor_order >= 2:
+                self.gradient_stats[name].append(grads)
+            else:
+                # First-order analysis needs just the norm
+                norms = torch.norm(grads, dim=(0, 2, 3))
+                self.gradient_stats[name].append(norms)
+                
+        except Exception as e:
+            print(f"Error recording gradient for {name}: {e}")
+    
     def forward(self, x):
-        self.activations = []
-        self.gradients = []
-        self.second_gradients = []
-        self.third_gradients = []
-        self.grad_index = 0
+        """
+        Forward pass through the model to collect statistics.
         
-        self.model.eval()  # Use eval mode for inference
-        self._ensure_gradient_tracking()  # Make sure gradient tracking is set up
+        Args:
+            x: Input tensor
+            
+        Returns:
+            Model output
+        """
         self.model.zero_grad()
-        
-        activation_index = 0
-        
-        # Track memory before processing
-        if self.device == 'cuda':
-            torch.cuda.reset_peak_memory_stats()
-        
-        try:
-            # Forward pass through each layer
-            for layer_index, layer in enumerate(self.model.features):
-                x = layer(x)
-                if isinstance(layer, torch.nn.modules.conv.Conv2d):
-                    # Make sure we enable gradient tracking for this tensor
-                    x.retain_grad()
-                    self.activations.append(x)
-                    self.activation_to_layer[activation_index] = layer_index
-                    
-                    # Only register first-order hooks initially
-                    x.register_hook(lambda grad, idx=activation_index: self._compute_first_order(grad, idx))
-                    
-                    # Higher-order derivatives will be computed separately to avoid issues
-                    activation_index += 1
-                    
-        except Exception as e:
-            print(f"Error in forward pass: {e}")
-            # Return a dummy tensor if forward pass fails
-            return torch.zeros((x.shape[0], 1000), device=self.device)
-            
-        # After CNN features, pass through classifier (typically a fully connected layer)
-        try:
-            x = x.view(x.size(0), -1)
-            x = self.model.classifier(x)
-        except Exception as e:
-            print(f"Error in classifier pass: {e}")
-            # Return a dummy tensor if classifier pass fails
-            return torch.zeros((x.shape[0], 1000), device=self.device)
-            
-        # Report memory usage
-        if self.device == 'cuda':
-            peak_memory = torch.cuda.max_memory_allocated() / (1024 * 1024)
-            print(f"Peak memory usage during forward pass: {peak_memory:.2f} MB")
-            
-        return x
+        return self.model(x)
     
-    def _compute_first_order(self, grad, activation_index):
-        """Compute first-order Taylor expansion term."""
-        try:
-            if activation_index >= len(self.activations):
-                return
-                
-            activation = self.activations[activation_index]
-            
-            # Safety check
-            if activation is None or grad is None:
-                return
-                
-            # First-order term: a * dL/da
-            taylor = activation * grad
-            
-            # Average across batch and spatial dimensions
-            taylor = taylor.mean(dim=(0, 2, 3)).abs().data
-            
-            # Initialize filter_ranks for this activation if not already done
-            if activation_index not in self.filter_ranks:
-                self.filter_ranks[activation_index] = torch.FloatTensor(activation.size(1)).zero_()
-                self.filter_ranks[activation_index] = self.filter_ranks[activation_index].to(self.device)
-                
-            # Update the ranks with first-order term
-            self.filter_ranks[activation_index] += taylor
-            
-            # Store gradients for higher-order computations if needed
-            if self.taylor_order > 1:
-                if len(self.gradients) <= activation_index:
-                    self.gradients.append(grad.detach().clone())
-                else:
-                    self.gradients[activation_index] = grad.detach().clone()
-                    
-            # If higher-order Taylor expansion is requested, compute it separately
-            # with proper error handling
-            if self.taylor_order >= 2:
-                self._compute_higher_order_terms(activation_index)
-                
-        except Exception as e:
-            print(f"Error in first-order hook: {e}")
-    
-    def _compute_higher_order_terms(self, activation_index):
-        """Compute higher-order Taylor expansion terms with proper error handling."""
-        # Skip if we don't have the activation anymore
-        if activation_index >= len(self.activations):
-            return
-            
-        activation = self.activations[activation_index]
+    def _compute_taylor_importance(self, layer_name):
+        """
+        Compute filter importance using Taylor expansion.
         
-        # Safety check
-        if activation is None or not activation.requires_grad:
-            print(f"Warning: Activation {activation_index} does not require gradients. Skipping higher-order terms.")
-            return
+        Args:
+            layer_name: Name of the layer
             
+        Returns:
+            Tensor of importance scores for each filter in the layer
+        """
+        if layer_name not in self.activation_stats or layer_name not in self.gradient_stats:
+            return None
+            
+        activations_list = self.activation_stats[layer_name]
+        gradients_list = self.gradient_stats[layer_name]
+        
+        # Ensure we have matching statistics
+        min_samples = min(len(activations_list), len(gradients_list))
+        if min_samples == 0:
+            return None
+            
+        # Compute Taylor importance based on order
+        importance = None
+        
         try:
-            # For second-order
-            if self.taylor_order >= 2:
-                # We'll use a simpler approach for second-order approximation
-                # Instead of finite differences, we'll use the squared gradient magnitude
-                # This is a common approximation of the Taylor second-order term
-                if activation_index < len(self.gradients):
-                    grad = self.gradients[activation_index]
-                    if grad is not None:
-                        # Second-order approximation using squared gradient magnitude
-                        # This is equivalent to the diagonal of the Hessian in many cases
-                        second_order_term = 0.5 * (activation ** 2) * (grad ** 2)
-                        second_order_term = second_order_term.mean(dim=(0, 2, 3)).abs().data
+            if self.taylor_order == 1:
+                # First-order Taylor: |g|
+                importance = torch.zeros(activations_list[0].size(0), device=self.device)
+                for i in range(min_samples):
+                    importance += torch.abs(gradients_list[i])
+                    
+            elif self.taylor_order == 2:
+                # Second-order Taylor: |g * h|
+                importance = torch.zeros(activations_list[0].size(1), device=self.device)
+                for i in range(min_samples):
+                    # Element-wise product of gradient and activation
+                    act = activations_list[i]
+                    grad = gradients_list[i]
+                    
+                    # Compute per-filter importance
+                    for f_idx in range(act.size(1)):  # For each filter
+                        filter_act = act[:, f_idx, :, :]
+                        filter_grad = grad[:, f_idx, :, :]
+                        importance[f_idx] += torch.sum(torch.abs(filter_act * filter_grad)).item()
                         
-                        # Add to filter ranks
-                        if activation_index in self.filter_ranks:
-                            self.filter_ranks[activation_index] += second_order_term
-                
-                # Additional metrics based on variance of gradient across batch
-                # Higher variance in gradients often indicates sensitivity to changes
-                if activation_index < len(self.gradients):
-                    grad = self.gradients[activation_index]
-                    if grad is not None:
-                        grad_var = grad.var(dim=(0, 2, 3)).data
-                        activation_var = activation.var(dim=(0, 2, 3)).data
-                        
-                        # Scale variance by activation magnitude
-                        sensitivity_term = grad_var * activation_var
-                        sensitivity_term = sensitivity_term.abs()
-                        
-                        # Add to filter ranks
-                        if activation_index in self.filter_ranks:
-                            self.filter_ranks[activation_index] += sensitivity_term * 0.1  # Scale down to match first-order
-        
+            elif self.taylor_order == 3:
+                # Third-order Taylor (approximate): |g * h * h|
+                importance = torch.zeros(activations_list[0].size(1), device=self.device)
+                for i in range(min_samples):
+                    act = activations_list[i]
+                    grad = gradients_list[i]
+                    
+                    # Compute per-filter importance with higher-order term
+                    for f_idx in range(act.size(1)):  # For each filter
+                        filter_act = act[:, f_idx, :, :]
+                        filter_grad = grad[:, f_idx, :, :]
+                        # Approximate third-order term
+                        importance[f_idx] += torch.sum(torch.abs(filter_act * filter_act * filter_grad)).item()
+            
+            # Normalize and return
+            if importance is not None:
+                # Prevent division by zero
+                if torch.sum(importance) > 0:
+                    importance = importance / torch.sum(importance)
+                    
+            return importance
+            
         except Exception as e:
-            print(f"Error in higher-order computation: {e}")
-            # Even if this fails, we still have the first-order term
-    
-    def _compute_gradient_flow(self, grad, activation_index):
-        """Analyze gradient flow through the network."""
-        if self.use_gradient_flow:
-            try:
-                activation = self.activations[activation_index]
-                layer_index = self.activation_to_layer[activation_index]
-                
-                # Initialize gradient flow tracking for this layer
-                if layer_index not in self.gradient_flow:
-                    self.gradient_flow[layer_index] = torch.FloatTensor(activation.size(1)).zero_()
-                    self.gradient_flow[layer_index] = self.gradient_flow[layer_index].to(self.device)
-                
-                # Compute gradient norm per filter
-                grad_norm = grad.norm(dim=(0, 2, 3)).data
-                
-                # Update gradient flow metrics
-                self.gradient_flow[layer_index] += grad_norm
-                
-                # Adjust filter ranks based on gradient flow analysis
-                if activation_index in self.filter_ranks:
-                    # Weight the importance by gradient flow (smoother flow = more important)
-                    grad_flow_weight = torch.sigmoid(grad_norm)
-                    self.filter_ranks[activation_index] *= grad_flow_weight
-            except Exception as e:
-                print(f"Error in gradient flow computation: {e}")
-    
-    def lowest_ranking_filters(self, num):
-        """Get the lowest ranking filters based on computed importance."""
-        data = []
-        for i in sorted(self.filter_ranks.keys()):
-            for j in range(self.filter_ranks[i].size(0)):
-                data.append((self.activation_to_layer[i], j, self.filter_ranks[i][j]))
-        
-        # Ensure we don't request more items than available
-        num = min(num, len(data))
-        
-        return nsmallest(num, data, itemgetter(2))
-    
+            print(f"Error computing Taylor importance for {layer_name}: {e}")
+            return None
+
     def normalize_ranks_per_layer(self):
-        """Normalize the ranks within each layer for fair comparison."""
-        for i in self.filter_ranks:
-            v = torch.abs(self.filter_ranks[i])
-            v_sum = torch.sum(v * v)
-            
-            # Avoid division by zero
-            if v_sum > 0:
-                v = v / torch.sqrt(v_sum + 1e-8)  # Added epsilon for numerical stability
+        """Normalize the filter ranks within each layer."""
+        self.filter_ranks = {}
+        
+        # Compute Taylor importance for each layer
+        for layer_name in self.activation_stats.keys():
+            if layer_name not in self.gradient_stats:
+                continue
                 
-            self.filter_ranks[i] = v.cpu()
-            
-        # Free up memory
-        self.activations = []
-        self.gradients = []
-        self.second_gradients = []
-        self.third_gradients = []
+            layer_importance = self._compute_taylor_importance(layer_name)
+            if layer_importance is not None:
+                self.filter_ranks[layer_name] = layer_importance
         
-        gc.collect()
-        if self.device == 'cuda':
-            torch.cuda.empty_cache()
-        elif self.device == 'mps':
-            torch.mps.empty_cache()
-            
-    def get_pruning_plan(self, num_filters_to_prune):
-        """Create a plan for which filters to prune."""
-        filters_to_prune = self.lowest_ranking_filters(num_filters_to_prune)
-        
-        # Group filters by layer
-        filters_to_prune_per_layer = {}
-        for (layer_n, f, _) in filters_to_prune:
-            if layer_n not in filters_to_prune_per_layer:
-                filters_to_prune_per_layer[layer_n] = []
-            filters_to_prune_per_layer[layer_n].append(f)
-        
-        # Adjust indices to account for previously pruned filters
-        for layer_n in filters_to_prune_per_layer:
-            filters_to_prune_per_layer[layer_n] = sorted(filters_to_prune_per_layer[layer_n])
-            for i in range(len(filters_to_prune_per_layer[layer_n])):
-                filters_to_prune_per_layer[layer_n][i] = filters_to_prune_per_layer[layer_n][i] - i
-        
-        # Flatten the pruning plan
-        filters_to_prune = []
-        for layer_n in sorted(filters_to_prune_per_layer.keys()):
-            for i in filters_to_prune_per_layer[layer_n]:
-                filters_to_prune.append((layer_n, i))
-        
-        return filters_to_prune
+        # Get index mapping for each layer
+        self.layer_indices = {}
+        idx = 0
+        for name, module in self.model.named_modules():
+            if isinstance(module, nn.Conv2d):
+                self.layer_indices[name] = idx
+                idx += 1
     
-    def get_layer_importance_distribution(self):
-        """Return importance distribution across layers for analysis."""
-        layer_importance = {}
-        for activation_idx, ranks in self.filter_ranks.items():
-            layer_idx = self.activation_to_layer[activation_idx]
-            importance = ranks.mean().item()
-            layer_importance[layer_idx] = importance
+    def get_pruning_plan(self, num_filters_to_prune):
+        """
+        Get the pruning plan ensuring at least one filter remains per layer.
         
-        return layer_importance
+        Args:
+            num_filters_to_prune: Total number of filters to prune
+            
+        Returns:
+            List of (layer_index, filter_index) tuples to prune
+        """
+        if not self.filter_ranks:
+            print("No filter ranks computed. Call normalize_ranks_per_layer first.")
+            return []
+            
+        # Calculate minimum filters to keep per layer (at least 1)
+        min_filters_per_layer = {}
+        for name, module in self.model.named_modules():
+            if isinstance(module, nn.Conv2d):
+                # Ensure at least 2 filters remain (more conservative)
+                min_filters_per_layer[name] = min(2, module.out_channels)
+        
+        # Create a flat list of all filters with their importance scores
+        all_filters = []
+        for layer_name, ranks in self.filter_ranks.items():
+            if layer_name not in self.layer_indices:
+                continue
+                
+            layer_idx = self.layer_indices[layer_name]
+            
+            # Get the corresponding module
+            module = None
+            for name, mod in self.model.named_modules():
+                if name == layer_name:
+                    module = mod
+                    break
+            
+            if not module or not isinstance(module, nn.Conv2d):
+                continue
+                
+            for filter_idx, importance in enumerate(ranks):
+                all_filters.append((layer_idx, filter_idx, importance.item()))
+        
+        # Sort filters by importance (ascending, less important first)
+        all_filters.sort(key=lambda x: x[2])
+        
+        # Count filters per layer
+        filters_per_layer = {}
+        for name, module in self.model.named_modules():
+            if isinstance(module, nn.Conv2d):
+                filters_per_layer[name] = module.out_channels
+        
+        # Select filters to prune while respecting minimum filters per layer
+        filters_to_prune = []
+        for layer_idx, filter_idx, _ in all_filters:
+            # Get layer name from index
+            layer_name = None
+            for name, idx in self.layer_indices.items():
+                if idx == layer_idx:
+                    layer_name = name
+                    break
+            
+            if not layer_name or layer_name not in filters_per_layer:
+                continue
+                
+            # Check if we can prune more filters from this layer
+            if filters_per_layer[layer_name] - 1 >= min_filters_per_layer.get(layer_name, 1):
+                filters_to_prune.append((layer_idx, filter_idx))
+                filters_per_layer[layer_name] -= 1
+                
+                if len(filters_to_prune) >= num_filters_to_prune:
+                    break
+        
+        # Ensure we don't prune more than requested
+        return filters_to_prune[:num_filters_to_prune]
