@@ -86,36 +86,66 @@ class EnhancedPruning(Pruning):
         for param in model.parameters():
             param.requires_grad = True
         
-        # Build a dataset loader (assuming this is provided elsewhere)
-        # This is a placeholder - in actual usage you would pass your dataloader here
-        data_loader = self._get_data_loader()
+        # Build a dataset loader with smaller batch size to avoid OOM
+        data_loader = self._get_data_loader(batch_size=8)  # Reduced batch size
         
         # Propagate a few batches to compute filter importances
         batch_count = 0
         try:
             for inputs, targets in data_loader:
-                inputs = inputs.to(self.device)
-                targets = targets.to(self.device)
-                
-                # Reset pruner for each batch to avoid gradient accumulation
-                pruner.reset()
-                
-                # Forward pass with importance calculation
-                outputs = pruner.forward(inputs)
-                loss = self.criterion(outputs, targets)
-                loss.backward()
-                
-                batch_count += 1
-                if batch_count >= 10:  # Limit to 10 batches for efficiency
-                    break
-                
-                # Clear memory
-                del inputs, targets, outputs, loss
-                gc.collect()
-                if self.device == 'cuda':
-                    torch.cuda.empty_cache()
-                elif self.device == 'mps':
-                    torch.mps.empty_cache()
+                # Process in smaller chunks if needed
+                if inputs.shape[0] > 8:
+                    sub_batches = inputs.chunk(inputs.shape[0] // 4 + 1)
+                    sub_targets = targets.chunk(inputs.shape[0] // 4 + 1)
+                    
+                    for i in range(len(sub_batches)):
+                        if batch_count >= 5:  # Limit to fewer batches
+                            break
+                            
+                        sub_input = sub_batches[i].to(self.device)
+                        sub_target = sub_targets[i].to(self.device)
+                        
+                        # Reset pruner for each batch to avoid gradient accumulation
+                        pruner.reset()
+                        
+                        # Forward pass with importance calculation
+                        outputs = pruner.forward(sub_input)
+                        loss = self.criterion(outputs, sub_target)
+                        loss.backward()
+                        
+                        batch_count += 1
+                        
+                        # Clear memory
+                        del sub_input, sub_target, outputs, loss
+                        gc.collect()
+                        if self.device == 'cuda':
+                            torch.cuda.empty_cache()
+                        elif self.device == 'mps':
+                            torch.mps.empty_cache()
+                else:
+                    if batch_count >= 5:  # Limit to fewer batches
+                        break
+                        
+                    inputs = inputs.to(self.device)
+                    targets = targets.to(self.device)
+                    
+                    # Reset pruner for each batch to avoid gradient accumulation
+                    pruner.reset()
+                    
+                    # Forward pass with importance calculation
+                    outputs = pruner.forward(inputs)
+                    loss = self.criterion(outputs, targets)
+                    loss.backward()
+                    
+                    batch_count += 1
+                    
+                    # Clear memory
+                    del inputs, targets, outputs, loss
+                    gc.collect()
+                    if self.device == 'cuda':
+                        torch.cuda.empty_cache()
+                    elif self.device == 'mps':
+                        torch.mps.empty_cache()
         except Exception as e:
             print(f"Error during importance computation: {e}")
         
@@ -144,9 +174,29 @@ class EnhancedPruning(Pruning):
         print(f"Pruning {len(filters_to_prune)} filters ({pruning_stats['pruned_percentage']:.2f}%)")
         print(f"Filters per layer: {pruning_stats['filters_per_layer']}")
         
-        # Actually prune the model
+        # Actually prune the model - do this in chunks to manage memory
+        layer_groups = {}
         for layer_index, filter_index in filters_to_prune:
-            model = self.prune_vgg_conv_layer(model, layer_index, filter_index)
+            if layer_index not in layer_groups:
+                layer_groups[layer_index] = []
+            layer_groups[layer_index].append(filter_index)
+        
+        # Process each layer group
+        for layer_index in sorted(layer_groups.keys()):
+            filter_indices = sorted(layer_groups[layer_index], reverse=True)  # Process in reverse order
+            for filter_index in filter_indices:
+                try:
+                    model = self.prune_vgg_conv_layer(model, layer_index, filter_index)
+                    
+                    # Clear memory after each pruning operation
+                    gc.collect()
+                    if self.device == 'cuda':
+                        torch.cuda.empty_cache()
+                    elif self.device == 'mps':
+                        torch.mps.empty_cache()
+                except Exception as e:
+                    print(f"Error pruning filter {filter_index} in layer {layer_index}: {e}")
+                    continue
         
         # Ensure model weights are float32
         for layer in model.modules():
@@ -158,10 +208,9 @@ class EnhancedPruning(Pruning):
         
         return model, pruning_stats
     
-    def _get_data_loader(self):
+    def _get_data_loader(self, batch_size=16):
         """
-        Get data loader for importance computation. 
-        This is a placeholder that should be replaced with actual data loading.
+        Get data loader for importance computation with specified batch size.
         """
         from torchvision import datasets, transforms
         from torch.utils.data import DataLoader, Subset
@@ -169,7 +218,7 @@ class EnhancedPruning(Pruning):
         
         # Similar to PruningFineTuner.get_images
         train_path = 'imagenet-mini/train'  # Should be configurable
-        num_samples = 1000  # Smaller sample for filter importance calculation
+        num_samples = 500  # Reduce sample count to manage memory
         
         transform = transforms.Compose([
             transforms.Resize((224,224)),
@@ -183,7 +232,7 @@ class EnhancedPruning(Pruning):
             data_dataset = datasets.ImageFolder(train_path, transform=transform)
             indices = random.sample(range(len(data_dataset)), min(num_samples, len(data_dataset)))
             subset_dataset = Subset(data_dataset, indices)
-            return DataLoader(subset_dataset, batch_size=32, shuffle=True, num_workers=1)
+            return DataLoader(subset_dataset, batch_size=batch_size, shuffle=True, num_workers=1)
         except Exception as e:
             print(f"Error creating data loader: {e}")
             # Return an empty data loader as fallback

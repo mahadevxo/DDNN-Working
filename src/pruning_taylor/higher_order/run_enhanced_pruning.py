@@ -58,11 +58,11 @@ def parse_arguments():
 def get_model(model_name):
     """Load a pre-trained model"""
     if model_name == 'vgg16':
-        return models.vgg16(pretrained=True)
+        return models.vgg16(models.VGG16_Weights.IMAGENET1K_V1)
     elif model_name == 'vgg19':
-        return models.vgg19(pretrained=True)
+        return models.vgg19(models.VGG19_Weights.IMAGENET1K_V1)
     elif model_name == 'resnet50':
-        return models.resnet50(pretrained=True)
+        return models.resnet50(models.ResNet50_Weights.IMAGENET1K_V1)
     else:
         raise ValueError(f"Unsupported model: {model_name}")
 
