@@ -42,12 +42,7 @@ class FilterPruner:
         return x
     
     def compute_rank(self, grad, activation_index):
-        """Compute rank of the filters using Taylor expansion.
-        
-        Args:
-            grad: The gradient of the criterion with respect to the output of the layer
-            activation_index: The index of the activation in self.activations
-        """
+        # sourcery skip: class-extract-method
         # Safety check to ensure activation_index is valid
         if activation_index >= len(self.activations) or activation_index < 0:
             print(f"Warning: Invalid activation_index {activation_index}, max is {len(self.activations)-1}")
@@ -71,19 +66,46 @@ class FilterPruner:
 
     def compute_rank_2nd_order(self, grad, activation_index):
         # Compute 2nd order Taylor score: 0.5 * (activation^2 * grad^2)
+        if activation_index >= len(self.activations) or activation_index < 0:
+            print(f"Warning: Invalid activation_index {activation_index}, max is {len(self.activations)-1}")
+            return
+            
         activation = self.activations[activation_index]
-        second_order = 0.5 * (activation ** 2 * grad ** 2).mean(dim=(0, 2, 3)).data
-        if activation_index not in self.filter_ranks_2nd:
-            self.filter_ranks_2nd[activation_index] = torch.zeros(activation.size(1), device=self.device)
-        self.filter_ranks_2nd[activation_index] += second_order
+        
+        # Compute Taylor criterion
+        taylor_2nd_order = activation * grad + 0.5 * activation * (grad ** 2)
+        
+        # Average across batch and spatial dimensions
+        taylor_2nd_order = taylor_2nd_order.mean(dim=(0, 2, 3)).data
+        
+        # Initialize filter_ranks for this activation if not already done
+        if activation_index not in self.filter_ranks:
+            self.filter_ranks[activation_index] = torch.FloatTensor(activation.size(1)).zero_()
+            self.filter_ranks[activation_index] = self.filter_ranks[activation_index].to(self.device)
+            
+        # Update the ranks
+        self.filter_ranks[activation_index] += taylor_2nd_order
 
     def compute_rank_3rd_order(self, grad, activation_index):
-        # Compute 3rd order Taylor score: (1/6) * (activation^3 * grad^3)
+        if activation_index >= len(self.activations) or activation_index < 0:
+            print(f"Warning: Invalid activation_index {activation_index}, max is {len(self.activations)-1}")
+            return
+            
         activation = self.activations[activation_index]
-        third_order = (1.0/6.0) * (activation ** 3 * grad ** 3).mean(dim=(0, 2, 3)).data
-        if activation_index not in self.filter_ranks_3rd:
-            self.filter_ranks_3rd[activation_index] = torch.zeros(activation.size(1), device=self.device)
-        self.filter_ranks_3rd[activation_index] += third_order
+        
+        # Compute Taylor criterion
+        taylor_3rd_order = activation * grad + 0.5 * activation * (grad ** 2) + (1/6) * activation * (grad ** 3)
+        
+        # Average across batch and spatial dimensions
+        taylor_3rd_order = taylor_3rd_order.mean(dim=(0, 2, 3)).data
+        
+        # Initialize filter_ranks for this activation if not already done
+        if activation_index not in self.filter_ranks:
+            self.filter_ranks[activation_index] = torch.FloatTensor(activation.size(1)).zero_()
+            self.filter_ranks[activation_index] = self.filter_ranks[activation_index].to(self.device)
+            
+        # Update the ranks
+        self.filter_ranks[activation_index] += taylor_3rd_order
         
     def lowest_ranking_filters(self, num):
         data = []

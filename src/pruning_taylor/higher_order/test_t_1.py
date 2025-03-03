@@ -4,7 +4,7 @@ from PruningFineTuner import PruningFineTuner
 def main():
     # Instantiate a pretrained model for Taylor Order 1 pruning
     model = models.vgg16(weights=models.VGG16_Weights.IMAGENET1K_V1)
-    pruning_ratios = [0, 10, 20, 30, 40, 50, 60]
+    pruning_ratios = [1, 2, 3, 4, 5, 6, 7, 8, 9]
     top1_accuracies = []
 
     with open ('results_1.csv', 'w') as f:
