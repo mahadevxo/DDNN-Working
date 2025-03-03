@@ -6,7 +6,7 @@ def main():
     pruning_ratios = [0, 10, 20, 30, 40, 50, 60]
 
     with open('results_3.csv', 'w') as f:
-        f.write('Pruning Ratio, Accuracy, Model Size, Compute Time\n')
+        f.write('Pruning Ratio, Accuracy, Compute Time, Model Size\n')
         for ratio in pruning_ratios:
             tuner = PruningFineTuner(model, 3) # Taylor Order 3
             def get_candidates_to_prune_3nd(num_filter_to_prune):
@@ -18,9 +18,7 @@ def main():
             tuner.get_candidates_to_prune = get_candidates_to_prune_3nd
 
             results = tuner.prune(ratio) 
-            # results: [pre_fine_tuning_acc, acc 1%, 5%, compute_time, model_size]
-            data = f"{results[1]}, {results[3]}, {results[2]}"
-            print(data)
+            data = f"{ratio, results[1], results[2], results[3]}"
             f.write(f"{ratio}, {data}\n")
             model = models.vgg16(weights=models.VGG16_Weights.IMAGENET1K_V1)
 

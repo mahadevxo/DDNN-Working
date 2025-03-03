@@ -170,7 +170,7 @@ class PruningFineTuner:
         print(f"Accuracy after fine tuning: {acc_time[0]}%")
         size_mb = self.get_model_size(self.model)
         print(f"Model Size after fine tuning: {size_mb:.2f} MB")
-        return [acc_pre_fine_tuning, acc_time[0], acc_time[2], acc_time[3], size_mb]
+        return [acc_pre_fine_tuning, acc_time[0], acc_time[1], size_mb]
     
     def reset(self):
         """Clear memory resources completely"""

@@ -8,12 +8,12 @@ def main():
     top1_accuracies = []
 
     with open ('results_1.csv', 'w') as f:
-        f.write('Pruning Ratio, Accuracy, Model Size, Compute Time\n')
+        f.write('Pruning Ratio, Accuracy, Compute Time, Model Size\n')
         for ratio in pruning_ratios:
             tuner = PruningFineTuner(model, 1) # Taylor Order 1
             results = tuner.prune(ratio)  # results: [pre_fine_tuning_acc, raw_acc, compute_time, size_mb]
             top1_accuracies.append(results[1])
-            data = f"{results[1]}, {results[3]}, {results[2]}"
+            data = f"{ratio, results[1], results[2], results[3]}"
             print(data)
             f.write(f"{ratio}, {data}\n")
             # Reload the model for the next iteration
