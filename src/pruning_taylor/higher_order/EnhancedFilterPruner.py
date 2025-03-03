@@ -165,50 +165,40 @@ class EnhancedFilterPruner:
         try:
             # For second-order
             if self.taylor_order >= 2:
-                # Try to recompute gradients properly for higher-order terms
-                if activation.grad is None:
-                    # We need a fresh computation for higher derivatives
-                    dummy_sum = activation.sum()
-                    dummy_sum.backward(retain_graph=True)
+                # We'll use a simpler approach for second-order approximation
+                # Instead of finite differences, we'll use the squared gradient magnitude
+                # This is a common approximation of the Taylor second-order term
+                if activation_index < len(self.gradients):
+                    grad = self.gradients[activation_index]
+                    if grad is not None:
+                        # Second-order approximation using squared gradient magnitude
+                        # This is equivalent to the diagonal of the Hessian in many cases
+                        second_order_term = 0.5 * (activation ** 2) * (grad ** 2)
+                        second_order_term = second_order_term.mean(dim=(0, 2, 3)).abs().data
+                        
+                        # Add to filter ranks
+                        if activation_index in self.filter_ranks:
+                            self.filter_ranks[activation_index] += second_order_term
                 
-                # Now try to compute second derivatives using finite differences if direct approach fails
-                try:
-                    epsilon = 1e-6
-                    original_activation = activation.detach().clone()
-                    
-                    # Small perturbation
-                    activation.data = activation.data + epsilon
-                    loss1 = self.model(torch.ones_like(activation))
-                    grad1 = torch.autograd.grad(loss1.sum(), activation, create_graph=False, retain_graph=True)[0]
-                    
-                    # Reset and opposite perturbation
-                    activation.data = original_activation - epsilon
-                    loss2 = self.model(torch.ones_like(activation))
-                    grad2 = torch.autograd.grad(loss2.sum(), activation, create_graph=False, retain_graph=True)[0]
-                    
-                    # Reset
-                    activation.data = original_activation
-                    
-                    # Finite difference approximation of second derivative
-                    second_derivative = (grad1 - grad2) / (2 * epsilon)
-                    
-                    # Second-order term: 0.5 * a² * d²L/da²
-                    second_term = 0.5 * (activation ** 2) * second_derivative
-                    second_term = second_term.mean(dim=(0, 2, 3)).abs().data
-                    
-                    # Add to filter ranks
-                    if activation_index in self.filter_ranks:
-                        self.filter_ranks[activation_index] += second_term
-                except Exception as e:
-                    print(f"Could not compute second-order term using finite differences: {e}")
-                    # Fallback to just using first-order for this activation
-                    pass
-            
-            # Third-order would follow a similar pattern but is even more prone to errors
-            # For simplicity and robustness, we'll stick to a maximum of second-order in practice
-            
+                # Additional metrics based on variance of gradient across batch
+                # Higher variance in gradients often indicates sensitivity to changes
+                if activation_index < len(self.gradients):
+                    grad = self.gradients[activation_index]
+                    if grad is not None:
+                        grad_var = grad.var(dim=(0, 2, 3)).data
+                        activation_var = activation.var(dim=(0, 2, 3)).data
+                        
+                        # Scale variance by activation magnitude
+                        sensitivity_term = grad_var * activation_var
+                        sensitivity_term = sensitivity_term.abs()
+                        
+                        # Add to filter ranks
+                        if activation_index in self.filter_ranks:
+                            self.filter_ranks[activation_index] += sensitivity_term * 0.1  # Scale down to match first-order
+        
         except Exception as e:
             print(f"Error in higher-order computation: {e}")
+            # Even if this fails, we still have the first-order term
     
     def _compute_gradient_flow(self, grad, activation_index):
         """Analyze gradient flow through the network."""
