@@ -69,8 +69,8 @@ class FilterPruner:
             print(f"Warning: Invalid activation_index {activation_index}, max is {len(self.activations)-1}")
             return
         activation = self.activations[activation_index]
-        # Include baseline first order term + second order correction.
-        taylor_2nd_order = activation * grad + 0.5 * activation * (grad ** 2)
+        # Include baseline first order term + second order correction and wrap in torch.abs for consistency.
+        taylor_2nd_order = torch.abs( activation * grad + 0.5 * activation * (grad ** 2) )
         taylor_2nd_order = taylor_2nd_order.mean(dim=(0, 2, 3)).data
         if activation_index not in self.filter_ranks_2nd:
             self.filter_ranks_2nd[activation_index] = torch.FloatTensor(activation.size(1)).zero_().to(self.device)
@@ -81,8 +81,8 @@ class FilterPruner:
             print(f"Warning: Invalid activation_index {activation_index}, max is {len(self.activations)-1}")
             return
         activation = self.activations[activation_index]
-        # Include baseline first order, second and third order corrections.
-        taylor_3rd_order = (activation * grad) + (0.5 * activation * (grad ** 2)) + ((1/6) * activation * (grad ** 3))
+        # Include baseline first order term, second and third order corrections and wrap in torch.abs.
+        taylor_3rd_order = torch.abs( (activation * grad) + (0.5 * activation * (grad ** 2)) + ((1/6) * activation * (grad ** 3)) )
         taylor_3rd_order = taylor_3rd_order.mean(dim=(0, 2, 3)).data
         if activation_index not in self.filter_ranks_3rd:
             self.filter_ranks_3rd[activation_index] = torch.FloatTensor(activation.size(1)).zero_().to(self.device)
