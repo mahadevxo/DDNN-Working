@@ -14,7 +14,7 @@ def main():
             tuner = PruningFineTuner(model)
             results = tuner.prune(ratio)  # results: [pre_fine_tuning_acc, raw_acc, compute_time, size_mb]
             top1_accuracies.append(results[1])
-            data = f"Pruning {ratio}%: Top-1 Accuracy = {results[1]*100:.2f}%, Top-5 Accuracy = {results[2]*100:.2f}%, Model Size = {results[4]:.2f}MB, Compute Time = {results[3]:.2f}s"
+            data = f"Pruning {ratio}%: Top-1 Accuracy = {results[1]:.2f}%, Top-5 Accuracy = {results[2]:.2f}%, Model Size = {results[4]:.2f}MB, Compute Time = {results[3]:.2f}s"
             print(data)
             f.write(f"{ratio}, {data}\n")
             # Reload the model for the next iteration
