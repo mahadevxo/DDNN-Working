@@ -10,9 +10,9 @@ def main():
     print(f"Original Accuracy: {out[0]*100:.2f}% (Top-1), {out[3]*100:.2f}% (Top-5)")
     print(f'Original Model Size: {pruning_fine_tuner.get_model_size(model):.2f} MB')
     del pruning_fine_tuner
-    min_acc = float(input("Enter minimum acceptable accuracy (0-1): "))
-    print(f"Minimum Accuracy: {min_acc*100}%")
-    searching_strategy = SearchAlgorithm(model, min_accuracy=min_acc)
+    min_acc = float(input("Enter minimum acceptable accuracy (0-100): "))
+    print(f"Minimum Accuracy: {min_acc}%")
+    searching_strategy = SearchAlgorithm(model, min_accuracy=(min_acc/100))
     best_percentage = searching_strategy.heuristic_binary_search()
     print(f"Recommended pruning percentage: {best_percentage:.2f}%")
 
