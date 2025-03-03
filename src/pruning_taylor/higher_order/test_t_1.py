@@ -4,7 +4,16 @@ import numpy as np
 def main():
     # Instantiate a pretrained model for Taylor Order 1 pruning
     model = models.vgg16(weights=models.VGG16_Weights.IMAGENET1K_V1)
-    pruning_ratios = np.arange(0, 100, 10)
+    try:
+        pruning_ratios = [int(input("Enter the pruning ratio: "))]
+        print(pruning_ratios)
+    except Exception as e:
+        pruning_ratios = None
+        print(f"Error: {str(e)}")
+        print("No pruning ratio entered. Using default values.")
+    finally:
+        if pruning_ratios is None:
+            pruning_ratios = np.arange(0, 100, 10)
 
     with open ('results_1.csv', 'w') as f:
         f.write('Pruning Ratio, Accuracy, Compute Time, Model Size\n')
