@@ -17,7 +17,7 @@ class PruningFineTuner:
         self.criterion = torch.nn.CrossEntropyLoss()
         self.pruner = FilterPruner(self.model)
         
-    def get_images(self, folder_path, num_samples=10000):
+    def get_images(self, folder_path, num_samples=5000):
         transform = transforms.Compose([
         transforms.Resize((224,224)),
         transforms.RandomHorizontalFlip(), 
@@ -84,7 +84,7 @@ class PruningFineTuner:
         compute_time = 0
         
         with torch.no_grad():
-            for images, labels in self.get_images(self.test_path):
+            for images, labels in self.get_images(self.test_path, num_samples=10000):
                 # Fix: Properly move tensors to device and ensure return value is used
                 images = images.to(self.device)
                 labels = labels.to(self.device)
