@@ -84,7 +84,7 @@ class PruningFineTuner:
         compute_time = 0
         
         with torch.no_grad():
-            for images, labels in self.get_images(self.test_path, num_samples=10000):
+            for images, labels in self.get_images(self.test_path, num_samples=1000):
                 # Fix: Properly move tensors to device and ensure return value is used
                 images = images.to(self.device)
                 labels = labels.to(self.device)
