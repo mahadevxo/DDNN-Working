@@ -66,6 +66,11 @@ class EnhancedFilterPruner:
         for hook in self.hooks:
             hook.remove()
         self.hooks = []
+
+    def clear_stats(self):
+        """Clear accumulated activation and gradient statistics without removing hooks."""
+        self.activation_stats = {}
+        self.gradient_stats = {}
     
     def _record_activation(self, module, inp, out, name):
         """Record activations during forward pass."""

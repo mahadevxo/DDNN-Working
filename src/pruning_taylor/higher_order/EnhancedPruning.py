@@ -110,8 +110,8 @@ class EnhancedPruning(Pruning):
                         sub_input = sub_batches[i].to(self.device)
                         sub_target = sub_targets[i].to(self.device)
                         
-                        # Reset pruner for each batch to avoid gradient accumulation
-                        pruner.reset()
+                        # Clear only stats to allow hooks to remain active
+                        pruner.clear_stats()
                         
                         # Forward pass with importance calculation
                         outputs = pruner.forward(sub_input)
@@ -134,8 +134,8 @@ class EnhancedPruning(Pruning):
                     inputs = inputs.to(self.device)
                     targets = targets.to(self.device)
                     
-                    # Reset pruner for each batch to avoid gradient accumulation
-                    pruner.reset()
+                    # Clear only accumulated statistics
+                    pruner.clear_stats()
                     
                     # Forward pass with importance calculation
                     outputs = pruner.forward(inputs)
