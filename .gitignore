@@ -7,3 +7,4 @@ src/MVCNN_org/MVCNN-Jetson_stage_2
 **.ipynb_checkpoints
 **/__pycache__
 **/*.numbers
+**/imagenet-mini

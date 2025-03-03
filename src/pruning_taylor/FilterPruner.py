@@ -16,18 +16,16 @@ class FilterPruner:
         
     def forward(self, x):
         self.activations = []
-        self.grad_index = 0  # Reset grad_index before each forward pass
+        self.grad_index = 0
         self.model.eval()
         self.model.zero_grad()
         
         activation_index = 0
-        for layer_index, layer in enumerate(self.model.features):
+        for layer_index, layer in enumerate(self.model.features):   
             x = layer(x)
             if isinstance(layer, torch.nn.modules.conv.Conv2d):
-                # Store the activation before registering hook to ensure consistency
                 self.activations.append(x)
                 self.activation_to_layer[activation_index] = layer_index
-                # Register hook on this specific activation
                 x.register_hook(lambda grad, idx=activation_index: self.compute_rank(grad, idx))
                 activation_index += 1
         x = x.view(x.size(0), -1)

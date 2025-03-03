@@ -24,5 +24,6 @@
         "startuml",
         "surr",
         "traj"
-    ]
+    ],
+    "git.ignoreLimitWarning": true
 }
