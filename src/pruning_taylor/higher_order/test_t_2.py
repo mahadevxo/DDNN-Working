@@ -3,7 +3,7 @@ from PruningFineTuner import PruningFineTuner
 
 def main():
     model = models.vgg16(weights=models.VGG16_Weights.IMAGENET1K_V1)
-    pruning_ratios = [1, 2, 3, 4, 5, 6, 7, 8, 9]
+    pruning_ratios = [0, 5, 10, 15, 20]
 
     with open('results_2.csv', 'w') as f:
         f.write('Pruning Ratio, Accuracy, Compute Time, Model Size\n')
