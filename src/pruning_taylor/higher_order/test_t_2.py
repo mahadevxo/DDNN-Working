@@ -19,7 +19,7 @@ def main():
             results = tuner.prune(ratio) 
             data = f"{ratio, results[1], results[2], results[3]}"
             print(data)
-            f.write(f"{ratio}, {data}\n")
+            f.write(f"{data}\n")
             model = models.vgg16(weights=models.VGG16_Weights.IMAGENET1K_V1)
 
 if __name__ == '__main__':

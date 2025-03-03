@@ -13,7 +13,7 @@ def main():
             results = tuner.prune(ratio)  # results: [pre_fine_tuning_acc, raw_acc, compute_time, size_mb]
             data = f"{ratio, results[1], results[2], results[3]}"
             print(data)
-            f.write(f"{ratio}, {data}\n")
+            f.write(f"{data}\n")
             # Reload the model for the next iteration
             model = models.vgg16(weights=models.VGG16_Weights.IMAGENET1K_V1)
         
