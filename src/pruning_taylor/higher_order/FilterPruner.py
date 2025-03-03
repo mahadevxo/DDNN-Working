@@ -51,7 +51,7 @@ class FilterPruner:
         activation = self.activations[activation_index]
         
         # Compute Taylor criterion
-        taylor = activation * grad
+        taylor = torch.abs(activation * grad)
         
         # Average across batch and spatial dimensions
         taylor = taylor.mean(dim=(0, 2, 3)).data
@@ -69,8 +69,8 @@ class FilterPruner:
             print(f"Warning: Invalid activation_index {activation_index}, max is {len(self.activations)-1}")
             return
         activation = self.activations[activation_index]
-        # Update: use only the second order term: 0.5*(activation² * grad²)
-        taylor_2nd_order = 0.5 * (activation ** 2 * (grad ** 2))
+        # Include baseline first order term + second order correction.
+        taylor_2nd_order = activation * grad + 0.5 * activation * (grad ** 2)
         taylor_2nd_order = taylor_2nd_order.mean(dim=(0, 2, 3)).data
         if activation_index not in self.filter_ranks_2nd:
             self.filter_ranks_2nd[activation_index] = torch.FloatTensor(activation.size(1)).zero_().to(self.device)
@@ -81,8 +81,8 @@ class FilterPruner:
             print(f"Warning: Invalid activation_index {activation_index}, max is {len(self.activations)-1}")
             return
         activation = self.activations[activation_index]
-        # Update: use only the third order term: (1/6)*(activation³ * grad³)
-        taylor_3rd_order = (1/6) * (activation ** 3 * (grad ** 3))
+        # Include baseline first order, second and third order corrections.
+        taylor_3rd_order = activation * grad + 0.5 * activation * (grad ** 2) + (1/6) * activation * (grad ** 3)
         taylor_3rd_order = taylor_3rd_order.mean(dim=(0, 2, 3)).data
         if activation_index not in self.filter_ranks_3rd:
             self.filter_ranks_3rd[activation_index] = torch.FloatTensor(activation.size(1)).zero_().to(self.device)
