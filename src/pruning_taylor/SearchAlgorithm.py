@@ -1,6 +1,5 @@
 import torch
 from torchvision import models
-from PruningFineTuner import PruningFineTuner
 import math
 
 class SearchAlgorithm:
@@ -22,7 +21,7 @@ class SearchAlgorithm:
         self.GOOD_REWARD_SIZE = 7
         self.BAD_REWARD_SIZE = -10
         
-    def heuristic_binary_search(self,max_iter=6):
+    def heuristic_binary_search(self,max_iter=10):
         """
         Heuristic search to find the best pruning percentage that gets final accuracy
         as close to (but not lower than) min_accuracy, optimized for lower memory usage.
@@ -32,6 +31,8 @@ class SearchAlgorithm:
         best_percentage = 0.0
         best_final_acc = 0.0
         device = 'mps' if torch.backends.mps.is_available() else 'cuda' if torch.cuda.is_available() else 'cpu'
+        
+        from PruningFineTuner import PruningFineTuner
         
         for _ in range(max_iter):
             mid = (lower + upper) / 2.0
@@ -51,6 +52,7 @@ class SearchAlgorithm:
             if device == 'cuda':
                 torch.cuda.empty_cache()
         print(f"Best pruning percentage: {best_percentage:.2f}% yields final accuracy: {best_final_acc*100:.2f}%")
+        del original_state
         return best_percentage
     
     def _get_reward(self, new_acc, new_comp, new_size):
