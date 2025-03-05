@@ -1,6 +1,8 @@
 from heapq import nsmallest
 from operator import itemgetter
 import torch
+import copy
+
 class FilterPruner:
     def __init__(self, model):
         self.device = 'mps' if torch.backends.mps.is_available() else 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -10,73 +12,74 @@ class FilterPruner:
     def reset(self):
         self.filter_ranks = {}
         self.activations = []
-        self.gradients = []
         self.activation_to_layer = {}
-        self.grad_index = 0
         
+    # New approach: Split the forward pass into two steps to avoid hook conflicts
     def forward(self, x):
-        self.activations = []
-        self.grad_index = 0
-        self.model.eval()
-        self.model.zero_grad()
-        
-        activation_index = 0
-        stored_activations = []  # New separate list for storage to avoid modifying views
-        
-        for layer_index, layer in enumerate(self.model.features):   
-            x = layer(x)
-            if isinstance(layer, torch.nn.modules.conv.Conv2d):
-                # Store a completely separate copy of the activation
-                stored_activation = x.clone().detach().requires_grad_(True)
-                stored_activations.append(stored_activation)
-                self.activations.append(stored_activation)  # Store the detached copy
-                self.activation_to_layer[activation_index] = layer_index
-                
-                # Add hook to the stored (completely separate) activation
-                stored_activation.register_hook(self._create_hook(activation_index))
-                activation_index += 1
-
-        # Process the output as before
-        x = x.view(x.size(0), -1)
-        x = self.model.classifier(x)
-        return x
-
-    def _create_hook(self, activation_index):
-        """Create a hook function for computing rank with proper closure."""
-        def hook_fn(grad):
-            # Make a clean copy of the gradient
-            grad_copy = grad.clone().detach()
-            self.compute_rank(grad_copy, activation_index)
-        return hook_fn
-    
-    def compute_rank(self, grad, activation_index):
-        """Compute rank of the filters using Taylor expansion.
-        
-        Args:
-            grad: The gradient of the criterion with respect to the output of the layer
-            activation_index: The index of the activation in self.activations
         """
-        # Safety check to ensure activation_index is valid
-        if activation_index >= len(self.activations) or activation_index < 0:
-            print(f"Warning: Invalid activation_index {activation_index}, max is {len(self.activations)-1}")
-            return
-            
-        activation = self.activations[activation_index]
+        Forward pass that captures activations without using hooks.
+        """
+        self.activations = []
+        self.model.eval()
         
-        # Compute Taylor criterion
-        taylor = activation * grad
+        # Store all activations during forward pass
+        activation_index = 0
+        layer_activations = {}
         
-        # Average across batch and spatial dimensions
-        taylor = taylor.mean(dim=(0, 2, 3)).data
+        # Get a handle to the original input for gradient computation
+        x_clone = x.clone().detach().requires_grad_(True)
+        current_input = x_clone
         
-        # Initialize filter_ranks for this activation if not already done
-        if activation_index not in self.filter_ranks:
-            self.filter_ranks[activation_index] = torch.FloatTensor(activation.size(1)).zero_()
-            self.filter_ranks[activation_index] = self.filter_ranks[activation_index].to(self.device)
-            
-        # Update the ranks
-        self.filter_ranks[activation_index] += taylor
+        # First, run through model and store activations
+        for layer_index, layer in enumerate(self.model.features):
+            current_input = layer(current_input)
+            if isinstance(layer, torch.nn.modules.conv.Conv2d):
+                # Store activation separately
+                layer_activations[activation_index] = (layer_index, current_input.clone())
+                self.activation_to_layer[activation_index] = layer_index
+                activation_index += 1
         
+        # Complete forward pass
+        output = current_input.view(current_input.size(0), -1)
+        output = self.model.classifier(output)
+        
+        # Store for later use in compute_ranks
+        self.stored_x = x_clone
+        self.stored_output = output
+        self.layer_activations = layer_activations
+        
+        return output
+        
+    def compute_ranks(self, y):
+        """
+        Compute Taylor ranks based on output y (usually the loss).
+        Must be called after forward().
+        """
+        # Get gradient of output with respect to input
+        self.model.zero_grad()
+        y.backward(retain_graph=True)
+        
+        # Now calculate Taylor criterion for each activation
+        for act_idx, (layer_idx, activation) in self.layer_activations.items():
+            # If activation requires grad, compute Taylor term directly
+            if activation.requires_grad:
+                # Get gradient
+                grad = activation.grad
+                
+                if grad is not None:
+                    # Compute Taylor criterion
+                    taylor = (activation * grad).mean(dim=(0, 2, 3)).data
+                    
+                    # Initialize filter_ranks for this activation if not already done
+                    if act_idx not in self.filter_ranks:
+                        self.filter_ranks[act_idx] = torch.zeros(activation.size(1), device=self.device)
+                    
+                    # Update ranks
+                    self.filter_ranks[act_idx] += taylor.abs()
+        
+        # Add activations for access in other methods
+        self.activations = [act for _, act in self.layer_activations.values()]
+    
     def lowest_ranking_filters(self, num):
         data = []
         for i in sorted(self.filter_ranks.keys()):

@@ -38,17 +38,18 @@ class PruningFineTuner:
                 label = label.to(self.device)
 
                 self.model.zero_grad()
-                input = image
                 
                 # Make sure pruner is reset properly if we're ranking filters
                 if rank_filter:
                     self.pruner.reset()
-                    output = self.pruner.forward(input)
+                    output = self.pruner.forward(image)
+                    loss = self.criterion(output, label)
+                    # Use the new method instead of hooks
+                    self.pruner.compute_ranks(loss)
                 else:
-                    output = self.model(input)
-                    
-                loss = self.criterion(output, label)
-                loss.backward()
+                    output = self.model(image)
+                    loss = self.criterion(output, label)
+                    loss.backward()
                 
                 if optimizer is not None:
                     optimizer.step()
@@ -59,13 +60,10 @@ class PruningFineTuner:
                 continue
             finally:
                 # Clear intermediate variables and free memory
-                del image, label
-                if 'input' in locals(): 
-                    del input
-                if 'output' in locals(): 
-                    del output
-                if 'loss' in locals(): 
-                    del loss
+                if 'image' in locals(): del image
+                if 'label' in locals(): del label
+                if 'output' in locals(): del output
+                if 'loss' in locals(): del loss
                 gc.collect()
                 if self.device == 'cuda':
                     torch.cuda.empty_cache()
@@ -195,3 +193,4 @@ class PruningFineTuner:
             torch.cuda.empty_cache()
         elif torch.backends.mps.is_available():
             torch.mps.empty_cache()
+``` 

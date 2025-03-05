@@ -47,30 +47,30 @@ class OptimizedPruner:
                 image = image.to(self.device)
                 label = label.to(self.device)
                 self.model.zero_grad()
-                inp = image
+                
                 if rank_filter:
                     self.pruner.reset()
-                    output = self.pruner.forward(inp)
+                    # Use the two-step approach without hooks
+                    output = self.pruner.forward(image)
+                    loss = self.criterion(output, label)
+                    self.pruner.compute_ranks(loss)
                 else:
-                    output = self.model(inp)
-                loss = self.criterion(output, label)
-                loss.backward()
+                    output = self.model(image)
+                    loss = self.criterion(output, label)
+                    loss.backward()
+                    
                 # Adjust learning rates based on gradient flow
-                if optimizer is not None:
+                if optimizer is not None and not rank_filter:
                     optimizer = self.gradient_optimizer.apply_gradient_based_lr(optimizer, epoch)
-                if optimizer is not None:
                     optimizer.step()
             except Exception as e:
                 print(f"Error during training: {str(e)}")
                 continue
             finally:
-                del image, label
-                if 'inp' in locals(): 
-                    del inp
-                if 'output' in locals(): 
-                    del output
-                if 'loss' in locals():
-                    del loss
+                if 'image' in locals(): del image
+                if 'label' in locals(): del label
+                if 'output' in locals(): del output
+                if 'loss' in locals(): del loss
                 gc.collect()
                 if self.device == 'cuda':
                     torch.cuda.empty_cache()
