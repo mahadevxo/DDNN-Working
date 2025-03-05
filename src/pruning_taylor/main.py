@@ -79,7 +79,7 @@ def combined_taylor_pruning():
     
     from SearchAlgorithm import SearchAlgorithm
     searching_strategy = SearchAlgorithm(model, min_accuracy=(min_acc/100))
-    best_percentage = searching_strategy.heuristic_binary_search()
+    best_percentage = searching_strategy.heuristic_binary_search_2()
     print(f"Recommended pruning percentage: {best_percentage:.2f}%")
     
     # Optionally, run pruning with the combined pruner and observe performance
