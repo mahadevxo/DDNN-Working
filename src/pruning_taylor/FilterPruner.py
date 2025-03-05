@@ -50,8 +50,38 @@ class FilterPruner:
             # Complete the forward pass from this activation
             current_input = last_activation
         
-        output = current_input.view(current_input.size(0), -1)
-        output = self.model.classifier(output)
+        # Handle potential shape mismatches between features output and classifier input
+        try:
+            # First flatten the tensor for the classifier
+            output = current_input.view(current_input.size(0), -1)
+            # Run through classifier
+            output = self.model.classifier(output)
+        except RuntimeError as e:
+            if "mat1 and mat2 shapes cannot be multiplied" in str(e):
+                # Get the expected input size for the first linear layer in the classifier
+                first_linear = None
+                for module in self.model.classifier:
+                    if isinstance(module, torch.nn.Linear):
+                        first_linear = module
+                        break
+                
+                if first_linear:
+                    input_features = first_linear.in_features
+                    # Reshape by adaptive pooling to match the expected input size
+                    batch_size = current_input.size(0)
+                    channels = current_input.size(1)
+                    # Calculate the spatial dimensions needed
+                    spatial_size = int((input_features / channels) ** 0.5)
+                    
+                    # Apply adaptive pooling
+                    adaptive_pool = torch.nn.AdaptiveAvgPool2d((spatial_size, spatial_size))
+                    pooled = adaptive_pool(current_input)
+                    output = pooled.view(batch_size, -1)
+                    output = self.model.classifier(output)
+                else:
+                    raise e
+            else:
+                raise e
         
         # Store for later use in compute_ranks
         self.stored_x = x_clone

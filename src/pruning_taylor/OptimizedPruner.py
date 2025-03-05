@@ -175,7 +175,8 @@ class OptimizedPruner:
         print(f"Accuracy after fine tuning: {acc_time[0]:.2f}%")
         size_mb = self.get_model_size(self.model)
         print(f"Model Size after fine tuning: {size_mb:.2f} MB")
-        return [acc_pre_ft, acc_time[0], acc_time[3], size_mb]
+        # Fixed: Use correct indices in the return statement
+        return [acc_pre_ft[0], acc_time[0], acc_time[1], size_mb]
     
     def reset(self):
         # ...existing code...

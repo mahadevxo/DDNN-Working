@@ -104,21 +104,21 @@ class SearchAlgorithm:
         reward = 0
 
         if diff_acc >= 0 and diff_acc <= 0.01:
-            reward += self.VERY_GOOD_REWARD_ACC * math.abs(diff_acc)
+            reward += self.VERY_GOOD_REWARD_ACC * abs(diff_acc)
         elif diff_acc > 0.01:
-            reward += self.GOOD_REWARD_ACC * math.abs(diff_acc)
+            reward += self.GOOD_REWARD_ACC * abs(diff_acc)
         else:
-            reward += self.BAD_REWARD_ACC * math.abs(diff_acc)
+            reward += self.BAD_REWARD_ACC * abs(diff_acc)
 
         if diff_comp >= 0:
-            reward += self.GOOD_REWARD_COMP * math.abs(diff_comp)
+            reward += self.GOOD_REWARD_COMP * abs(diff_comp)
         else:
-            reward += self.BAD_REWARD_COMP * math.abs(diff_comp)
+            reward += self.BAD_REWARD_COMP * abs(diff_comp)
 
         if diff_size >= 0:
-            reward += self.GOOD_REWARD_SIZE * math.abs(diff_size)
+            reward += self.GOOD_REWARD_SIZE * abs(diff_size)
         else:
-            reward += self.BAD_REWARD_SIZE * math.abs(diff_size)
+            reward += self.BAD_REWARD_SIZE * abs(diff_size)
 
         return reward
     
