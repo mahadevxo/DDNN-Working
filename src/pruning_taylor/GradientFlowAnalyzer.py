@@ -16,8 +16,8 @@ class GradientFlowAnalyzer:
     def _make_hook(self, name):
         def hook(module, grad_input, grad_output):
             if grad_output[0] is not None:
-                # Use torch.clone() to copy the gradient tensor
-                grad_clone = torch.clone(grad_output[0])
+                # Detach and clone the gradient to avoid modifying an inplace view
+                grad_clone = grad_output[0].detach().clone()
                 self.gradients[name] = grad_clone.cpu().norm(2).item()
         return hook
     
