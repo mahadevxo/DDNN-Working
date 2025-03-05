@@ -24,9 +24,20 @@ class FilterPruner:
         for layer_index, layer in enumerate(self.model.features):   
             x = layer(x)
             if isinstance(layer, torch.nn.modules.conv.Conv2d):
-                self.activations.append(x)
+                # Store a cloned copy of the activation to avoid modifying views
+                x_clone = x.clone()
+                self.activations.append(x_clone)
                 self.activation_to_layer[activation_index] = layer_index
-                x.register_hook(lambda grad, idx=activation_index: self.compute_rank(grad, idx))
+                
+                # Use a safer hook registration that avoids view modification
+                def get_hook_fn(idx):
+                    def hook_fn(grad):
+                        # Clone incoming gradient to prevent inplace modifications
+                        safe_grad = grad.detach().clone()
+                        self.compute_rank(safe_grad, idx)
+                    return hook_fn
+                    
+                x.register_hook(get_hook_fn(activation_index))
                 activation_index += 1
         x = x.view(x.size(0), -1)
         x = self.model.classifier(x)
