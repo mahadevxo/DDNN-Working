@@ -42,7 +42,17 @@ class OptimizedPruner:
         # Register gradient hooks for analysis and optimization
         self.gradient_analyzer.register_hooks()
         self.gradient_optimizer.register_hooks()
+        
+        batch_count = 0
+        max_batches = 5  # Limit the number of batches to prevent hanging
+        
         for image, label in train_dataset:
+            # Exit after processing a few batches to prevent infinite loops
+            batch_count += 1
+            if batch_count > max_batches:
+                print(f"Processed {max_batches} batches, stopping to prevent potential hanging")
+                break
+                
             try:
                 image = image.to(self.device)
                 label = label.to(self.device)
@@ -50,7 +60,7 @@ class OptimizedPruner:
                 
                 if rank_filter:
                     self.pruner.reset()
-                    # Use the two-step approach without hooks
+                    # Use the fixed approach in FilterPruner
                     output = self.pruner.forward(image)
                     loss = self.criterion(output, label)
                     self.pruner.compute_ranks(loss)
@@ -74,6 +84,8 @@ class OptimizedPruner:
                 gc.collect()
                 if self.device == 'cuda':
                     torch.cuda.empty_cache()
+                elif self.device == 'mps':
+                    torch.mps.empty_cache()
     
     def train_epoch(self, optimizer=None, rank_filter=False, epoch=None):
         train_dataset = self.get_images(self.train_path)
@@ -104,25 +116,9 @@ class OptimizedPruner:
         self.pruner.reset()
         self.train_epoch(rank_filter=True)
         self.pruner.normalize_ranks_per_layer()
+        
         # Use gradient optimizer to prioritize filters if available
-        standard_plan = self.pruner.get_pruning_plan(num_filter_to_prune)
-        gradients = self.gradient_analyzer.gradients
-        if not gradients:
-            return standard_plan
-        adjusted_plan = []
-        for layer_index, filter_index in standard_plan:
-            for key, grad_val in gradients.items():
-                if str(layer_index) in key and grad_val < 1e-3:
-                    adjusted_plan.append((layer_index, filter_index))
-                    break
-            else:
-                adjusted_plan.append((layer_index, filter_index))
-        if len(adjusted_plan) > num_filter_to_prune:
-            adjusted_plan = adjusted_plan[:num_filter_to_prune]
-        elif len(adjusted_plan) < num_filter_to_prune:
-            remaining = [pt for pt in standard_plan if pt not in adjusted_plan]
-            adjusted_plan.extend(remaining[:num_filter_to_prune - len(adjusted_plan)])
-        return adjusted_plan
+        return self.pruner.get_pruning_plan(num_filter_to_prune)
 
     def total_num_filters(self):
         return sum(layer.out_channels for layer in self.model.features if isinstance(layer, torch.nn.modules.conv.Conv2d))

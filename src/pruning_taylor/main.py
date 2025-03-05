@@ -2,6 +2,7 @@ import torchvision.models as models
 from SearchAlgorithm import SearchAlgorithm
 from PruningFineTuner import PruningFineTuner
 import torch
+import argparse
 
 def taylor_pruning():
     device = 'mps' if torch.backends.mps.is_available() else 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -63,13 +64,32 @@ def taylor_pruning_with_gradient():
     del pruning_fine_tuner
 
 # New function: combined taylor pruning with gradient-based optimization
-def combined_taylor_pruning():
+def combined_taylor_pruning(debug=False):
     device = 'mps' if torch.backends.mps.is_available() else 'cuda' if torch.cuda.is_available() else 'cpu'
+    print(f"Using device: {device}")
+    
+    print("Loading model...")
     model = models.vgg16(weights=models.VGG16_Weights.IMAGENET1K_V1).to(device)
+    
     # Use the unified approach that combines gradient flow analysis with optimization
     from OptimizedPruner import OptimizedPruner
+    print("Initializing combined pruner...")
     combined_pruner = OptimizedPruner(model)
     
+    if debug:
+        print("Debug mode enabled - running with minimal operations")
+        # In debug mode, just do minimal testing to check if basic operations work
+        print("Testing model evaluation...")
+        out = combined_pruner.test(model)
+        print(f"Original Accuracy: {out[0]:.2f}")
+        print(f"Original Model Size: {combined_pruner.get_model_size(model):.2f} MB")
+        
+        print("Testing pruning with small percentage...")
+        result = combined_pruner.prune(5.0)  # Just prune 5% for testing
+        print(f"Test pruning result: {result}")
+        return
+    
+    # Normal execution flow
     out = combined_pruner.test(model)
     print(f"Original Accuracy: {out[0]:.2f}")
     print(f"Original Model Size: {combined_pruner.get_model_size(model):.2f} MB")
@@ -82,10 +102,12 @@ def combined_taylor_pruning():
     best_percentage = searching_strategy.heuristic_binary_search_2()
     print(f"Recommended pruning percentage: {best_percentage:.2f}%")
     
-    # Optionally, run pruning with the combined pruner and observe performance
-    # combined_pruner.prune(best_percentage)
-    
 if __name__ == '__main__':
+    # Add command line arguments for debug mode
+    parser = argparse.ArgumentParser(description='Model pruning tools')
+    parser.add_argument('--debug', action='store_true', help='Run in debug mode with minimal operations')
+    args = parser.parse_args()
+    
     # Provide a simple menu to choose the pruning strategy
     print("Select pruning strategy:")
     print("1. Standard Taylor Pruning")
@@ -93,7 +115,7 @@ if __name__ == '__main__':
     print("3. Combined Taylor Pruning with Gradient-Based Optimization")
     choice = input("Enter 1, 2 or 3: ").strip()
     if choice == '3':
-        combined_taylor_pruning()
+        combined_taylor_pruning(debug=args.debug)
     elif choice == '2':
         taylor_pruning_with_gradient()
     else:
