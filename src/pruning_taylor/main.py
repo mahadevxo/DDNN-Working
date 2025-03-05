@@ -25,12 +25,12 @@ def taylor_pruning_with_gradient():
     from GradientFlowAnalyzer import GradientFlowAnalyzer
     analyzer = GradientFlowAnalyzer(model)
     analyzer.register_hooks()
-    
+
     pruning_fine_tuner = PruningFineTuner(model)
     out = pruning_fine_tuner.test(model)
     print(f"Original Accuracy: {out[0]*100:.2f}% (Top-1), {out[3]*100:.2f}% (Top-5)")
     print(f'Original Model Size: {pruning_fine_tuner.get_model_size(model):.2f} MB')
-    
+
     # Analyze and display gradient flow statistics safely
     grad_stats = analyzer.analyze_vanishing_gradients()
     print("Gradient Flow Analysis:")
@@ -45,20 +45,19 @@ def taylor_pruning_with_gradient():
     else:
         print("  - Median Gradient: N/A")
     print(f"  - Gradient Risk: {grad_stats.get('risk', 'N/A')}")
-    small_layers = grad_stats.get("small_layers")
-    if small_layers:
+    if small_layers := grad_stats.get("small_layers"):
         print(f"  - Layers with low gradients: {small_layers}")
-    
+
     min_acc = float(input("Enter minimum acceptable accuracy (0-100): "))
     print(f"Minimum Accuracy: {min_acc}%")
     from SearchAlgorithm import SearchAlgorithm
     searching_strategy = SearchAlgorithm(model, min_accuracy=(min_acc/100))
     best_percentage = searching_strategy.heuristic_binary_search()
     print(f"Recommended pruning percentage: {best_percentage:.2f}%")
-    
+
     # Optionally, call pruning to see gradient flow effects after pruning
     # pruning_fine_tuner.prune(best_percentage)
-    
+
     # Cleanup
     analyzer.remove_hooks()
     del pruning_fine_tuner
