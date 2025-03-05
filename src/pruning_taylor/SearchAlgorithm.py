@@ -31,9 +31,9 @@ class SearchAlgorithm:
         best_percentage = 0.0
         best_final_acc = 0.0
         device = 'mps' if torch.backends.mps.is_available() else 'cuda' if torch.cuda.is_available() else 'cpu'
-        
+
         from PruningFineTuner import PruningFineTuner
-        
+
         for _ in range(max_iter):
             mid = (lower + upper) / 2.0
             trial_model = models.vgg16(weights=models.VGG16_Weights.IMAGENET1K_V1).to(device)
@@ -51,7 +51,48 @@ class SearchAlgorithm:
             del trial_model
             if device == 'cuda':
                 torch.cuda.empty_cache()
-        print(f"Best pruning percentage: {best_percentage:.2f}% yields final accuracy: {best_final_acc*100:.2f}%")
+        return self._print_accuracy(
+            best_percentage, best_final_acc, original_state
+        )
+    
+    def heuristic_binary_search_2(self,max_iter=10):
+        """
+        Heuristic search to find the best pruning percentage that gets final accuracy
+        as close to (but not lower than) min_accuracy, optimized for lower memory usage.
+        """
+        original_state = self.original_model.state_dict()
+        lower, upper = 0.0, 100.0
+        best_percentage = 0.0
+        best_final_acc = 0.0
+        device = 'mps' if torch.backends.mps.is_available() else 'cuda' if torch.cuda.is_available() else 'cpu'
+
+        from OptimizedPruner import OptimizedPruner
+
+        for _ in range(max_iter):
+            mid = (lower + upper) / 2.0
+            trial_model = models.vgg16(weights=models.VGG16_Weights.IMAGENET1K_V1).to(device)
+            trial_model.load_state_dict(original_state)
+            pruner = OptimizedPruner(trial_model)
+            pruner.prune(pruning_percentage=mid)
+            final_acc = pruner.test(pruner.model)[0]
+            if final_acc >= self.min_accuracy:
+                best_percentage = mid
+                best_final_acc = final_acc
+                lower = mid
+            else:
+                upper = mid
+            del pruner
+            del trial_model
+            if device == 'cuda':
+                torch.cuda.empty_cache()
+        return self._print_accuracy(
+            best_percentage, best_final_acc, original_state
+        )
+
+    def _print_accuracy(self, best_percentage, best_final_acc, original_state):
+        print(
+            f"Best pruning percentage: {best_percentage:.2f}% yields final accuracy: {best_final_acc * 100:.2f}%"
+        )
         del original_state
         return best_percentage
     
