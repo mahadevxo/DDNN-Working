@@ -16,13 +16,17 @@ class GradientFlowAnalyzer:
     def _make_hook(self, name):
         def hook(module, grad_input, grad_output):
             if grad_output[0] is not None:
-                self.gradients[name] = grad_output[0].detach().cpu().norm(2).item()
+                # Clone the gradient to avoid inplace modifications on a view
+                grad_clone = grad_output[0].detach().clone()
+                self.gradients[name] = grad_clone.cpu().norm(2).item()
         return hook
     
     def register_hooks(self):
         for name, module in self.model.named_modules():
             # Register hooks on leaf modules (skip Dropout/BatchNorm for clarity)
-            if len(list(module.children())) == 0 and not isinstance(module, (torch.nn.Dropout, torch.nn.BatchNorm2d)):
+            if not list(module.children()) and not isinstance(
+                module, (torch.nn.Dropout, torch.nn.BatchNorm2d)
+            ):
                 self.layer_types[name] = module.__class__.__name__
                 hook = module.register_full_backward_hook(self._make_hook(name))
                 self.hooks.append(hook)
