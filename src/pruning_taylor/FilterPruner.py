@@ -21,27 +21,33 @@ class FilterPruner:
         self.model.zero_grad()
         
         activation_index = 0
+        stored_activations = []  # New separate list for storage to avoid modifying views
+        
         for layer_index, layer in enumerate(self.model.features):   
             x = layer(x)
             if isinstance(layer, torch.nn.modules.conv.Conv2d):
-                # Store a cloned copy of the activation to avoid modifying views
-                x_clone = x.clone()
-                self.activations.append(x_clone)
+                # Store a completely separate copy of the activation
+                stored_activation = x.clone().detach().requires_grad_(True)
+                stored_activations.append(stored_activation)
+                self.activations.append(stored_activation)  # Store the detached copy
                 self.activation_to_layer[activation_index] = layer_index
                 
-                # Use a safer hook registration that avoids view modification
-                def get_hook_fn(idx):
-                    def hook_fn(grad):
-                        # Clone incoming gradient to prevent inplace modifications
-                        safe_grad = grad.detach().clone()
-                        self.compute_rank(safe_grad, idx)
-                    return hook_fn
-                    
-                x.register_hook(get_hook_fn(activation_index))
+                # Add hook to the stored (completely separate) activation
+                stored_activation.register_hook(self._create_hook(activation_index))
                 activation_index += 1
+
+        # Process the output as before
         x = x.view(x.size(0), -1)
         x = self.model.classifier(x)
         return x
+
+    def _create_hook(self, activation_index):
+        """Create a hook function for computing rank with proper closure."""
+        def hook_fn(grad):
+            # Make a clean copy of the gradient
+            grad_copy = grad.clone().detach()
+            self.compute_rank(grad_copy, activation_index)
+        return hook_fn
     
     def compute_rank(self, grad, activation_index):
         """Compute rank of the filters using Taylor expansion.
