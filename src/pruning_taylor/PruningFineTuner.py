@@ -67,14 +67,14 @@ class PruningFineTuner:
                 gc.collect()
                 if self.device == 'cuda':
                     torch.cuda.empty_cache()
+                elif self.device == 'mps':
+                    torch.mps.empty_cache()
     
     def train_epoch(self, optimizer = None, rank_filter = False):
         train_dataset = self.get_images(self.train_path)
         self.train_batch(optimizer, train_dataset, rank_filter)
             
-            
     def test(self, model):
-        
         self.model.eval()
         correct = total = compute_time = 0
         
@@ -193,4 +193,3 @@ class PruningFineTuner:
             torch.cuda.empty_cache()
         elif torch.backends.mps.is_available():
             torch.mps.empty_cache()
-``` 

@@ -16,9 +16,10 @@ class GradientFlowAnalyzer:
     def _make_hook(self, name):
         def hook(module, grad_input, grad_output):
             if grad_output[0] is not None:
-                # Detach and clone the gradient to avoid modifying an inplace view
-                grad_clone = grad_output[0].detach().clone()
-                self.gradients[name] = grad_clone.cpu().norm(2).item()
+                # Compute the norm and store it - ONLY for analysis, not for modification
+                self.gradients[name] = grad_output[0].detach().norm(2).cpu().item()
+            # Return the gradients UNMODIFIED to ensure proper backprop
+            return grad_input
         return hook
     
     def register_hooks(self):
@@ -28,7 +29,8 @@ class GradientFlowAnalyzer:
                 module, (torch.nn.Dropout, torch.nn.BatchNorm2d)
             ):
                 self.layer_types[name] = module.__class__.__name__
-                hook = module.register_full_backward_hook(self._make_hook(name))
+                # Use backward hook instead of full_backward_hook for better compatibility
+                hook = module.register_backward_hook(self._make_hook(name))
                 self.hooks.append(hook)
         return self
     
