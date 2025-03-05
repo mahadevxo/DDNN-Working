@@ -34,12 +34,22 @@ class FilterPruner:
         for layer_index, layer in enumerate(self.model.features):
             current_input = layer(current_input)
             if isinstance(layer, torch.nn.modules.conv.Conv2d):
-                # Store activation separately
-                layer_activations[activation_index] = (layer_index, current_input.clone())
+                # Store activation separately - ensure it's a leaf tensor that requires grad
+                activation = current_input.clone().detach().requires_grad_(True)
+                # Explicitly tell PyTorch to retain gradients for this tensor
+                activation.retain_grad()
+                layer_activations[activation_index] = (layer_index, activation)
                 self.activation_to_layer[activation_index] = layer_index
                 activation_index += 1
         
-        # Complete forward pass
+        # Complete forward pass - need to rebuild from the last activation
+        if layer_activations:
+            # Get the last activation
+            last_act_idx = max(layer_activations.keys())
+            _, last_activation = layer_activations[last_act_idx]
+            # Complete the forward pass from this activation
+            current_input = last_activation
+        
         output = current_input.view(current_input.size(0), -1)
         output = self.model.classifier(output)
         
@@ -61,21 +71,20 @@ class FilterPruner:
         
         # Now calculate Taylor criterion for each activation
         for act_idx, (layer_idx, activation) in self.layer_activations.items():
-            # If activation requires grad, compute Taylor term directly
-            if activation.requires_grad:
-                # Get gradient
-                grad = activation.grad
+            # Check if the gradient was computed for this activation
+            if activation.grad is not None:
+                # Compute Taylor criterion
+                taylor = activation.grad.data * activation.data
+                taylor = taylor.mean(dim=(0, 2, 3)).abs()
                 
-                if grad is not None:
-                    # Compute Taylor criterion
-                    taylor = (activation * grad).mean(dim=(0, 2, 3)).data
-                    
-                    # Initialize filter_ranks for this activation if not already done
-                    if act_idx not in self.filter_ranks:
-                        self.filter_ranks[act_idx] = torch.zeros(activation.size(1), device=self.device)
-                    
-                    # Update ranks
-                    self.filter_ranks[act_idx] += taylor.abs()
+                # Initialize filter_ranks for this activation if not already done
+                if act_idx not in self.filter_ranks:
+                    self.filter_ranks[act_idx] = torch.zeros(activation.size(1), device=self.device)
+                
+                # Update ranks
+                self.filter_ranks[act_idx] += taylor
+            else:
+                print(f"Warning: No gradient for activation {act_idx}")
         
         # Add activations for access in other methods
         self.activations = [act for _, act in self.layer_activations.values()]

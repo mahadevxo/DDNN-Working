@@ -32,6 +32,7 @@ class PruningFineTuner:
         return DataLoader(subset_dataset, batch_size=32, shuffle=True, num_workers=1)
     
     def train_batch(self, optimizer, train_dataset, rank_filter=False):
+        # sourcery skip: extract-method
         for image, label in train_dataset:
             try:
                 image = image.to(self.device)
@@ -60,10 +61,14 @@ class PruningFineTuner:
                 continue
             finally:
                 # Clear intermediate variables and free memory
-                if 'image' in locals(): del image
-                if 'label' in locals(): del label
-                if 'output' in locals(): del output
-                if 'loss' in locals(): del loss
+                if 'image' in locals(): 
+                    del image
+                if 'label' in locals(): 
+                    del label
+                if 'output' in locals(): 
+                    del output
+                if 'loss' in locals(): 
+                    del loss
                 gc.collect()
                 if self.device == 'cuda':
                     torch.cuda.empty_cache()
