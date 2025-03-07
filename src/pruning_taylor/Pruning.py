@@ -35,6 +35,11 @@ class Pruning:
     def _create_new_conv(self, conv, in_channels=None, out_channels=None):
         in_channels = conv.in_channels if in_channels is None else in_channels
         out_channels = conv.out_channels - 1 if out_channels is None else out_channels
+        
+        # Safety check to prevent zero-sized dimensions
+        in_channels = max(1, in_channels)
+        out_channels = max(1, out_channels)
+        
         return torch.nn.Conv2d(
             in_channels=in_channels,
             out_channels=out_channels,
@@ -196,6 +201,11 @@ class Pruning:
         _, conv = modules[layer_index]
         if not isinstance(conv, torch.nn.Conv2d):
             raise ValueError(f"Layer at index {layer_index} is not a Conv2d layer")
+        
+        # Safety check - don't prune if we're already at minimum size
+        if conv.out_channels <= 1:
+            print(f"WARNING: Cannot prune layer {layer_index} with only {conv.out_channels} output channels")
+            return model
             
         next_conv = self._get_next_conv(model, layer_index)
         new_conv = self._create_new_conv(conv)
@@ -203,7 +213,11 @@ class Pruning:
         self._prune_conv_layer(conv, new_conv, filter_index)
         
         if next_conv is not None:
-            # Fix: explicitly pass out_channels to keep the same number of filters
+            # Safety check for next conv layer's input channel count
+            if next_conv.in_channels <= 1:
+                print(f"WARNING: Cannot reduce input channels for next conv which already has {next_conv.in_channels} input channels")
+                return model
+                
             next_new_conv = self._create_new_conv(next_conv, in_channels=next_conv.in_channels - 1, out_channels=next_conv.out_channels)
             self._prune_next_conv_layer(next_conv, next_new_conv, filter_index)
             # Replace specific layers in the Sequential rather than building tuples

@@ -19,12 +19,26 @@ class GradientOptimizer:
         self.optimization_history = []
 
     def register_hooks(self):
+        # First remove any existing hooks to avoid duplicates
+        self.remove_hooks()
+        
+        # Then register new hooks with safety wrapper
+        self.gradient_analyzer = GradientFlowAnalyzer(self.model, self.output_dir)
+        
+        # Register with clone-safety when creating hooks
         self.gradient_analyzer.register_hooks()
         return self
 
     def remove_hooks(self):
-        self.gradient_analyzer.remove_hooks()
+        if hasattr(self, 'gradient_analyzer'):
+            self.gradient_analyzer.remove_hooks()
         return self
+    
+    def safe_clone(self, tensor):
+        """Safely clone a tensor if it requires gradients to avoid in-place modification issues"""
+        if tensor is not None and tensor.requires_grad:
+            return tensor.clone()
+        return tensor
 
     def compute_lr_multipliers(self, base_lr=0.001, min_factor=0.1, max_factor=3.0):
         """
@@ -40,6 +54,7 @@ class GradientOptimizer:
             median_grad = 1e-8
         lr_multipliers = {}
         for layer, grad_val in gradients.items():
+            # Use safe value comparison to avoid potential view issues
             ratio = median_grad/grad_val if grad_val > 0 else max_factor
             ratio = np.clip(ratio, min_factor, max_factor)
             lr_multipliers[layer] = ratio

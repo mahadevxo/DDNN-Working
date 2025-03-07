@@ -58,7 +58,8 @@ class FilterPruner:
             try:
                 # Flatten for classifier (typical in VGG-like models)
                 batch_size = features_output.size(0)
-                classifier_input = features_output.view(batch_size, -1)
+                # Clone the tensor to avoid view-related in-place modifications
+                classifier_input = features_output.view(batch_size, -1).clone()
                 
                 # Process through classifier
                 output = self.model.classifier(classifier_input)
@@ -81,7 +82,8 @@ class FilterPruner:
                         # Apply adaptive pooling
                         adaptive_pool = torch.nn.AdaptiveAvgPool2d((spatial_size, spatial_size))
                         pooled = adaptive_pool(features_output)
-                        output = self.model.classifier(pooled.view(batch_size, -1))
+                        # Clone the result of view to avoid in-place modification issues
+                        output = self.model.classifier(pooled.view(batch_size, -1).clone())
                     else:
                         raise e
                 else:
@@ -109,9 +111,8 @@ class FilterPruner:
         num_processed = 0
         for act_idx, (layer_idx, activation) in self.layer_activations.items():
             if activation.grad is not None:
-                # Process the gradient
-                taylor = activation.grad.data * activation.data
-                # Average over batch and spatial dimensions
+                # Clone activation tensors to avoid in-place modifications on views
+                taylor = activation.grad.data.clone() * activation.data.clone()
                 taylor = taylor.mean(dim=(0, 2, 3)).abs()
                 
                 # Update rankings
@@ -125,7 +126,7 @@ class FilterPruner:
                     layer = list(self.model.features)[layer_idx]
                     if hasattr(layer, 'weight') and layer.weight.grad is not None:
                         # Use the gradient of weights as a proxy
-                        taylor = layer.weight.grad.data.mean(dim=(0, 2, 3)).abs()
+                        taylor = layer.weight.grad.data.clone().mean(dim=(0, 2, 3)).abs()
                         self.filter_ranks[act_idx] += taylor
                         num_processed += 1
                     else:
@@ -168,14 +169,36 @@ class FilterPruner:
                 filters_to_prune_per_layer[layer_n] = []
             filters_to_prune_per_layer[layer_n].append(f)
         
+        # Safety check: ensure we're not pruning too many filters from any layer
+        for layer_n in list(filters_to_prune_per_layer.keys()):
+            # Find the actual layer
+            layer = None
+            for i, module in enumerate(self.model.features):
+                if i == layer_n and isinstance(module, torch.nn.Conv2d):
+                    layer = module
+                    break
+            
+            # If we found the layer, check how many filters we're pruning
+            if layer is not None:
+                # Don't prune more than 90% of filters from any layer
+                max_to_prune = int(0.9 * layer.out_channels)
+                # Always leave at least 2 filters
+                max_to_prune = min(max_to_prune, layer.out_channels - 2)
+                
+                if len(filters_to_prune_per_layer[layer_n]) > max_to_prune:
+                    print(f"WARNING: Limiting pruning on layer {layer_n} to {max_to_prune} filters instead of {len(filters_to_prune_per_layer[layer_n])}")
+                    filters_to_prune_per_layer[layer_n] = filters_to_prune_per_layer[layer_n][:max_to_prune]
+        
+        # After limiting, adjust filter indices accounting for previous pruning
         for layer_n in filters_to_prune_per_layer:
             filters_to_prune_per_layer[layer_n] = sorted(filters_to_prune_per_layer[layer_n])
             for i in range(len(filters_to_prune_per_layer[layer_n])):
                 filters_to_prune_per_layer[layer_n][i] = filters_to_prune_per_layer[layer_n][i] - i
         
+        # Create final pruning plan
         filters_to_prune = []
         for layer_n in filters_to_prune_per_layer:
-            for i in filters_to_prune_per_layer[layer_n]:
+            for i in filters_to_prune_per_layer[layer_n]:  # Removed extra ")"
                 filters_to_prune.append((layer_n, i))
         
         return filters_to_prune

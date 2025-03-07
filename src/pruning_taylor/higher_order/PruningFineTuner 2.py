@@ -9,15 +9,15 @@ from Pruning import Pruning
 import gc
 
 class PruningFineTuner:
-    def __init__(self, model):
+    def __init__(self, model, taylor=1):
         self.train_path = 'imagenet-mini/train'
         self.test_path = 'imagenet-mini/val'
         self.device = 'mps' if torch.backends.mps.is_available() else 'cuda' if torch.cuda.is_available() else 'cpu'
         self.model = model.to(self.device)
         self.criterion = torch.nn.CrossEntropyLoss()
-        self.pruner = FilterPruner(self.model)
+        self.pruner = FilterPruner(self.model, taylor)
         
-    def get_images(self, folder_path, num_samples=5000):
+    def get_images(self, folder_path, num_samples=500):
         transform = transforms.Compose([
         transforms.Resize((224,224)),
         transforms.RandomHorizontalFlip(), 
@@ -32,26 +32,23 @@ class PruningFineTuner:
         return DataLoader(subset_dataset, batch_size=32, shuffle=True, num_workers=1)
     
     def train_batch(self, optimizer, train_dataset, rank_filter=False):
-        # sourcery skip: extract-method
         for image, label in train_dataset:
-            self.model.train()  # ensure model is in training mode
             try:
                 image = image.to(self.device)
                 label = label.to(self.device)
 
                 self.model.zero_grad()
+                input = image
                 
                 # Make sure pruner is reset properly if we're ranking filters
                 if rank_filter:
                     self.pruner.reset()
-                    output = self.pruner.forward(image)
-                    loss = self.criterion(output, label)
-                    # Use the new method instead of hooks
-                    self.pruner.compute_ranks(loss)
+                    output = self.pruner.forward(input)
                 else:
-                    output = self.model(image)
-                    loss = self.criterion(output, label)
-                    loss.backward()
+                    output = self.model(input)
+                    
+                loss = self.criterion(output, label)
+                loss.backward()
                 
                 if optimizer is not None:
                     optimizer.step()
@@ -62,10 +59,9 @@ class PruningFineTuner:
                 continue
             finally:
                 # Clear intermediate variables and free memory
-                if 'image' in locals(): 
-                    del image
-                if 'label' in locals(): 
-                    del label
+                del image, label
+                if 'input' in locals(): 
+                    del input
                 if 'output' in locals(): 
                     del output
                 if 'loss' in locals(): 
@@ -73,33 +69,34 @@ class PruningFineTuner:
                 gc.collect()
                 if self.device == 'cuda':
                     torch.cuda.empty_cache()
-                elif self.device == 'mps':
-                    torch.mps.empty_cache()
     
     def train_epoch(self, optimizer = None, rank_filter = False):
         train_dataset = self.get_images(self.train_path)
         self.train_batch(optimizer, train_dataset, rank_filter)
             
+            
     def test(self, model):
         self.model.eval()
-        correct = total = compute_time = 0
+        model = model.to(self.device)
+        correct = 0
+        total = 0
+        compute_time = 0
         
         with torch.no_grad():
-            for images, labels in self.get_images(self.test_path, num_samples=1000):
+            for images, labels in self.get_images(self.test_path):
                 images = images.to(self.device)
                 labels = labels.to(self.device)
-                images = images.float()
-                t1 = time.time()
-                outputs = model(images)
-                t2 = time.time()
-                compute_time += t2 - t1
                 
-                _, predicted = torch.max(outputs, 1)
+                images = images.float()
+                start_time = time.time()
+                outputs = model(images)
+                compute_time += time.time() - start_time
+                _, predicted = torch.max(outputs.data, 1)
                 total += labels.size(0)
                 correct += (predicted == labels).sum().item()
-        accuracy = float(correct/total)*100
-        return [accuracy, compute_time]
-    
+        return [(float(correct) / total) * 100, compute_time]
+                
+                    
     def get_candidates_to_prune(self, num_filter_to_prune):
         self.pruner.reset()
         self.train_epoch(rank_filter=True)
@@ -170,7 +167,7 @@ class PruningFineTuner:
                     best_accuracy = val_results[0]
         acc_time = self.test(self.model)
         print("Finished Pruning for", pruning_percentage)
-        print(f"Accuracy after fine tuning: {acc_time[0]:.2f}%")
+        print(f"Accuracy after fine tuning: {acc_time[0]}%")
         size_mb = self.get_model_size(self.model)
         print(f"Model Size after fine tuning: {size_mb:.2f} MB")
         return [acc_pre_fine_tuning, acc_time[0], acc_time[1], size_mb]

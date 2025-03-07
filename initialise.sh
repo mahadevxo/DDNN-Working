@@ -13,3 +13,4 @@ cd DDNN-Working/src/pruning_taylor/
 curl -L -o ./imagenetmini-1000.zip https://www.kaggle.com/api/v1/datasets/download/ifigotin/imagenetmini-1000
 sudo apt install unzip
 unzip imagenetmini-1000.zip
+echo "Done"

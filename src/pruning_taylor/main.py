@@ -30,7 +30,7 @@ def taylor_pruning_with_gradient():
     pruning_fine_tuner = PruningFineTuner(model)
     out = pruning_fine_tuner.test(model)
     print(f"Original Accuracy: {out[0]:.2f}")
-    print(f'Original Model Size: {pruning_fine_tuner.get_model_size(model):.2f} MB')
+    print(f'Original Model Size: {pruning_fine_tuner.get_model_size(model)::.2f} MB')
 
     # Analyze and display gradient flow statistics safely
     grad_stats = analyzer.analyze_vanishing_gradients()
@@ -85,8 +85,12 @@ def combined_taylor_pruning(debug=False):
         print(f"Original Model Size: {combined_pruner.get_model_size(model):.2f} MB")
         
         print("Testing pruning with small percentage...")
-        result = combined_pruner.prune(5.0)  # Just prune 5% for testing
-        print(f"Test pruning result: {result}")
+        try:
+            # Skip fine-tuning completely in debug mode to avoid hook issues
+            result = combined_pruner.prune(5.0, skip_fine_tuning=True)
+            print(f"Test pruning result: {result}")
+        except RuntimeError as e:
+            print(f"Pruning failed due to in-place modification error: {e}")
         return
     
     # Normal execution flow

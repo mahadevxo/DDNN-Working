@@ -4,6 +4,19 @@ import os
 import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
 
+class SafeBackwardHook:
+    """Custom hook class to safely handle gradient flow analysis"""
+    def __init__(self, name, storage_dict):
+        self.name = name
+        self.storage_dict = storage_dict
+        
+    def __call__(self, module, grad_input, grad_output):
+        if grad_output[0] is not None:
+            # Completely detach and clone to avoid any view issues
+            safe_grad = grad_output[0].detach().clone()
+            self.storage_dict[self.name] = safe_grad.norm(2).cpu().item()
+        # Don't return anything to avoid modifying the gradient flow
+
 class GradientFlowAnalyzer:
     def __init__(self, model, output_dir='gradient_flow_results'):
         self.model = model
@@ -14,23 +27,22 @@ class GradientFlowAnalyzer:
         self.layer_types = {}
     
     def _make_hook(self, name):
-        def hook(module, grad_input, grad_output):
-            if grad_output[0] is not None:
-                # Compute the norm and store it - ONLY for analysis, not for modification
-                self.gradients[name] = grad_output[0].detach().norm(2).cpu().item()
-            # Return the gradients UNMODIFIED to ensure proper backprop
-            return grad_input
-        return hook
+        # Use the safer hook implementation
+        return SafeBackwardHook(name, self.gradients)
     
     def register_hooks(self):
+        # Remove any existing hooks first
+        self.remove_hooks()
+        self.gradients.clear()
+        
         for name, module in self.model.named_modules():
-            # Register hooks on leaf modules (skip Dropout/BatchNorm for clarity)
+            # Register hooks only on leaf modules (no children)
             if not list(module.children()) and not isinstance(
                 module, (torch.nn.Dropout, torch.nn.BatchNorm2d)
             ):
                 self.layer_types[name] = module.__class__.__name__
-                # Use backward hook instead of full_backward_hook for better compatibility
-                hook = module.register_backward_hook(self._make_hook(name))
+                # Use safer hook registration
+                hook = module.register_full_backward_hook(self._make_hook(name))
                 self.hooks.append(hook)
         return self
     
