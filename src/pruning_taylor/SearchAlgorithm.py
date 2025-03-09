@@ -1,11 +1,10 @@
 import torch
 from torchvision import models
-import math
 
 class SearchAlgorithm:
-    def __init__(self, original_model, min_accuracy=None,
-                 init_acc = None, init_comp = None,
-                 init_size = None):
+    def __init__(self, original_model, min_accuracy=0,
+                 init_acc = 0, init_comp = 0,
+                 init_size = 0):
         self.original_model = original_model
         self.min_accuracy = min_accuracy
         self.init_acc = init_acc
@@ -55,39 +54,87 @@ class SearchAlgorithm:
             best_percentage, best_final_acc, original_state
         )
     
-    def heuristic_binary_search_2(self,max_iter=10):
-        """
-        Heuristic search to find the best pruning percentage that gets final accuracy
-        as close to (but not lower than) min_accuracy, optimized for lower memory usage.
-        """
+    def heuristic_momentum_descent(self, max_iter=10, lr=5.0, beta=0.9):
         original_state = self.original_model.state_dict()
-        lower, upper = 0.0, 100.0
-        best_percentage = 0.0
-        best_final_acc = 0.0
         device = 'mps' if torch.backends.mps.is_available() else 'cuda' if torch.cuda.is_available() else 'cpu'
-
-        from OptimizedPruner import OptimizedPruner
+        from PruningFineTuner import PruningFineTuner
+        # Initialize pruning percentage & momentum velocity
+        pruning_percentage = 50.0  # Start in the middle
+        velocity = 0.0
+        best_percentage = pruning_percentage
+        best_final_acc = 0.0
 
         for _ in range(max_iter):
-            mid = (lower + upper) / 2.0
             trial_model = models.vgg16(weights=models.VGG16_Weights.IMAGENET1K_V1).to(device)
             trial_model.load_state_dict(original_state)
-            pruner = OptimizedPruner(trial_model)
-            pruner.prune(pruning_percentage=mid)
+            
+            pruner = PruningFineTuner(trial_model)
+            pruner.prune(pruning_percentage=pruning_percentage)
             final_acc = pruner.test(pruner.model)[0]
+            
+            # Compute the loss (difference from desired accuracy)
+            loss = final_acc - self.min_accuracy
+            
             if final_acc >= self.min_accuracy:
-                best_percentage = mid
+                best_percentage = pruning_percentage
                 best_final_acc = final_acc
-                lower = mid
-            else:
-                upper = mid
+            
+            # Compute gradient: if loss > 0, reduce pruning; otherwise, increase it
+            grad = -1 if loss > 0 else 1
+            
+            # Momentum update rule
+            velocity = beta * velocity + lr * grad  # Momentum smoothing
+            pruning_percentage = max(0.0, min(100.0, pruning_percentage - velocity))  # Keep within valid range
+
             del pruner
             del trial_model
             if device == 'cuda':
                 torch.cuda.empty_cache()
-        return self._print_accuracy(
-            best_percentage, best_final_acc, original_state
-        )
+
+        return self._print_accuracy(best_percentage, best_final_acc, original_state)
+    
+    def heuristic_adam_search(self, max_iter=10, lr=5.0, beta1=0.9, beta2=0.999, eps=1e-8):
+        """
+        Adam-based optimization to find the best pruning percentage that gets final accuracy
+        as close to (but not lower than) min_accuracy.
+        """
+        original_state = self.original_model.state_dict()
+        device = 'mps' if torch.backends.mps.is_available() else 'cuda' if torch.cuda.is_available() else 'cpu'
+
+        pruning_percentage = 50.0  # Start in the middle
+        best_percentage = pruning_percentage
+        best_final_acc = 0.0
+        from PruningFineTuner import PruningFineTuner
+        m, v = 0, 0  # Adam state variables
+        for t, _ in enumerate(range(max_iter), start=1):
+            trial_model = models.vgg16(weights=models.VGG16_Weights.IMAGENET1K_V1).to(device)
+            trial_model.load_state_dict(original_state)
+
+            pruner = PruningFineTuner(trial_model)
+            pruner.prune(pruning_percentage=pruning_percentage)
+            final_acc = pruner.test(pruner.model)[0]
+
+            if final_acc >= self.min_accuracy:
+                best_percentage = pruning_percentage
+                best_final_acc = final_acc
+
+            grad = -1 if final_acc > self.min_accuracy else 1
+
+            m = beta1 * m + (1 - beta1) * grad
+            v = beta2 * v + (1 - beta2) * (grad ** 2)
+
+            m_hat = m / (1 - beta1 ** t)
+            v_hat = v / (1 - beta2 ** t)
+
+            step = lr * m_hat / (v_hat ** 0.5 + eps)
+
+            pruning_percentage = max(0.0, min(100.0, pruning_percentage - step))
+
+            del pruner, trial_model
+            if device == 'cuda':
+                torch.cuda.empty_cache()
+
+        return self._print_accuracy(best_percentage, best_final_acc, original_state)
 
     def _print_accuracy(self, best_percentage, best_final_acc, original_state):
         print(

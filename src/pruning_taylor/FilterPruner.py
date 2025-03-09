@@ -1,7 +1,6 @@
 from heapq import nsmallest
 from operator import itemgetter
 import torch
-import copy
 
 class FilterPruner:
     def __init__(self, model):
@@ -100,13 +99,13 @@ class FilterPruner:
         """
         # Make sure we're in training mode for proper gradient flow
         self.model.train()
-        
+
         # Zero gradients from previous iterations
         self.model.zero_grad()
-        
+
         # Calculate gradients
         y.backward()
-        
+
         # Now process each stored activation
         num_processed = 0
         for act_idx, (layer_idx, activation) in self.layer_activations.items():
@@ -114,7 +113,7 @@ class FilterPruner:
                 # Clone activation tensors to avoid in-place modifications on views
                 taylor = activation.grad.data.clone() * activation.data.clone()
                 taylor = taylor.mean(dim=(0, 2, 3)).abs()
-                
+
                 # Update rankings
                 self.filter_ranks[act_idx] += taylor
                 num_processed += 1
@@ -128,22 +127,21 @@ class FilterPruner:
                         # Use the gradient of weights as a proxy
                         taylor = layer.weight.grad.data.clone().mean(dim=(0, 2, 3)).abs()
                         self.filter_ranks[act_idx] += taylor
-                        num_processed += 1
                     else:
                         print(f"Warning: No gradient for activation {act_idx}, using random ranking")
                         # Use small random values to avoid getting stuck
                         self.filter_ranks[act_idx] += torch.rand(self.filter_ranks[act_idx].size(), 
                                                                 device=self.device) * 0.001
-                        num_processed += 1
+                    num_processed += 1
                 except Exception as e:
                     print(f"Error processing gradient for activation {act_idx}: {str(e)}")
                     # Still add random values to continue processing
                     self.filter_ranks[act_idx] += torch.rand(self.filter_ranks[act_idx].size(), 
                                                             device=self.device) * 0.001
                     num_processed += 1
-            
+
         print(f"Processed gradients for {num_processed}/{len(self.layer_activations)} activations")
-        
+
         # Clear references to avoid memory leaks 
         self.layer_activations = {}
     
@@ -162,43 +160,44 @@ class FilterPruner:
             
     def get_pruning_plan(self, num_filters_to_prune):
         filters_to_prune = self.lowest_ranking_filters(num_filters_to_prune)
-        
+
         filters_to_prune_per_layer = {}
         for (layer_n, f, _) in filters_to_prune:
             if layer_n not in filters_to_prune_per_layer:
                 filters_to_prune_per_layer[layer_n] = []
             filters_to_prune_per_layer[layer_n].append(f)
-        
+
         # Safety check: ensure we're not pruning too many filters from any layer
         for layer_n in list(filters_to_prune_per_layer.keys()):
-            # Find the actual layer
-            layer = None
-            for i, module in enumerate(self.model.features):
-                if i == layer_n and isinstance(module, torch.nn.Conv2d):
-                    layer = module
-                    break
-            
+            layer = next(
+                (
+                    module
+                    for i, module in enumerate(self.model.features)
+                    if i == layer_n and isinstance(module, torch.nn.Conv2d)
+                ),
+                None,
+            )
             # If we found the layer, check how many filters we're pruning
             if layer is not None:
                 # Don't prune more than 90% of filters from any layer
                 max_to_prune = int(0.9 * layer.out_channels)
                 # Always leave at least 2 filters
                 max_to_prune = min(max_to_prune, layer.out_channels - 2)
-                
+
                 if len(filters_to_prune_per_layer[layer_n]) > max_to_prune:
                     print(f"WARNING: Limiting pruning on layer {layer_n} to {max_to_prune} filters instead of {len(filters_to_prune_per_layer[layer_n])}")
                     filters_to_prune_per_layer[layer_n] = filters_to_prune_per_layer[layer_n][:max_to_prune]
-        
+
         # After limiting, adjust filter indices accounting for previous pruning
         for layer_n in filters_to_prune_per_layer:
             filters_to_prune_per_layer[layer_n] = sorted(filters_to_prune_per_layer[layer_n])
             for i in range(len(filters_to_prune_per_layer[layer_n])):
                 filters_to_prune_per_layer[layer_n][i] = filters_to_prune_per_layer[layer_n][i] - i
-        
+
         # Create final pruning plan
         filters_to_prune = []
         for layer_n in filters_to_prune_per_layer:
             for i in filters_to_prune_per_layer[layer_n]:  # Removed extra ")"
                 filters_to_prune.append((layer_n, i))
-        
+
         return filters_to_prune
