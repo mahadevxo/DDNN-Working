@@ -32,26 +32,23 @@ class PruningFineTuner:
         return DataLoader(subset_dataset, batch_size=32, shuffle=True, num_workers=1)
     
     def train_batch(self, optimizer, train_dataset, rank_filter=False):
-        # sourcery skip: extract-method
         for image, label in train_dataset:
-            self.model.train()  # ensure model is in training mode
             try:
                 image = image.to(self.device)
                 label = label.to(self.device)
 
                 self.model.zero_grad()
+                input = image
                 
                 # Make sure pruner is reset properly if we're ranking filters
                 if rank_filter:
                     self.pruner.reset()
-                    output = self.pruner.forward(image)
-                    loss = self.criterion(output, label)
-                    # Use the new method instead of hooks
-                    self.pruner.compute_ranks(loss)
+                    output = self.pruner.forward(input)
                 else:
-                    output = self.model(image)
-                    loss = self.criterion(output, label)
-                    loss.backward()
+                    output = self.model(input)
+                    
+                loss = self.criterion(output, label)
+                loss.backward()
                 
                 if optimizer is not None:
                     optimizer.step()
@@ -62,10 +59,9 @@ class PruningFineTuner:
                 continue
             finally:
                 # Clear intermediate variables and free memory
-                if 'image' in locals(): 
-                    del image
-                if 'label' in locals(): 
-                    del label
+                del image, label
+                if 'input' in locals(): 
+                    del input
                 if 'output' in locals(): 
                     del output
                 if 'loss' in locals(): 
@@ -73,14 +69,14 @@ class PruningFineTuner:
                 gc.collect()
                 if self.device == 'cuda':
                     torch.cuda.empty_cache()
-                elif self.device == 'mps':
-                    torch.mps.empty_cache()
     
     def train_epoch(self, optimizer = None, rank_filter = False):
         train_dataset = self.get_images(self.train_path)
         self.train_batch(optimizer, train_dataset, rank_filter)
             
+            
     def test(self, model):
+        
         self.model.eval()
         correct = total = compute_time = 0
         
@@ -182,9 +178,6 @@ class PruningFineTuner:
 
         if hasattr(self, 'pruner'):
             del self.pruner
-
-        if hasattr(self, 'dataloader'):
-            del self.dataloader
 
         # Clear any other stored objects
         for attr in list(self.__dict__.keys()):
