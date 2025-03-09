@@ -21,6 +21,7 @@ class SearchAlgorithm:
         self.BAD_REWARD_SIZE = -10
         
     def heuristic_binary_search(self,max_iter=10):
+        # sourcery skip: class-extract-method
         """
         Heuristic search to find the best pruning percentage that gets final accuracy
         as close to (but not lower than) min_accuracy, optimized for lower memory usage.
