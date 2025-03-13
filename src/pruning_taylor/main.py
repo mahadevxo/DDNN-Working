@@ -15,7 +15,7 @@ def main():
     searching_strategy = SearchAlgorithm(model, min_accuracy=(min_acc/100))
     opt = int(input("Enter optimizer (0: Adam, 1: Binary): "))
     if opt == 0:
-        best_percentage = searching_strategy.heuristic_adam()
+        best_percentage = searching_strategy.heuristic_adam_search()
     else:
         best_percentage = searching_strategy.heuristic_binary_search()    
     
