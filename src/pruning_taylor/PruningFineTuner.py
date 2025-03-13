@@ -161,7 +161,7 @@ class PruningFineTuner:
         # Test and fine tune model once after pruning
         acc_pre_fine_tuning = self.test(model)
         if pruning_percentage != 0.0:
-            print(f"Accuracy before fine tuning: {acc_pre_fine_tuning[1]:.2f}% (Top-1), {acc_pre_fine_tuning[2]:.2f}% (Top-5)")
+            print(f"Accuracy before fine tuning: {acc_pre_fine_tuning[1]:.2f}%")
             optimizer = optim.SGD(self.model.parameters(), lr=0.001, momentum=0.9)
             scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='max', factor=0.5, patience=1)
             best_accuracy = 0.0
