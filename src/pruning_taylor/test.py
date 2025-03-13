@@ -3,7 +3,7 @@ from torchvision import models
 from PruningFineTuner import PruningFineTuner
 
 def main():
-    pruning_amount = 0.05
+    pruning_amount = 5
     device = 'mps' if torch.backends.mps.is_available() else 'cuda' if torch.cuda.is_available() else 'cpu'
     model = models.vgg16(weights=models.VGG16_Weights.IMAGENET1K_V1).to(device)
     pruning_fine_tuner = PruningFineTuner(model)
