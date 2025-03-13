@@ -159,7 +159,7 @@ class PruningFineTuner:
         # Test and fine tune model once after pruning
         acc_pre_fine_tuning = self.test(model)
         if pruning_percentage != 0.0:
-            print(f"Accuracy before fine tuning: {acc_pre_fine_tuning[1]:.2f}%")
+            print(f"Accuracy before fine tuning: {acc_pre_fine_tuning[0]:.2f}%")
             optimizer = optim.SGD(self.model.parameters(), lr=0.001, momentum=0.9)
             scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='max', factor=0.5, patience=1)
             best_accuracy = 0.0
@@ -168,12 +168,13 @@ class PruningFineTuner:
                 self.train_epoch(optimizer, rank_filter=False)
                 val_results = self.test(self.model)
                 print(f"Validation Accuracy: {val_results[0]:.2f}% ")
-                scheduler.step(val_results[0])
+                scheduler.step(val_results[0]/100)
                 if val_results[0] > best_accuracy:
                     best_accuracy = val_results[0]
         acc_time = self.test(self.model)
         print("Finished Pruning for", pruning_percentage)
-        print(f"Accuracy after fine tuning: {acc_time[1]:.2f}%")
+        print(f"Accuracy after fine tuning: {acc_time[0]:.2f}%")
+        print(f"Time taken for inference: {acc_time[1]:.2f} seconds")
         size_mb = self.get_model_size(self.model)
         print(f"Model Size after fine tuning: {size_mb:.2f} MB")
         return [acc_pre_fine_tuning, acc_time[0], acc_time[3], size_mb]
