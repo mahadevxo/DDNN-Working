@@ -27,7 +27,7 @@ class SearchAlgorithm:
         as close to (but not lower than) min_accuracy, optimized for lower memory usage.
         """
         original_state = self.original_model.state_dict()
-        lower, upper = 0.0, self._find_starting_point()
+        lower, upper = 0.0, 50
         best_percentage = 0.0
         best_final_acc = 0.0
         device = 'mps' if torch.backends.mps.is_available() else 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -94,7 +94,7 @@ class SearchAlgorithm:
         original_state = self.original_model.state_dict()
         device = 'mps' if torch.backends.mps.is_available() else 'cuda' if torch.cuda.is_available() else 'cpu'
 
-        pruning_percentage = self._find_starting_point()
+        pruning_percentage = 50
         best_percentage = pruning_percentage
         best_final_acc = 0.0
 
