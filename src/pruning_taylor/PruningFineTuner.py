@@ -79,7 +79,6 @@ class PruningFineTuner:
         self.model.eval()
         model = model.to(self.device)
         correct_top1 = 0
-        correct_top5 = 0
         total = 0
         compute_time = 0
         with torch.no_grad():
@@ -100,8 +99,7 @@ class PruningFineTuner:
                 total += labels.size(0)
                 correct_top1 += (predicted == labels).sum().item()
         
-        accuracy = float(correct_top1/total)*100  # Raw accuracy (0-1 range)
-        # top5_percent = (float(correct_top5/total)) * 100  # Top-5 accuracy as percentage
+        accuracy = float(correct_top1/total)*100
         
         return [accuracy, compute_time]
     
@@ -169,8 +167,8 @@ class PruningFineTuner:
             for _ in range(num_finetuning_epochs):
                 self.train_epoch(optimizer, rank_filter=False)
                 val_results = self.test(self.model)
-                print(f"Validation Accuracy: {val_results[1]:.2f}% ")
-                scheduler.step(val_results[0]/100)
+                print(f"Validation Accuracy: {val_results[0]:.2f}% ")
+                scheduler.step(val_results[0])
                 if val_results[0] > best_accuracy:
                     best_accuracy = val_results[0]
         acc_time = self.test(self.model)
