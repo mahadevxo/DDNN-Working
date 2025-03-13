@@ -82,7 +82,6 @@ class PruningFineTuner:
         correct_top5 = 0
         total = 0
         compute_time = 0
-        
         with torch.no_grad():
             for images, labels in self.get_images(self.test_path, num_samples=1000):
                 # Fix: Properly move tensors to device and ensure return value is used
@@ -100,18 +99,11 @@ class PruningFineTuner:
                 _, predicted = torch.max(outputs, 1)
                 total += labels.size(0)
                 correct_top1 += (predicted == labels).sum().item()
-                
-                # Top-5 accuracy
-                _, top5_indices = torch.topk(outputs, 5, dim=1)
-                for i in range(labels.size(0)):
-                    if labels[i] in top5_indices[i]:
-                        correct_top5 += 1
         
-        accuracy = float(correct_top1/total)  # Raw accuracy (0-1 range)
-        top1_percent = accuracy * 100  # Top-1 accuracy as percentage
-        top5_percent = (float(correct_top5/total)) * 100  # Top-5 accuracy as percentage
+        accuracy = float(correct_top1/total)*100  # Raw accuracy (0-1 range)
+        # top5_percent = (float(correct_top5/total)) * 100  # Top-5 accuracy as percentage
         
-        return [accuracy, top1_percent, top5_percent, compute_time]
+        return [accuracy, compute_time]
     
     def get_candidates_to_prune(self, num_filter_to_prune):
         self.pruner.reset()
@@ -177,13 +169,13 @@ class PruningFineTuner:
             for _ in range(num_finetuning_epochs):
                 self.train_epoch(optimizer, rank_filter=False)
                 val_results = self.test(self.model)
-                print(f"Validation Accuracy: {val_results[1]:.2f}% (Top-1), {val_results[2]:.2f}% (Top-5)")
-                scheduler.step(val_results[0])  # Use raw accuracy for scheduler
+                print(f"Validation Accuracy: {val_results[1]:.2f}% ")
+                scheduler.step(val_results[0]/100)
                 if val_results[0] > best_accuracy:
                     best_accuracy = val_results[0]
         acc_time = self.test(self.model)
         print("Finished Pruning for", pruning_percentage)
-        print(f"Accuracy after fine tuning: {acc_time[1]:.2f}% (Top-1), {acc_time[2]:.2f}% (Top-5)")
+        print(f"Accuracy after fine tuning: {acc_time[1]:.2f}%")
         size_mb = self.get_model_size(self.model)
         print(f"Model Size after fine tuning: {size_mb:.2f} MB")
         return [acc_pre_fine_tuning, acc_time[0], acc_time[3], size_mb]
