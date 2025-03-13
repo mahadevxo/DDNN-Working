@@ -9,5 +9,8 @@ def main():
     pruning_fine_tuner = PruningFineTuner(model)
     pruning_fine_tuner.prune(pruning_percentage=pruning_amount)
     out = pruning_fine_tuner.test(model)
-    print(f"Original Accuracy: {out[0]*100:.2f}% (Top-1), {out[3]*100:.2f}% (Top-5)")
+    print(f"Original Accuracy: {out[0]*100:.2f}%")
     print(f'Original Model Size: {pruning_fine_tuner.get_model_size(model):.2f} MB')
+    
+if __name__ == '__main__':
+    main()
