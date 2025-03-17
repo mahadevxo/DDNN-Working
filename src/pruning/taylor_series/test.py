@@ -12,7 +12,9 @@ def main():
         pruning_fine_tuner = PruningFineTuner(model)
         pruning_fine_tuner.prune(pruning_percentage=pruning_amount)
         out = pruning_fine_tuner.test(model)
-        text += f"{pruning_amount:.2f}%, {out[0]:.2f}%,{out[1]:.2f}, {out[3]:.2f}\n"
+        model_size = pruning_fine_tuner.get_model_size(model)
+        text += f"{pruning_amount:.2f}%, {out[0]}%,{out[1]:.2f}, {model_size}\n"
+        print(f"Pruning Amount: {pruning_amount:.2f}%, Final Accuracy: {out[0]:.2f}%, Time: {out[1]:.2f}, Memory: {model_size:.2f}")
         del pruning_fine_tuner
         model.cpu()
         del model
