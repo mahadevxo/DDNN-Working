@@ -30,7 +30,7 @@ def append_result(filename, pruning_amount, accuracy, compute_time, model_size):
 
 def main():
     # Use fewer pruning amounts with larger step size to avoid OOM
-    pruning_amounts = np.linspace(0, 50, 11)  # [0, 5, 10, ..., 50]
+    pruning_amounts = np.linspace(0, 60, 0.25)  # [0, 5, 10, ..., 50]
     
     # Determine device
     device = 'mps' if torch.backends.mps.is_available() else 'cuda' if torch.cuda.is_available() else 'cpu'
