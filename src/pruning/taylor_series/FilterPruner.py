@@ -42,8 +42,8 @@ class FilterPruner:
         for layer_index, layer in enumerate(self.model.features):   
             x = layer(x)
             if isinstance(layer, torch.nn.modules.conv.Conv2d):
-                # Store activation without requiring gradients for now
-                act = x.clone().detach().requires_grad_(True)
+                # Fix: remove detach so the activation stays connected
+                act = x.clone().requires_grad_(True)
                 self.activations.append(act)
                 self.activation_to_layer[activation_index] = layer_index
                 act.register_hook(lambda grad, idx=activation_index: self.compute_rank(grad, idx))

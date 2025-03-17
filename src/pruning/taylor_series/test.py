@@ -75,10 +75,8 @@ def main():
             
             # Clean up modules to prevent state persistence
             for module_name in list(sys.modules.keys()):
-                if module_name not in sys.builtin_module_names and module_name != "__main__":
-                    if 'PruningFineTuner' in module_name or 'FilterPruner' in module_name or 'Pruning' in module_name:
-                        if module_name in sys.modules:
-                            del sys.modules[module_name]
+                if module_name not in sys.builtin_module_names and module_name != "__main__" and ('PruningFineTuner' in module_name or 'FilterPruner' in module_name or 'Pruning' in module_name) and module_name in sys.modules:
+                    del sys.modules[module_name]
             
             clear_memory()
             
