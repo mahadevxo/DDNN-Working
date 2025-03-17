@@ -1,10 +1,19 @@
 import torch
 import numpy as np
+import gc
 
 class Pruning:
     def __init__(self, model):
         self.device = 'mps' if torch.backends.mps.is_available() else 'cuda' if torch.cuda.is_available() else 'cpu'
         self.model = model.to(self.device)
+    
+    def _clear_memory(self):
+        """Helper method to clear memory efficiently"""
+        gc.collect()
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+        elif torch.backends.mps.is_available():
+            torch.mps.empty_cache()
     
     def _replace_layers(self, model, i, indices, layers):
         return layers[indices.index(i)] if i in indices else model[i]
@@ -46,40 +55,47 @@ class Pruning:
         )
         
     def _prune_conv_layer(self, conv, new_conv, filter_index):
-        old_weights = conv.weight.data.cpu().numpy()
-        new_weights = new_conv.weight.data.cpu().numpy()
+        """Prune a convolutional layer directly with PyTorch operations"""
+        # Copy weights for filters before the pruned filter
+        if filter_index > 0:
+            new_conv.weight.data[:filter_index] = conv.weight.data[:filter_index]
         
-        new_weights[:filter_index, :, :, :] = old_weights[:filter_index, :, :, :]
-        new_weights[filter_index:, :, :, :] = old_weights[filter_index+1:, :, :, :]
+        # Copy weights for filters after the pruned filter
+        if filter_index < conv.weight.data.size(0) - 1:
+            new_conv.weight.data[filter_index:] = conv.weight.data[filter_index+1:]
         
-        new_conv.weight.data = torch.from_numpy(new_weights).to(self.device)
-        bias_numpy = conv.bias.data.cpu().numpy()
-        
-        bias = np.zeros(shape=(bias_numpy.shape[0] - 1), dtype=np.float32)
-        bias[:filter_index] = bias_numpy[:filter_index]
-        bias[filter_index:] = bias_numpy[filter_index+1:]
-        
-        new_conv.bias.data = torch.from_numpy(bias).to(self.device)
+        # Handle bias similarly
+        if conv.bias is not None:
+            if filter_index > 0:
+                new_conv.bias.data[:filter_index] = conv.bias.data[:filter_index]
+            if filter_index < conv.bias.data.size(0) - 1:
+                new_conv.bias.data[filter_index:] = conv.bias.data[filter_index+1:]
     
     def _prune_next_conv_layer(self, next_conv, new_next_conv, filter_index):
-        old_weights = next_conv.weight.data.cpu().numpy()
-        new_weights = new_next_conv.weight.data.cpu().numpy()
+        """Prune input channels of the next convolutional layer directly with PyTorch operations"""
+        # Copy weights for input channels before the pruned channel
+        if filter_index > 0:
+            new_next_conv.weight.data[:, :filter_index] = next_conv.weight.data[:, :filter_index]
         
-        new_weights[:, :filter_index, :, :] = old_weights[:, :filter_index, :, :]
-        new_weights[:, filter_index:, :, :] = old_weights[:, filter_index+1:, :, :]
+        # Copy weights for input channels after the pruned channel
+        if filter_index < next_conv.weight.data.size(1) - 1:
+            new_next_conv.weight.data[:, filter_index:] = next_conv.weight.data[:, filter_index+1:]
         
-        new_next_conv.weight.data = torch.from_numpy(new_weights).to(self.device)
-        new_next_conv.bias.data = next_conv.bias.data.to(self.device)
+        # Copy bias directly (not affected by input channels)
+        if next_conv.bias is not None:
+            new_next_conv.bias.data = next_conv.bias.data.clone()
     
     def _prune_last_conv_layer(self, model, conv, new_conv, layer_index, filter_index):
-        model.features = torch.nn.Sequential(
-            *(self._replace_layers(model.features, i, [layer_index], \
-                [new_conv]) for i, _ in enumerate(model.features)))
+        """Prune the last convolutional layer and update the first fully connected layer"""
+        # Replace conv layer in model
+        modules = list(model.features)
+        modules[layer_index] = new_conv
+        model.features = torch.nn.Sequential(*modules)
         
+        # Find the first fully connected layer
         layer_index = 0
         old_linear_layer = None
         for _, module in model.classifier._modules.items():
-            # Fix: Check if module is a Linear layer, not the model itself
             if isinstance(module, torch.nn.Linear):
                 old_linear_layer = module
                 break
@@ -87,48 +103,74 @@ class Pruning:
         
         if old_linear_layer is None:
             raise ValueError(f"No linear layer found in classifier, Model: {model}")
+        
+        # Calculate parameters per input channel
         params_per_input_channel = old_linear_layer.in_features // conv.out_channels
         
+        # Create new linear layer
         new_linear_layer = torch.nn.Linear(
             old_linear_layer.in_features - params_per_input_channel,
             old_linear_layer.out_features
         )
         
-        old_weights = old_linear_layer.weight.data.cpu().numpy()
-        new_weights = new_linear_layer.weight.data.cpu().numpy()
+        # Directly copy weights without NumPy conversion
+        if filter_index > 0:
+            start_idx = 0
+            end_idx = filter_index * params_per_input_channel
+            new_linear_layer.weight.data[:, start_idx:end_idx] = old_linear_layer.weight.data[:, start_idx:end_idx]
         
-        new_weights[:, :filter_index * params_per_input_channel] = \
-            old_weights[:, :filter_index * params_per_input_channel]
-        new_weights[:, filter_index * params_per_input_channel:] = \
-            old_weights[:, (filter_index + 1) * params_per_input_channel:]
-            
-        new_linear_layer.weight.data = torch.from_numpy(new_weights).to(self.device)
-        new_linear_layer.bias.data = old_linear_layer.bias.data.to(self.device)
+        if filter_index < conv.out_channels - 1:
+            start_idx = filter_index * params_per_input_channel
+            old_start_idx = (filter_index + 1) * params_per_input_channel
+            new_linear_layer.weight.data[:, start_idx:] = old_linear_layer.weight.data[:, old_start_idx:]
         
-        model.classifier = torch.nn.Sequential(
-            *(self._replace_layers(model.classifier, i, [layer_index], \
-                [new_linear_layer]) for i, _ in enumerate(model.classifier)))
+        # Copy bias directly
+        new_linear_layer.bias.data = old_linear_layer.bias.data.clone()
         
+        # Replace the classifier layer
+        classifier_modules = list(model.classifier)
+        classifier_modules[layer_index] = new_linear_layer
+        model.classifier = torch.nn.Sequential(*classifier_modules)
+        
+        self._clear_memory()
         return model
     
     def prune_vgg_conv_layer(self, model, layer_index, filter_index):
-        _, conv = list(model.features._modules.items())[layer_index]
-        next_conv = self._get_next_conv(model, layer_index)
-        new_conv = self._create_new_conv(conv)
-        
-        self._prune_conv_layer(conv, new_conv, filter_index)
-        
-        if next_conv is not None:
-            # Fix: explicitly pass out_channels to keep the same number of filters
-            next_new_conv = self._create_new_conv(next_conv, in_channels=next_conv.in_channels - 1, out_channels=next_conv.out_channels)
-            self._prune_next_conv_layer(next_conv, next_new_conv, filter_index)
-            # Replace specific layers in the Sequential rather than building tuples
-            modules = list(model.features)
-            modules[layer_index] = new_conv
-            offset = self._get_next_conv_offset(model, layer_index)
-            modules[layer_index + offset] = next_new_conv
-            model.features = torch.nn.Sequential(*modules)
-        else:
-            # Use _prune_last_conv_layer to update classifier layers for the last conv layer
-            model = self._prune_last_conv_layer(model, conv, new_conv, layer_index, filter_index)
-        return model
+        """Prune a conv layer from a VGG-like network"""
+        try:
+            # Get the conv layer to prune
+            conv = list(model.features)[layer_index]
+            next_conv = self._get_next_conv(model, layer_index)
+            
+            # Create new conv layer with one fewer filter
+            new_conv = self._create_new_conv(conv)
+            
+            # Prune the selected filter
+            self._prune_conv_layer(conv, new_conv, filter_index)
+            
+            if next_conv is not None:
+                # Create and update the next conv layer
+                next_new_conv = self._create_new_conv(next_conv, 
+                                                     in_channels=next_conv.in_channels - 1, 
+                                                     out_channels=next_conv.out_channels)
+                self._prune_next_conv_layer(next_conv, next_new_conv, filter_index)
+                
+                # Replace the layers in the model
+                modules = list(model.features)
+                modules[layer_index] = new_conv
+                offset = self._get_next_conv_offset(model, layer_index)
+                modules[layer_index + offset] = next_new_conv
+                model.features = torch.nn.Sequential(*modules)
+            else:
+                # This is the last conv layer, update the classifier as well
+                model = self._prune_last_conv_layer(model, conv, new_conv, layer_index, filter_index)
+            
+            self._clear_memory()
+            return model
+            
+        except Exception as e:
+            print(f"Error during pruning: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            self._clear_memory()
+            return model
