@@ -47,12 +47,17 @@ class PruningFineTuner:
                     output = self.pruner.forward(input)
                 else:
                     output = self.model(input)
+                    del input
+                    gc.collect()
+                    if self.device == 'cuda':
+                        torch.cuda.empty_cache()
                     
                 loss = self.criterion(output, label)
                 loss.backward()
                 
                 if optimizer is not None:
                     optimizer.step()
+        
                     
             except Exception as e:
                 print(f"Error during training: {str(e)}")
@@ -81,7 +86,7 @@ class PruningFineTuner:
         correct_top1 = 0
         total = 0
         compute_time = 0
-        with torch.no_grad():
+        with torch.inference_mode():
             for images, labels in self.get_images(self.test_path, num_samples=1000):
                 # Fix: Properly move tensors to device and ensure return value is used
                 images = images.to(self.device)
@@ -100,7 +105,10 @@ class PruningFineTuner:
                 correct_top1 += (predicted == labels).sum().item()
         
         accuracy = float(correct_top1/total)*100
-        
+        del model
+        gc.collect()
+        if self.device == 'cuda':
+            torch.cuda.empty_cache()
         return [accuracy, compute_time]
     
     def get_candidates_to_prune(self, num_filter_to_prune):
@@ -161,6 +169,7 @@ class PruningFineTuner:
         if pruning_percentage != 0.0:
             print(f"Accuracy before fine tuning: {acc_pre_fine_tuning[0]:.2f}%")
             optimizer = optim.SGD(self.model.parameters(), lr=0.001, momentum=0.9)
+            optimizer.zero_grad(set_to_none=True)
             scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='max', factor=0.5, patience=1)
             best_accuracy = 0.0
             num_finetuning_epochs = 5

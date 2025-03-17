@@ -1,7 +1,7 @@
 import torch
-from torchvision import models
-from PruningFineTuner import PruningFineTuner
+from torchvision.models import vgg16, VGG16_Weights
 import numpy as np
+import sys
 
 def main():
     pruning_amounts = np.arange(0, 60, 0.25)
@@ -9,7 +9,8 @@ def main():
     text = "Pruning Amount, Final Accuracy, Time, Memory\n"
     try:
         for pruning_amount in pruning_amounts:
-            model = models.vgg16(weights=models.VGG16_Weights.IMAGENET1K_V1).to(device)
+            model = vgg16(weights=VGG16_Weights.IMAGENET1K_V1).to(device)
+            from PruningFineTuner import PruningFineTuner
             pruning_fine_tuner = PruningFineTuner(model)
             pruning_fine_tuner.prune(pruning_percentage=pruning_amount)
             out = pruning_fine_tuner.test(model)
@@ -20,12 +21,18 @@ def main():
             model.cpu()
             del model
             torch.cuda.empty_cache()
+            del sys.modules['PruningFineTuner']
+            
     except Exception as e:
         print(e)   
         with open('pruning_results.csv', 'w') as f:
             f.write(text)
         print("Results saved to pruning_results.csv")
         exit()
+    
+    with open('pruning_results.csv', 'w') as f:
+        f.write(text)
+    print("Results saved to pruning_results.csv")
         
 if __name__ == '__main__':
     main()
