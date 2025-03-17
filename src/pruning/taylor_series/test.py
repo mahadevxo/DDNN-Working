@@ -1,16 +1,22 @@
 import torch
 from torchvision import models
 from PruningFineTuner import PruningFineTuner
+import numpy as np
 
 def main():
-    pruning_amount = 5
+    pruning_amounts = np.arange(0, 60, 0.25)
     device = 'mps' if torch.backends.mps.is_available() else 'cuda' if torch.cuda.is_available() else 'cpu'
-    model = models.vgg16(weights=models.VGG16_Weights.IMAGENET1K_V1).to(device)
-    pruning_fine_tuner = PruningFineTuner(model)
-    pruning_fine_tuner.prune(pruning_percentage=pruning_amount)
-    out = pruning_fine_tuner.test(model)
-    print(f"Original Accuracy: {out[0]*100:.2f}%")
-    print(f'Original Model Size: {pruning_fine_tuner.get_model_size(model):.2f} MB')
-    
+    text = "Pruning Amount, Final Accuracy, Time, Memory\n"
+    for pruning_amount in pruning_amounts:
+        model = models.vgg16(weights=models.VGG16_Weights.IMAGENET1K_V1).to(device)
+        pruning_fine_tuner = PruningFineTuner(model)
+        pruning_fine_tuner.prune(pruning_percentage=pruning_amount)
+        out = pruning_fine_tuner.test(model)
+        text += f"{pruning_amount:.2f}%, {out[0]:.2f}%,{out[1]:.2f}, {out[3]:.2f}\n"
+        del pruning_fine_tuner
+        model.cpu()
+        del model
+        torch.cuda.empty_cache()
+        
 if __name__ == '__main__':
     main()

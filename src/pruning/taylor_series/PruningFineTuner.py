@@ -32,6 +32,7 @@ class PruningFineTuner:
         return DataLoader(subset_dataset, batch_size=32, shuffle=True, num_workers=1)
     
     def train_batch(self, optimizer, train_dataset, rank_filter=False):
+        self.model.train()
         for image, label in train_dataset:
             try:
                 image = image.to(self.device)
@@ -39,7 +40,7 @@ class PruningFineTuner:
 
                 self.model.zero_grad()
                 input = image
-                
+                 
                 # Make sure pruner is reset properly if we're ranking filters
                 if rank_filter:
                     self.pruner.reset()
@@ -73,7 +74,6 @@ class PruningFineTuner:
     def train_epoch(self, optimizer = None, rank_filter = False):
         train_dataset = self.get_images(self.train_path)
         self.train_batch(optimizer, train_dataset, rank_filter)
-            
             
     def test(self, model):
         self.model.eval()
