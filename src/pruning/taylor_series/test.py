@@ -19,6 +19,10 @@ def main():
         model.cpu()
         del model
         torch.cuda.empty_cache()
+    
+    with open('pruning_results.csv', 'w') as f:
+        f.write(text)
+    print("Results saved to pruning_results.csv")
         
 if __name__ == '__main__':
     main()
