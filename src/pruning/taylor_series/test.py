@@ -13,9 +13,6 @@ def clear_memory():
         torch.cuda.empty_cache()
     elif torch.backends.mps.is_available():
         torch.mps.empty_cache()
-    
-    # Give the system a moment to actually free the memory
-    time.sleep(1)
 
 def create_results_file(filename='pruning_results.csv'):
     """Create results file with headers"""
@@ -30,7 +27,8 @@ def append_result(filename, pruning_amount, accuracy, compute_time, model_size):
 
 def main():
     # Use fewer pruning amounts with larger step size to avoid OOM
-    pruning_amounts = np.arange(0, 60, 0.25)  # [0, 5, 10, ..., 50]
+    # pruning_amounts = np.arange(0, 60, 0.25)
+    pruning_amounts = np.arange(0, 60, 10)
     
     # Determine device
     device = 'mps' if torch.backends.mps.is_available() else 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -45,9 +43,8 @@ def main():
             clear_memory()
             
             # Import inside loop to ensure clean module state
-            import importlib
             if 'PruningFineTuner' in sys.modules:
-                importlib.reload(sys.modules['PruningFineTuner'])
+                del sys.modules['PruningFineTuner']
             from PruningFineTuner import PruningFineTuner
             
             # Load a fresh model for each pruning amount
@@ -58,11 +55,11 @@ def main():
             pruning_fine_tuner = PruningFineTuner(model)
             
             # Run pruning
-            results = pruning_fine_tuner.prune(pruning_percentage=pruning_amount)
+            pruning_fine_tuner.prune(pruning_percentage=pruning_amount)
             
             # Get performance metrics
             out = pruning_fine_tuner.test(pruning_fine_tuner.model)
-            model_size = pruning_fine_tuner.get_model_size(pruning_fine_tuner.model)
+            model_size = pruning_fine_tuner.get_model_size(model)
             
             # Save results (even if we crash later)
             append_result(results_filename, pruning_amount, out[0], out[1], model_size)
@@ -72,11 +69,6 @@ def main():
             pruning_fine_tuner.reset()
             del pruning_fine_tuner
             del model
-            
-            # Clean up modules to prevent state persistence
-            for module_name in list(sys.modules.keys()):
-                if module_name not in sys.builtin_module_names and module_name != "__main__" and ('PruningFineTuner' in module_name or 'FilterPruner' in module_name or 'Pruning' in module_name) and module_name in sys.modules:
-                    del sys.modules[module_name]
             
             clear_memory()
             

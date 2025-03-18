@@ -55,35 +55,30 @@ class Pruning:
         )
         
     def _prune_conv_layer(self, conv, new_conv, filter_index):
-        """Prune a convolutional layer directly with PyTorch operations"""
-        # Copy weights for filters before the pruned filter
-        if filter_index > 0:
-            new_conv.weight.data[:filter_index] = conv.weight.data[:filter_index]
+        old_weights = conv.weight.data.cpu().numpy()
+        new_weights = new_conv.weight.data.cpu().numpy()
         
-        # Copy weights for filters after the pruned filter
-        if filter_index < conv.weight.data.size(0) - 1:
-            new_conv.weight.data[filter_index:] = conv.weight.data[filter_index+1:]
+        new_weights[:filter_index, :, :, :] = old_weights[:filter_index, :, :, :]
+        new_weights[filter_index:, :, :, :] = old_weights[filter_index+1:, :, :, :]
         
-        # Handle bias similarly
-        if conv.bias is not None:
-            if filter_index > 0:
-                new_conv.bias.data[:filter_index] = conv.bias.data[:filter_index]
-            if filter_index < conv.bias.data.size(0) - 1:
-                new_conv.bias.data[filter_index:] = conv.bias.data[filter_index+1:]
+        new_conv.weight.data = torch.from_numpy(new_weights).to(self.device)
+        bias_numpy = conv.bias.data.cpu().numpy()
+        
+        bias = np.zeros(shape=(bias_numpy.shape[0] - 1), dtype=np.float32)
+        bias[:filter_index] = bias_numpy[:filter_index]
+        bias[filter_index:] = bias_numpy[filter_index+1:]
+        
+        new_conv.bias.data = torch.from_numpy(bias).to(self.device)
     
     def _prune_next_conv_layer(self, next_conv, new_next_conv, filter_index):
-        """Prune input channels of the next convolutional layer directly with PyTorch operations"""
-        # Copy weights for input channels before the pruned channel
-        if filter_index > 0:
-            new_next_conv.weight.data[:, :filter_index] = next_conv.weight.data[:, :filter_index]
+        old_weights = next_conv.weight.data.cpu().numpy()
+        new_weights = new_next_conv.weight.data.cpu().numpy()
         
-        # Copy weights for input channels after the pruned channel
-        if filter_index < next_conv.weight.data.size(1) - 1:
-            new_next_conv.weight.data[:, filter_index:] = next_conv.weight.data[:, filter_index+1:]
+        new_weights[:, :filter_index, :, :] = old_weights[:, :filter_index, :, :]
+        new_weights[:, filter_index:, :, :] = old_weights[:, filter_index+1:, :, :]
         
-        # Copy bias directly (not affected by input channels)
-        if next_conv.bias is not None:
-            new_next_conv.bias.data = next_conv.bias.data.clone()
+        new_next_conv.weight.data = torch.from_numpy(new_weights).to(self.device)
+        new_next_conv.bias.data = next_conv.bias.data.to(self.device)
     
     def _prune_last_conv_layer(self, model, conv, new_conv, layer_index, filter_index):
         """Prune the last convolutional layer and update the first fully connected layer"""
@@ -113,24 +108,20 @@ class Pruning:
             old_linear_layer.out_features
         )
         
-        # Directly copy weights without NumPy conversion
-        if filter_index > 0:
-            start_idx = 0
-            end_idx = filter_index * params_per_input_channel
-            new_linear_layer.weight.data[:, start_idx:end_idx] = old_linear_layer.weight.data[:, start_idx:end_idx]
+        old_weights = old_linear_layer.weight.data.cpu().numpy()
+        new_weights = new_linear_layer.weight.data.cpu().numpy()
         
-        if filter_index < conv.out_channels - 1:
-            start_idx = filter_index * params_per_input_channel
-            old_start_idx = (filter_index + 1) * params_per_input_channel
-            new_linear_layer.weight.data[:, start_idx:] = old_linear_layer.weight.data[:, old_start_idx:]
+        new_weights[:, :filter_index * params_per_input_channel] = \
+            old_weights[:, :filter_index * params_per_input_channel]
+        new_weights[:, filter_index * params_per_input_channel:] = \
+            old_weights[:, (filter_index + 1) * params_per_input_channel:]
+            
+        new_linear_layer.weight.data = torch.from_numpy(new_weights).to(self.device)
+        new_linear_layer.bias.data = old_linear_layer.bias.data.to(self.device)
         
-        # Copy bias directly
-        new_linear_layer.bias.data = old_linear_layer.bias.data.clone()
-        
-        # Replace the classifier layer
-        classifier_modules = list(model.classifier)
-        classifier_modules[layer_index] = new_linear_layer
-        model.classifier = torch.nn.Sequential(*classifier_modules)
+        model.classifier = torch.nn.Sequential(
+            *(self._replace_layers(model.classifier, i, [layer_index], \
+                [new_linear_layer]) for i, _ in enumerate(model.classifier)))
         
         self._clear_memory()
         return model

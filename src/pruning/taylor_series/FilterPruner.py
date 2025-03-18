@@ -65,13 +65,14 @@ class FilterPruner:
         taylor = activation * grad
         
         # Average across batch and spatial dimensions
-        taylor = taylor.mean(dim=(0, 2, 3)).detach()
+        taylor = taylor.mean(dim=(0, 2, 3)).data.detach()
         
         # Initialize filter_ranks for this activation if not already done
         if activation_index not in self.filter_ranks:
-            self.filter_ranks[activation_index] = torch.zeros(activation.size(1), device=self.device)
+            self.filter_ranks[activation_index] = torch.FloatTensor(activation.size(1)).zero_
+            self.filter_ranks[activation_index] = self.filter_ranks[activation_index].to(self.device)
             
-        # Update the ranks - detach to prevent graph retention
+        # Use momentum smoothing to reduce erratic updates:
         self.filter_ranks[activation_index] += taylor
         
         # Free memory explicitly
@@ -87,8 +88,8 @@ class FilterPruner:
     def normalize_ranks_per_layer(self):
         for i in self.filter_ranks:
             v = torch.abs(self.filter_ranks[i])
-            v = v / torch.sqrt(torch.sum(v * v) + 1e-8)  # Added epsilon for numerical stability
-            self.filter_ranks[i] = v.cpu().detach()
+            v = v / torch.sqrt(torch.sum(v * v))  # Added epsilon for numerical stability
+            self.filter_ranks[i] = v.cpu()
             
     def get_pruning_plan(self, num_filters_to_prune):
         filters_to_prune = self.lowest_ranking_filters(num_filters_to_prune)

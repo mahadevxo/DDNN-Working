@@ -39,8 +39,9 @@ class PruningFineTuner:
         ])
         data_dataset = datasets.ImageFolder(folder_path, transform=transform)
         indices = random.sample(range(len(data_dataset)), min(num_samples, len(data_dataset)))
-        subset_dataset = Subset(data_dataset, indices)
-        return DataLoader(subset_dataset, batch_size=32, shuffle=True, num_workers=1, pin_memory=True)
+        data_dataset = Subset(data_dataset, indices)
+        
+        return DataLoader(data_dataset, batch_size=32, shuffle=True, num_workers=1, pin_memory=True)
     
     def train_batch(self, optimizer, train_loader, rank_filter=False):
         self.model.train()
@@ -154,7 +155,7 @@ class PruningFineTuner:
         # Convert to MB
         return total_size / (1024 ** 2)
     
-    def prune(self, pruning_percentage):
+    def prune(self, pruning_percentage):  # sourcery skip: extract-method
         self.model.train()
         
         # Enable gradients for pruning
