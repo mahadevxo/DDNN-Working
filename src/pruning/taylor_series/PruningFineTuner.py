@@ -45,7 +45,7 @@ class PruningFineTuner:
     
     def train_batch(self, optimizer, train_loader, rank_filter=False):
         self.model.train()
-        
+        model.to(self.device)
         for batch_idx, (image, label) in enumerate(train_loader):
             try:
                 with torch.autograd.set_grad_enabled(True):
@@ -97,6 +97,7 @@ class PruningFineTuner:
             
     def test(self, model):
         model.eval()
+        model.to(self.device)
         correct_top1 = 0
         total = 0
         compute_time = 0
