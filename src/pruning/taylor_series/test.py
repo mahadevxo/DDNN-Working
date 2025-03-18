@@ -23,7 +23,7 @@ def create_results_file(filename='pruning_results.csv'):
 def append_result(filename, pruning_amount, accuracy, compute_time, model_size):
     """Safely append a result to the CSV file"""
     with open(filename, 'a') as f:
-        f.write(f"{pruning_amount:.2f}%, {accuracy:.2f}%,{compute_time:.2f}, {model_size:.2f}\n")
+        f.write(f"{pruning_amount}%, {accuracy}%,{compute_time}, {model_size}\n")
 
 def main():
     # Use fewer pruning amounts with larger step size to avoid OOM
