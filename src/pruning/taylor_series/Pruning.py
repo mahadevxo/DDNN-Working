@@ -127,41 +127,24 @@ class Pruning:
         return model
     
     def prune_vgg_conv_layer(self, model, layer_index, filter_index):
-        """Prune a conv layer from a VGG-like network"""
-        try:
-            # Get the conv layer to prune
-            conv = list(model.features)[layer_index]
-            next_conv = self._get_next_conv(model, layer_index)
-            
-            # Create new conv layer with one fewer filter
-            new_conv = self._create_new_conv(conv)
-            
-            # Prune the selected filter
-            self._prune_conv_layer(conv, new_conv, filter_index)
-            
-            if next_conv is not None:
-                # Create and update the next conv layer
-                next_new_conv = self._create_new_conv(next_conv, 
-                                                     in_channels=next_conv.in_channels - 1, 
-                                                     out_channels=next_conv.out_channels)
-                self._prune_next_conv_layer(next_conv, next_new_conv, filter_index)
-                
-                # Replace the layers in the model
-                modules = list(model.features)
-                modules[layer_index] = new_conv
-                offset = self._get_next_conv_offset(model, layer_index)
-                modules[layer_index + offset] = next_new_conv
-                model.features = torch.nn.Sequential(*modules)
-            else:
-                # This is the last conv layer, update the classifier as well
-                model = self._prune_last_conv_layer(model, conv, new_conv, layer_index, filter_index)
-            
-            self._clear_memory()
-            return model
-            
-        except Exception as e:
-            print(f"Error during pruning: {str(e)}")
-            import traceback
-            traceback.print_exc()
-            self._clear_memory()
-            return model
+        _, conv = list(model.features._modules.items())[layer_index]
+        next_conv = self._get_next_conv(model, layer_index)
+        new_conv = self._create_new_conv(conv)
+
+        self._prune_conv_layer(conv, new_conv, filter_index)
+
+        if next_conv is not None:
+            # Fix: explicitly pass out_channels to keep the same number of filters
+            next_new_conv = self._create_new_conv(next_conv, in_channels=next_conv.in_channels - 1, out_channels=next_conv.out_channels)
+            self._prune_next_conv_layer(next_conv, next_new_conv, filter_index)
+            # Replace specific layers in the Sequential rather than building tuples
+            modules = list(model.features)
+            modules[layer_index] = new_conv
+            offset = self._get_next_conv_offset(model, layer_index)
+            modules[layer_index + offset] = next_new_conv
+            model.features = torch.nn.Sequential(*modules)
+        else:
+            # Use _prune_last_conv_layer to update classifier layers for the last conv layer
+            model = self._prune_last_conv_layer(model, conv, new_conv, layer_index, filter_index)
+        self._clear_memory()
+        return model

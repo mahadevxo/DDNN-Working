@@ -30,9 +30,6 @@ class FilterPruner:
             torch.mps.empty_cache()
         
     def forward(self, x):
-        # Clear previous activations to prevent memory leaks
-        for act in self.activations:
-            del act
         self.activations = []
         self.grad_index = 0
         self.model.eval()
@@ -42,12 +39,10 @@ class FilterPruner:
         for layer_index, layer in enumerate(self.model.features):   
             x = layer(x)
             if isinstance(layer, torch.nn.modules.conv.Conv2d):
-                # Fix: register hook directly on x instead of using a clone
                 self.activations.append(x)
                 self.activation_to_layer[activation_index] = layer_index
                 x.register_hook(lambda grad, idx=activation_index: self.compute_rank(grad, idx))
                 activation_index += 1
-                
         x = x.view(x.size(0), -1)
         x = self.model.classifier(x)
         return x
@@ -85,7 +80,7 @@ class FilterPruner:
         data = []
         for i in sorted(self.filter_ranks.keys()):
             for j in range(self.filter_ranks[i].size(0)):
-                data.append((self.activation_to_layer[i], j, self.filter_ranks[i][j].item()))
+                data.append((self.activation_to_layer[i], j, self.filter_ranks[i][j]))
         return nsmallest(num, data, itemgetter(2))
     
     def normalize_ranks_per_layer(self):
