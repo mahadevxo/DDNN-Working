@@ -53,7 +53,12 @@ class FilterPruner:
         return x
     
     def compute_rank(self, grad, activation_index):
-        """Compute rank of the filters using Taylor expansion."""
+        """Compute rank of the filters using Taylor expansion.
+        
+        Args:
+            grad: The gradient of the criterion with respect to the output of the layer
+            activation_index: The index of the activation in self.activations
+        """
         # Safety check to ensure activation_index is valid
         if activation_index >= len(self.activations) or activation_index < 0:
             print(f"Warning: Invalid activation_index {activation_index}, max is {len(self.activations)-1}")
@@ -65,18 +70,16 @@ class FilterPruner:
         taylor = activation * grad
         
         # Average across batch and spatial dimensions
-        taylor = taylor.mean(dim=(0, 2, 3)).data.detach()
+        taylor = taylor.mean(dim=(0, 2, 3)).data
         
         # Initialize filter_ranks for this activation if not already done
         if activation_index not in self.filter_ranks:
-            self.filter_ranks[activation_index] = torch.FloatTensor(activation.size(1)).zero_
+            self.filter_ranks[activation_index] = torch.FloatTensor(activation.size(1)).zero_()
             self.filter_ranks[activation_index] = self.filter_ranks[activation_index].to(self.device)
             
-        # Use momentum smoothing to reduce erratic updates:
+        # Update the ranks
         self.filter_ranks[activation_index] += taylor
-        
-        # Free memory explicitly
-        del taylor, grad
+        del taylor, activation, grad
         
     def lowest_ranking_filters(self, num):
         data = []
