@@ -90,7 +90,7 @@ class PruningFineTuner:
                 self._clear_memory()
     
     def train_epoch(self, optimizer=None, rank_filter=False):
-        train_loader = self.get_images(self.train_path)
+        train_loader = self.get_images(self.train_path, num_samples=2000)
         self.train_batch(optimizer, train_loader, rank_filter)
         del train_loader
         self._clear_memory()
@@ -100,7 +100,7 @@ class PruningFineTuner:
         correct_top1 = 0
         total = 0
         compute_time = 0
-        test_loader = self.get_images(self.test_path, num_samples=1000)
+        test_loader = self.get_images(self.test_path, num_samples=500)
         
         with torch.inference_mode():
             for images, labels in test_loader:
