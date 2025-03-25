@@ -254,9 +254,9 @@ class PruningFineTuner:
         # Force garbage collection and clear GPU cache
         self._clear_memory()
         
-    def save_model(self, pruning_amount):
-        torch.save(self.model.state_dict(), f'pruned_model_{pruning_amount}.pth')
-        print(f"Model saved as pruned_model_{pruning_amount}.pth")
+    def save_model(self, path):
+        torch.save(self.model.state_dict(), path)
+        print(f"Model saved as {path}")
         
     def __del__(self):
         """Destructor to ensure memory is cleared when the object is deleted"""
