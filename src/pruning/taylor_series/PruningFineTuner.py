@@ -138,7 +138,7 @@ class PruningFineTuner:
                 del test_loader
             
             accuracies.append(100.0 * correct_top1 / total if total > 0 else 0)
-            computation_times.append(compute_time)
+            # computation_times.append(compute_time)
             self._clear_memory()
         
         # Clean up test loader
