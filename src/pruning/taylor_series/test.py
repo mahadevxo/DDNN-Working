@@ -54,7 +54,7 @@ def main():
             pruning_fine_tuner.prune(pruning_percentage=pruning_amount)
             
             # Get performance metrics
-            out = pruning_fine_tuner.test(pruning_fine_tuner.model)
+            out = pruning_fine_tuner.test(pruning_fine_tuner.model, final_test = True)
             model_size = pruning_fine_tuner.get_model_size(model)
             
             append_result(results_filename, pruning_amount, out[0], out[1], model_size)

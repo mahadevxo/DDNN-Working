@@ -94,47 +94,58 @@ class PruningFineTuner:
         self.train_batch(optimizer, train_loader, rank_filter)
         del train_loader
         self._clear_memory()
+        
+    def _get_mean(self, list1: list) -> float:
+        return sum(list1) / len(list1) if list1 else 0.0
             
-    def test(self, model):
+    def test(self, model, final_test=False):
         model.eval()
         model.to(self.device)
         correct_top1 = 0
         total = 0
         compute_time = 0
-        test_loader = self.get_images(self.test_path, num_samples=500)
+        accuracies = []
+        computation_times = []
         
-        with torch.inference_mode():
-            for images, labels in test_loader:
-                try:
-                    images = images.to(self.device, non_blocking=True)
-                    labels = labels.to(self.device, non_blocking=True)
-                    
-                    t1 = time.time()
-                    outputs = model(images)
-                    t2 = time.time()
-                    compute_time += t2 - t1
-                    
-                    # Top-1 accuracy
-                    _, predicted = torch.max(outputs, 1)
-                    total += labels.size(0)
-                    correct_top1 += (predicted == labels).sum().item()
-                    
-                finally:
-                    # Free up memory
-                    del images, labels
-                    if 'outputs' in locals(): 
-                        del outputs
-                    if 'predicted' in locals(): 
-                        del predicted
-                    self._clear_memory()
-        
-        accuracy = 100.0 * correct_top1 / total if total > 0 else 0
+        tries = 10 if final_test else 1
+        for _ in range(tries):
+            test_loader = self.get_images(self.test_path, num_samples=500)
+            
+            with torch.inference_mode():
+                for images, labels in test_loader:
+                    try:
+                        images = images.to(self.device, non_blocking=True)
+                        labels = labels.to(self.device, non_blocking=True)
+                        
+                        t1 = time.time()
+                        outputs = model(images)
+                        t2 = time.time()
+                        compute_time += t2 - t1
+                        
+                        # Top-1 accuracy
+                        _, predicted = torch.max(outputs, 1)
+                        total += labels.size(0)
+                        correct_top1 += (predicted == labels).sum().item()
+                        
+                    finally:
+                        # Free up memory
+                        del images, labels
+                        if 'outputs' in locals(): 
+                            del outputs
+                        if 'predicted' in locals(): 
+                            del predicted
+                        self._clear_memory()
+            
+            accuracies.append(100.0 * correct_top1 / total if total > 0 else 0)
+            computation_times.append(compute_time)
+            del test_loader
+            self._clear_memory()
         
         # Clean up test loader
         del test_loader
         self._clear_memory()
         
-        return [accuracy, compute_time]
+        return [self._get_mean(accuracies), self._get_mean(computation_times)]
     
     def get_candidates_to_prune(self, num_filter_to_prune):
         self.pruner.reset()
