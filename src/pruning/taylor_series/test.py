@@ -29,10 +29,12 @@ def main():
     print(f"Using device: {device}")
     
     # Create results file
-    results_filename = create_results_file()
     
     models_selected = int(input("1: VGG13\n2: VGG16\n3: VGG19\n4: AlexNet\nEnter Option: "))
     model_save = bool(int(input("0: Test Model\n1: Save Model\nEnter Option: ")))
+    
+    if not model_save:
+        results_filename = create_results_file()
     
     try:
         for pruning_amount in pruning_amounts:
