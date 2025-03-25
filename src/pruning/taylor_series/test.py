@@ -82,7 +82,8 @@ def main():
         print(f"Error during pruning: {str(e)}")
         import traceback
         traceback.print_exc()
-    
+    if not model_save:
+        print(f"Model saved as pruned_{model_name}_{pruning_amount:.2f}.pth")
     print(f"Results saved to {results_filename}")
         
 if __name__ == '__main__':
