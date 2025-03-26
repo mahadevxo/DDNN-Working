@@ -31,7 +31,7 @@ class PoolingCNN(nn.Module):
     def __init__(self, num_classes=100):
         super(PoolingCNN, self).__init__()
         self.pooling_cnn = nn.Sequential(
-            nn.Conv2d(2048, 512, kernel_size=3, stride=1, padding=1),  # Change 8192 → 2048
+            nn.Conv2d(2048, 512, kernel_size=3, stride=1, padding=1),  # Fixed channels from 8192 → 2048
             nn.ReLU(),
             nn.AdaptiveAvgPool2d((6, 6)),
             nn.Flatten(),
@@ -42,10 +42,8 @@ class PoolingCNN(nn.Module):
         )
 
     def forward(self, x):
-        x = self.conv(x)  # Shape: (B, 1024, H, W)
-        x = self.gap(x).squeeze(-1).squeeze(-1)  # Global Avg Pooling
-        return self.fc(x)  # Shape: (B, num_classes)
-
+        return self.pooling_cnn(x)
+    
 # Multi-view CNN with improved tiling & feature extraction
 class MultiCNN(nn.Module):
     def __init__(self, num_classes=100):
