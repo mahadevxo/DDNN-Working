@@ -1,5 +1,4 @@
 import torch
-import torchvision.models as models
 from torchvision import datasets, transforms
 from torch.utils.data import DataLoader, Subset
 import numpy as np
@@ -71,8 +70,7 @@ def main():
     results_filename = create_results_file()
     for model_path in model_paths:
         print(f"Loading model from {model_path}")
-        model = models.alexnet(weights=models.AlexNet_Weights.IMAGENET1K_V1).to(device)
-        model.load_state_dict(torch.load(model_path))
+        model = torch.load(model_path, map_location=device)
         accuracy, compute_time, model_size = test_model(model, device, test_loader)
         match = re.search(r'pruned_AlexNet_(\d+\.\d+)', model_path)
         pruning_amount = match[1] if match else "Unknown"

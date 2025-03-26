@@ -255,7 +255,7 @@ class PruningFineTuner:
         self._clear_memory()
         
     def save_model(self, path):
-        torch.save(self.model.state_dict(), path)
+        torch.save(self.model, path)
         print(f"Model saved as {path}")
         
     def __del__(self):
