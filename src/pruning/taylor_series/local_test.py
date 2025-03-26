@@ -8,7 +8,6 @@ import time
 import os
 import random
 
-
 def clear_memory():
     gc.collect()
     if torch.cuda.is_available():
