@@ -20,7 +20,7 @@ def split_into_tiles(image, num_tiles=4):
 class FeatureCNN(nn.Module):
     def __init__(self):
         super(FeatureCNN, self).__init__()
-        resnet = models.vgg13(weights='IMAGENET1K_V1')
+        resnet = models.vgg13(weights=None)
         self.feature_extractor = nn.Sequential(*list(resnet.children())[:-2])  # Remove FC layers
     
     def forward(self, x):
@@ -103,7 +103,7 @@ def main():
     
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.AdamW(model.parameters(), lr=0.001, weight_decay=1e-4)
-    scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=5, gamma=0.5)  # Reduce LR every 5 epochs
+    scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=5, gamma=0.5)
 
     train_model(model, train_loader, criterion, optimizer, scheduler, device, num_epochs=200)
 
