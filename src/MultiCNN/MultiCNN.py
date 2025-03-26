@@ -56,7 +56,7 @@ class MultiCNN(nn.Module):
         tiles = split_into_tiles(x, num_tiles=self.num_tiles)
         features = [cnn(tile) for cnn, tile in zip(self.feature_cnns, tiles)]
         combined_features = torch.cat(features, dim=1)  # Shape: (B, 8192, H, W)
-        return self.pooling_cnn(combined_features)
+        return self.pooling_cnn(combined_features).float()
 
 # Training function with scheduler
 def train_model(model, dataloader, criterion, optimizer, scheduler, device, num_epochs=20):
