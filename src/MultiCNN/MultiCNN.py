@@ -100,7 +100,10 @@ def train_model(model, dataloader, criterion, optimizer, device, num_epochs=10):
         total = 0
         
         for images, labels in dataloader:
-            images, labels = images.to(device), labels.to(device)
+            
+            images = images.to(torch.float32).to(device)
+            labels = labels.to(torch.int64).to(device)
+            
             optimizer.zero_grad()
             outputs = model(images)
             loss = criterion(outputs, labels)
@@ -116,11 +119,10 @@ def train_model(model, dataloader, criterion, optimizer, device, num_epochs=10):
 
 
 def main():
-    
     transform = transforms.Compose([
         transforms.Resize((224, 224)),
         transforms.ToTensor(),
-        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
     ])
 
     from SportsDataset import SportsDataset
@@ -141,7 +143,12 @@ def main():
     
     print("Size of the dataset:", len(train_dataset))
 
-    train_model(model, train_loader, criterion, optimizer, device, num_epochs=10)
+    train_model(model, train_loader, criterion, optimizer, device, num_epochs=200)
+    
+    save_model(model, "multi_cnn.pth")
+    for i, feature_cnn in enumerate(model.feature_cnns):
+        save_model(feature_cnn, f"feature_cnn_{i}.pth")
+    save_model(model.pooling_cnn, "pooling_cnn.pth")
 
 if __name__ == "__main__":
     main()
