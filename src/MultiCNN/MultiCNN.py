@@ -30,9 +30,16 @@ class FeatureCNN(nn.Module):
 class PoolingCNN(nn.Module):
     def __init__(self, num_classes=100):
         super(PoolingCNN, self).__init__()
-        self.conv = nn.Conv2d(8192, 1024, kernel_size=3, padding=1)  # Reduce depth
-        self.gap = nn.AdaptiveAvgPool2d(1)  # Global Average Pooling
-        self.fc = nn.Linear(1024, num_classes)
+        self.pooling_cnn = nn.Sequential(
+            nn.Conv2d(2048, 512, kernel_size=3, stride=1, padding=1),  # Change 8192 → 2048
+            nn.ReLU(),
+            nn.AdaptiveAvgPool2d((6, 6)),
+            nn.Flatten(),
+            nn.Linear(512 * 6 * 6, 1024),
+            nn.ReLU(),
+            nn.Dropout(0.5),
+            nn.Linear(1024, num_classes)
+        )
 
     def forward(self, x):
         x = self.conv(x)  # Shape: (B, 1024, H, W)
