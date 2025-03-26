@@ -98,7 +98,7 @@ def main():
     optimizer = optim.AdamW(model.parameters(), lr=0.001, weight_decay=1e-4)
     scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=5, gamma=0.5)  # Reduce LR every 5 epochs
 
-    train_model(model, train_loader, criterion, optimizer, scheduler, device, num_epochs=20)
+    train_model(model, train_loader, criterion, optimizer, scheduler, device, num_epochs=200)
 
 if __name__ == "__main__":
     main()
