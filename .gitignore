@@ -8,3 +8,4 @@ src/MVCNN_org/MVCNN-Jetson_stage_2
 **/__pycache__
 **/*.numbers
 **/imagenet-mini
+**/*.pth
