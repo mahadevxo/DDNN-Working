@@ -67,7 +67,7 @@ def train_model(model, dataloader, criterion, optimizer, scheduler, device, num_
         for images, labels in dataloader:
             images, labels = images.to(device), labels.to(device)
             optimizer.zero_grad()
-            outputs = model(images)
+            outputs = model(images).float()
             loss = criterion(outputs, labels)
             loss.backward()
             optimizer.step()
