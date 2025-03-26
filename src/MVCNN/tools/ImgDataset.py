@@ -13,7 +13,7 @@ import random
 class MultiviewImgDataset(torch.utils.data.Dataset):
 
     def __init__(self, root_dir, scale_aug=False, rot_aug=False, test_mode=False, \
-                 num_models=0, num_views=12, shuffle=True):
+                         num_models=0, num_views=12, shuffle=True):
         self.classnames=['airplane','bathtub','bed','bench','bookshelf','bottle','bowl','car','chair',
                          'cone','cup','curtain','desk','door','dresser','flower_pot','glass_box',
                          'guitar','keyboard','lamp','laptop','mantel','monitor','night_stand',
@@ -28,8 +28,8 @@ class MultiviewImgDataset(torch.utils.data.Dataset):
         set_ = root_dir.split('/')[-1]
         parent_dir = root_dir.rsplit('/',2)[0]
         self.filepaths = []
-        for i in range(len(self.classnames)):
-            all_files = sorted(glob.glob(parent_dir+'/'+self.classnames[i]+'/'+set_+'/*.png'))
+        for item in self.classnames:
+            all_files = sorted(glob.glob(f'{parent_dir}/{item}/{set_}/*.png'))
             ## Select subset for different number of views
             stride = int(12/self.num_views) # 12 6 4 3 2 1
             all_files = all_files[::stride]
@@ -87,7 +87,7 @@ class MultiviewImgDataset(torch.utils.data.Dataset):
 class SingleImgDataset(torch.utils.data.Dataset):
 
     def __init__(self, root_dir, scale_aug=False, rot_aug=False, test_mode=False, \
-                 num_models=0, num_views=12):
+                         num_models=0, num_views=12):
         self.classnames=['airplane','bathtub','bed','bench','bookshelf','bottle','bowl','car','chair',
                          'cone','cup','curtain','desk','door','dresser','flower_pot','glass_box',
                          'guitar','keyboard','lamp','laptop','mantel','monitor','night_stand',
@@ -101,8 +101,8 @@ class SingleImgDataset(torch.utils.data.Dataset):
         set_ = root_dir.split('/')[-1]
         parent_dir = root_dir.rsplit('/',2)[0]
         self.filepaths = []
-        for i in range(len(self.classnames)):
-            all_files = sorted(glob.glob(parent_dir+'/'+self.classnames[i]+'/'+set_+'/*shaded*.png'))
+        for item in self.classnames:
+            all_files = sorted(glob.glob(f'{parent_dir}/{item}/{set_}/*shaded*.png'))
             if num_models == 0:
                 # Use the whole dataset
                 self.filepaths.extend(all_files)

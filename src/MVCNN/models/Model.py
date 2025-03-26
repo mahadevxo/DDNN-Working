@@ -15,25 +15,27 @@ class Model(nn.Module):
         complete_path = os.path.join(path, self.name)
         if not os.path.exists(complete_path):
             os.makedirs(complete_path)
-        torch.save(self.state_dict(), 
-                os.path.join(complete_path, 
-                    "model-{}.pth".format(str(epoch).zfill(5))))
+        torch.save(
+            self.state_dict(),
+            os.path.join(complete_path, f"model-{str(epoch).zfill(5)}.pth"),
+        )
 
 
     def save_results(self, path, data):
         raise NotImplementedError("Model subclass must implement this method.")
         
 
-    def load(self, path, modelfile=None, cpu_use=True):
+    def load(self, path, modelfile=None):
         complete_path = os.path.join(path, self.name)
-        print(complete_path)
         if not os.path.exists(complete_path):
-            raise IOError("{} directory does not exist in {}".format(self.name, path))
+            raise IOError(f"{self.name} directory does not exist in {path}")
 
         if modelfile is None:
-            model_files = glob.glob(complete_path+"/*")
+            model_files = glob.glob(f"{complete_path}/*")
             mf = max(model_files)
         else:
             mf = os.path.join(complete_path, modelfile)
 
-        self.load_state_dict(torch.load(mf, map_location='cpu' if cpu_use else None))
+        self.load_state_dict(torch.load(mf))
+
+

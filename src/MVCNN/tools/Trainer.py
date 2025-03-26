@@ -11,7 +11,7 @@ import time
 class ModelNetTrainer(object):
 
     def __init__(self, model, train_loader, val_loader, optimizer, loss_fn, \
-                 model_name, log_dir, num_views=12):
+                 model_name, log_dir, num_views=12, device='cuda'):
 
         self.optimizer = optimizer
         self.model = model
@@ -21,16 +21,14 @@ class ModelNetTrainer(object):
         self.model_name = model_name
         self.log_dir = log_dir
         self.num_views = num_views
+        self.device = device
 
-        self.model.cuda()
+        self.model.to(device)
         if self.log_dir is not None:
             self.writer = SummaryWriter(log_dir)
 
 
     def train(self, n_epochs):
-        
-        print("Model using: " + self.model_name)
-        _ = input("Press Enter to continue>>>")
 
         best_acc = 0
         i_acc = 0
@@ -54,17 +52,17 @@ class ModelNetTrainer(object):
 
                 if self.model_name == 'mvcnn':
                     N,V,C,H,W = data[1].size()
-                    in_data = Variable(data[1]).view(-1,C,H,W).cuda()
+                    in_data = Variable(data[1]).view(-1,C,H,W).to(self.device)
                 else:
-                    in_data = Variable(data[1].cuda())
-                target = Variable(data[0]).cuda().long()
+                    in_data = Variable(data[1].to(self.device))
+                target = Variable(data[0]).to(self.device).long()
 
                 self.optimizer.zero_grad()
 
                 out_data = self.model(in_data)
 
                 loss = self.loss_fn(out_data, target)
-                
+
                 self.writer.add_scalar('train/train_loss', loss, i_acc+i+1)
 
                 pred = torch.max(out_data, 1)[1]
@@ -76,7 +74,7 @@ class ModelNetTrainer(object):
 
                 loss.backward()
                 self.optimizer.step()
-                
+
                 log_str = 'epoch %d, step %d: train_loss %.3f; train_acc %.3f' % (epoch+1, i+1, loss, acc)
                 if (i+1)%1==0:
                     print(log_str)
@@ -94,14 +92,14 @@ class ModelNetTrainer(object):
             if val_overall_acc > best_acc:
                 best_acc = val_overall_acc
                 self.model.save(self.log_dir, epoch)
- 
+
             # adjust learning rate manually
             if epoch > 0 and (epoch+1) % 10 == 0:
                 for param_group in self.optimizer.param_groups:
                     param_group['lr'] = param_group['lr']*0.5
 
         # export scalar data to JSON for external processing
-        self.writer.export_scalars_to_json(self.log_dir+"/all_scalars.json")
+        self.writer.export_scalars_to_json(f"{self.log_dir}/all_scalars.json")
         self.writer.close()
 
     def update_validation_accuracy(self, epoch):
@@ -129,10 +127,10 @@ class ModelNetTrainer(object):
 
             if self.model_name == 'mvcnn':
                 N,V,C,H,W = data[1].size()
-                in_data = Variable(data[1]).view(-1,C,H,W).cuda()
+                in_data = Variable(data[1]).view(-1,C,H,W).to(self.device)
             else:#'svcnn'
-                in_data = Variable(data[1]).cuda()
-            target = Variable(data[0]).cuda()
+                in_data = Variable(data[1]).to(self.device)
+            target = Variable(data[0]).to(self.device)
 
             out_data = self.model(in_data)
             pred = torch.max(out_data, 1)[1]

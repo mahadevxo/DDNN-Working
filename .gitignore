@@ -9,3 +9,6 @@ src/MVCNN_org/MVCNN-Jetson_stage_2
 **/*.numbers
 **/imagenet-mini
 **/*.pth
+**/sports-classification
+**/sports.csv
+**/sports_old.csv
