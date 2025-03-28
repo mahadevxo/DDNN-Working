@@ -9,4 +9,6 @@ src/MVCNN_org/MVCNN-Jetson_stage_2
 **/*.numbers
 **/imagenet-mini
 **/*.pth
-**/sports-classification
+**/ModelNet40_12View
+**/ModelNet40_Org/ModelNet40
+./.vscode
