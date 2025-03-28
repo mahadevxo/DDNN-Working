@@ -13,6 +13,7 @@ from OpenGL.GL import shaders
 import pycuda.driver as cuda
 import pycuda.autoinit  # Initializes CUDA
 from OpenGL.GL import glFramebufferRenderbuffer
+from OpenGL.EGL import eglDestroyContext
 
 # Ensure Metal GPU Backend for Mac or CUDA for NVIDIA GPUs
 if platform.system() == "Darwin":
