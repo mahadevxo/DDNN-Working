@@ -110,6 +110,17 @@ def render_views(obj_path, save_dir):
         context = eglCreateContext(display, config, None, context_attribs)
         eglMakeCurrent(display, None, None, context)
 
+        # Create and bind a framebuffer for off-screen rendering
+        from OpenGL.GL import glGenFramebuffers, glBindFramebuffer, GL_FRAMEBUFFER
+        framebuffer = glGenFramebuffers(1)
+        glBindFramebuffer(GL_FRAMEBUFFER, framebuffer)
+
+        # Ensure the framebuffer is complete
+        from OpenGL.GL import glCheckFramebufferStatus, GL_FRAMEBUFFER_COMPLETE
+        status = glCheckFramebufferStatus(GL_FRAMEBUFFER)
+        if status != GL_FRAMEBUFFER_COMPLETE:
+            raise RuntimeError("Framebuffer is not complete")
+
         # Clear the screen
         glClearColor(0.0, 0.0, 0.0, 1.0)
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
@@ -176,6 +187,17 @@ def render_views(obj_path, save_dir):
             ]
             context = eglCreateContext(display, config, None, context_attribs)
             eglMakeCurrent(display, None, None, context)
+
+            # Create and bind a framebuffer for off-screen rendering
+            from OpenGL.GL import glGenFramebuffers, glBindFramebuffer, GL_FRAMEBUFFER
+            framebuffer = glGenFramebuffers(1)
+            glBindFramebuffer(GL_FRAMEBUFFER, framebuffer)
+
+            # Ensure the framebuffer is complete
+            from OpenGL.GL import glCheckFramebufferStatus, GL_FRAMEBUFFER_COMPLETE
+            status = glCheckFramebufferStatus(GL_FRAMEBUFFER)
+            if status != GL_FRAMEBUFFER_COMPLETE:
+                raise RuntimeError("Framebuffer is not complete")
 
             # Clear the screen
             glClearColor(0.0, 0.0, 0.0, 1.0)
