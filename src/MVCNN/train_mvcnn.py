@@ -50,6 +50,7 @@ if __name__ == '__main__':
     train_svcnn = input("Do you want to train SVCNN again? (yes/no): ").strip().lower()
 
     if train_svcnn == 'yes':
+        print("TRAINING SVCNN")
         # Train SVCNN from scratch
         log_dir = f'{args.name}_stage_1'
         create_folder(log_dir)
@@ -84,6 +85,7 @@ if __name__ == '__main__':
     mvcnn_checkpoint = 'MVCNN_stage_1/MVCNN/model-00006.pth'
     load_checkpoint(cnet_2, mvcnn_checkpoint)
     n_models_train = args.num_models * args.num_views
+    print("TRAINING MVCNN")
 
     optimizer = optim.Adam(cnet_2.parameters(), lr=args.lr, weight_decay=args.weight_decay, betas=(0.9, 0.999))
 
