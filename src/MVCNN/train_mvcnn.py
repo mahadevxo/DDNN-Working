@@ -18,8 +18,8 @@ parser.add_argument("-weight_decay", type=float, help="weight decay", default=0.
 parser.add_argument("-no_pretraining", dest='no_pretraining', action='store_true')
 parser.add_argument("-cnn_name", "--cnn_name", type=str, help="cnn model name", default="vgg11")
 parser.add_argument("-num_views", type=int, help="number of views", default=12)
-parser.add_argument("-train_path", type=str, default="ModelNet40_12View/*/train")
-parser.add_argument("-val_path", type=str, default="ModelNet40_12View/*/test")
+parser.add_argument("-train_path", type=str, default="./ModelNet40_12View/*/train")
+parser.add_argument("-val_path", type=str, default="./ModelNet40_12View/*/test")
 parser.set_defaults(train=False)
 
 def create_folder(log_dir):
