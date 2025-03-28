@@ -72,7 +72,7 @@ if __name__ == '__main__':
         # Load pre-trained SVCNN model
         log_dir = f'{args.name}_stage_1'
         cnet = SVCNN(args.name, nclasses=40, pretraining=pretraining, cnn_name=args.cnn_name).to(device)
-        svcnn_checkpoint = os.path.join(log_dir, 'model-00006.pth')  # Adjust filename as needed
+        svcnn_checkpoint = 'MVCNN_stage_1/MVCNN/model-00006.pth'
         load_checkpoint(cnet, svcnn_checkpoint)
 
     # Train MVCNN
@@ -81,7 +81,7 @@ if __name__ == '__main__':
     cnet_2 = MVCNN(args.name, cnet, nclasses=40, cnn_name=args.cnn_name, num_views=args.num_views).to(device)
     del cnet
 
-    mvcnn_checkpoint = os.path.join(log_dir, 'model-00006.pth')  # Adjust filename as needed
+    mvcnn_checkpoint = 'MVCNN_stage_1/MVCNN/model-00006.pth'
     load_checkpoint(cnet_2, mvcnn_checkpoint)
     n_models_train = args.num_models * args.num_views
 
