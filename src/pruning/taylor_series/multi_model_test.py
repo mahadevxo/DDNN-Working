@@ -64,9 +64,9 @@ def main():
                 print(f"\n{'='*50}\nStarting pruning at {pruning_amount:.2f}%\n{'='*50}")
                 
                 # Initialize the PruningFineTuner
-                pruning_fine_tuner = PruningFineTuner(model, pruning_amount)
+                pruning_fine_tuner = PruningFineTuner(model)
                 
-                prune_out = pruning_fine_tuner.prune()
+                prune_out = pruning_fine_tuner.prune(pruning_percentage=pruning_amount)
                 
                 acc_pre_fine_tuning = prune_out[0][0]
                 inference_time_pre_pruning = prune_out[0][1]
