@@ -83,6 +83,7 @@ def render_views(obj_path, save_dir):
         # Use EGL for off-screen rendering on NVIDIA GPUs
         from OpenGL.EGL import eglGetDisplay, eglInitialize, eglChooseConfig, eglCreateContext, eglMakeCurrent, EGL_DEFAULT_DISPLAY
         from OpenGL.GL import glClear, glClearColor, GL_COLOR_BUFFER_BIT, GL_DEPTH_BUFFER_BIT
+        import ctypes
 
         # Initialize EGL display
         display = eglGetDisplay(EGL_DEFAULT_DISPLAY)
@@ -97,7 +98,9 @@ def render_views(obj_path, save_dir):
             0x3038, 1,  # Renderable type (OpenGL ES 2.0)
             0x3031, 0   # None
         ]
-        config = eglChooseConfig(display, config_attribs, 1)
+        num_configs = ctypes.c_int()
+        config = ctypes.POINTER(ctypes.c_void_p)()
+        eglChooseConfig(display, config_attribs, ctypes.byref(config), 1, ctypes.byref(num_configs))
 
         # Create an EGL context
         context = eglCreateContext(display, config, None, None)
@@ -143,6 +146,7 @@ def render_views(obj_path, save_dir):
             # Use EGL for off-screen rendering on NVIDIA GPUs
             from OpenGL.EGL import eglGetDisplay, eglInitialize, eglChooseConfig, eglCreateContext, eglMakeCurrent, EGL_DEFAULT_DISPLAY
             from OpenGL.GL import glClear, glClearColor, GL_COLOR_BUFFER_BIT, GL_DEPTH_BUFFER_BIT
+            import ctypes
 
             # Initialize EGL display
             display = eglGetDisplay(EGL_DEFAULT_DISPLAY)
@@ -157,7 +161,9 @@ def render_views(obj_path, save_dir):
                 0x3038, 1,  # Renderable type (OpenGL ES 2.0)
                 0x3031, 0   # None
             ]
-            config = eglChooseConfig(display, config_attribs, 1)
+            num_configs = ctypes.c_int()
+            config = ctypes.POINTER(ctypes.c_void_p)()
+            eglChooseConfig(display, config_attribs, ctypes.byref(config), 1, ctypes.byref(num_configs))
 
             # Create an EGL context
             context = eglCreateContext(display, config, None, None)
