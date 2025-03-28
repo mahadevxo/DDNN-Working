@@ -12,7 +12,7 @@ def clear_memory():
     elif torch.backends.mps.is_available():
         torch.mps.empty_cache()
 
-def create_results_file(filename=f'pruning_results_{time.time()}.csv'):
+def create_results_file(filename):
     with open(filename, 'w') as f:
         f.write("Pruning Amount, Final Accuracy, Time, Memory\n")
     return filename
