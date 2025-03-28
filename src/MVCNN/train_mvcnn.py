@@ -45,12 +45,12 @@ if __name__ == '__main__':
 
     optimizer = optim.Adam(cnet.parameters(), lr=args.lr, weight_decay=args.weight_decay)
 
-    n_models_train = 1000*12
+    n_models_train = args.num_models*args.num_views
 
-    train_dataset = SingleImgDataset(args.train_path, scale_aug=False, rot_aug=False, num_models=n_models_train, num_views=args.num_views)
+    train_dataset = SingleImgDataset(args.train_path, scale_aug=False, rot_aug=False, num_models=n_models_train, num_views=args.num_views, num_samples=118000)
     train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=64, shuffle=True, num_workers=4)
 
-    val_dataset = SingleImgDataset(args.val_path, scale_aug=False, rot_aug=False, test_mode=True)
+    val_dataset = SingleImgDataset(args.val_path, scale_aug=False, rot_aug=False, test_mode=True, num_samples=118000)
     val_loader = torch.utils.data.DataLoader(val_dataset, batch_size=64, shuffle=False, num_workers=4)
     print(f'num_train_files: {len(train_dataset.filepaths)}')
     print(f'num_val_files: {len(val_dataset.filepaths)}')
