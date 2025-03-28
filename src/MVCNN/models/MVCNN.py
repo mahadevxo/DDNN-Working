@@ -63,8 +63,7 @@ class SVCNN(Model):
                 self.net_1 = models.vgg16(pretrained=self.pretraining).features.to(self.device)
                 self.net_2 = models.vgg16(pretrained=self.pretraining).classifier.to(self.device)
             
-            # Store the expected feature size for later reference
-            self.feature_size = self.net_2[0].in_features
+            # Modify the classifier to handle the correct input size
             self.net_2._modules['6'] = nn.Linear(4096,40)
 
     def forward(self, x):
@@ -72,16 +71,11 @@ class SVCNN(Model):
             return self.net(x)
         
         y = self.net_1(x)
+        
+        # Apply adaptive pooling to get a fixed size output regardless of input dimensions
+        y = nn.functional.adaptive_avg_pool2d(y, (7, 7))
         y = y.view(y.size(0), -1)
         
-        # Handle dynamic feature size by reshaping or using an adaptive layer
-        if not hasattr(self, 'feature_adapter') and y.size(1) != self.net_2[0].in_features:
-            self.feature_adapter = nn.Linear(y.size(1), self.net_2[0].in_features).to(self.device)
-            print(f"Created adapter layer: {y.size(1)} -> {self.net_2[0].in_features}")
-        
-        if hasattr(self, 'feature_adapter'):
-            y = self.feature_adapter(y)
-            
         return self.net_2(y)
 
 
@@ -109,11 +103,6 @@ class MVCNN(Model):
         else:
             self.net_1 = model.net_1.to(self.device)
             self.net_2 = model.net_2.to(self.device)
-            # Get sample input to determine feature size
-            self.expected_features = self.net_2[0].in_features
-        
-        # Define a flag to track if we've initialized the feature adapter
-        self.feature_adapter_initialized = False
 
     def forward(self, x):
         # If using MVCNN with multiple views
@@ -122,7 +111,12 @@ class MVCNN(Model):
             x = x.view(self.num_views, 3, x.size(2), x.size(3))
             
             # Process each view
-            y = self.net_1(x)  # [views, features]
+            y = self.net_1(x)  # [views, features, h, w]
+            
+            # Apply adaptive pooling before flattening to ensure correct dimensions
+            if not self.use_resnet:
+                y = nn.functional.adaptive_avg_pool2d(y, (7, 7))
+                
             y = y.view(self.num_views, -1)
             
             # Pool over views (max pooling as in original MVCNN paper)
@@ -130,19 +124,12 @@ class MVCNN(Model):
         else:
             # Standard forward pass for single view
             y = self.net_1(x)
+            
+            # Apply adaptive pooling before flattening to ensure correct dimensions
+            if not self.use_resnet:
+                y = nn.functional.adaptive_avg_pool2d(y, (7, 7))
+                
             y = y.view(y.size(0), -1)
         
-        # Check if we need to create an adapter layer
-        if not self.feature_adapter_initialized and not self.use_resnet:
-            feature_size = y.size(1)
-            if feature_size != self.expected_features:
-                self.feature_adapter = nn.Linear(feature_size, self.expected_features).to(self.device)
-                print(f"MVCNN: Created adapter layer: {feature_size} -> {self.expected_features}")
-            self.feature_adapter_initialized = True
-        
-        # Use the adapter if needed
-        if hasattr(self, 'feature_adapter'):
-            y = self.feature_adapter(y)
-            
         return self.net_2(y)
 
