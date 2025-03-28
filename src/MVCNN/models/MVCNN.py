@@ -67,7 +67,9 @@ class SVCNN(Model):
         if self.use_resnet:
             return self.net(x)
         y = self.net_1(x)
-        return self.net_2(y.view(y.shape[0],-1))
+        y = y.view(y.size(0), -1)
+        assert y.size(1) == self.net_2[0].in_features, f"Expected {self.net_2[0].in_features}, got {y.size(1)}"
+        return self.net_2(y)
 
 
 class MVCNN(Model):
@@ -98,5 +100,6 @@ class MVCNN(Model):
     def forward(self, x):
         y = self.net_1(x)
         y = y.view(y.size(0), -1)
+        assert y.size(1) == self.net_2[0].in_features, f"Expected {self.net_2[0].in_features}, got {y.size(1)}"
         return self.net_2(y)
 
