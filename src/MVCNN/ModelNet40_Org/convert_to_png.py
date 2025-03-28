@@ -80,20 +80,28 @@ def render_views(obj_path, save_dir):
     renderer = gfx.renderers.WgpuRenderer(canvas) if platform.system() == "Darwin" else None
 
     if platform.system() != "Darwin":
-        # Use PyCUDA/OpenGL for NVIDIA GPUs
-        import OpenGL.GL as gl
-        from OpenGL.GL import shaders
-
-        # Initialize OpenGL context
-        # Here you can set up OpenGL with shaders, buffers, and textures
+        # Use EGL for off-screen rendering on NVIDIA GPUs
+        from OpenGL.EGL import eglGetDisplay, eglInitialize, eglChooseConfig, eglCreateContext, eglMakeCurrent, EGL_DEFAULT_DISPLAY
         from OpenGL.GL import glClear, glClearColor, GL_COLOR_BUFFER_BIT, GL_DEPTH_BUFFER_BIT
-        from OpenGL.GLUT import glutInit, glutCreateWindow, glutInitDisplayMode, GLUT_RGB, GLUT_DOUBLE
-        from OpenGL.GLUT import glutMainLoopEvent
 
-        # Initialize OpenGL context
-        glutInit()
-        glutInitDisplayMode(GLUT_RGB | GLUT_DOUBLE)
-        glutCreateWindow(b"OpenGL Renderer")
+        # Initialize EGL display
+        display = eglGetDisplay(EGL_DEFAULT_DISPLAY)
+        eglInitialize(display, None, None)
+
+        # Choose an EGL config
+        config_attribs = [
+            0x3024, 8,  # Red size
+            0x3023, 8,  # Green size
+            0x3022, 8,  # Blue size
+            0x3021, 8,  # Alpha size
+            0x3038, 1,  # Renderable type (OpenGL ES 2.0)
+            0x3031, 0   # None
+        ]
+        config = eglChooseConfig(display, config_attribs, 1)
+
+        # Create an EGL context
+        context = eglCreateContext(display, config, None, None)
+        eglMakeCurrent(display, None, None, context)
 
         # Clear the screen
         glClearColor(0.0, 0.0, 0.0, 1.0)
@@ -102,8 +110,10 @@ def render_views(obj_path, save_dir):
         # Render a placeholder image (black image for now)
         img = np.zeros((512, 512, 3), dtype=np.uint8)
 
-        # Process OpenGL events
-        glutMainLoopEvent()
+        # Clean up EGL context after rendering
+        eglMakeCurrent(display, None, None, None)
+        eglDestroyContext(display, context)
+        eglTerminate(display)
 
     # Prepare scene
     scene, obj = setup_scene(mesh)
@@ -130,15 +140,28 @@ def render_views(obj_path, save_dir):
             renderer.render(scene, camera)
             img = np.asarray(renderer.target.draw())
         else:
-            # Use OpenGL for NVIDIA GPU rendering (CUDA)
+            # Use EGL for off-screen rendering on NVIDIA GPUs
+            from OpenGL.EGL import eglGetDisplay, eglInitialize, eglChooseConfig, eglCreateContext, eglMakeCurrent, EGL_DEFAULT_DISPLAY
             from OpenGL.GL import glClear, glClearColor, GL_COLOR_BUFFER_BIT, GL_DEPTH_BUFFER_BIT
-            from OpenGL.GLUT import glutInit, glutCreateWindow, glutInitDisplayMode, GLUT_RGB, GLUT_DOUBLE
-            from OpenGL.GLUT import glutMainLoopEvent
 
-            # Initialize OpenGL context
-            glutInit()
-            glutInitDisplayMode(GLUT_RGB | GLUT_DOUBLE)
-            glutCreateWindow(b"OpenGL Renderer")
+            # Initialize EGL display
+            display = eglGetDisplay(EGL_DEFAULT_DISPLAY)
+            eglInitialize(display, None, None)
+
+            # Choose an EGL config
+            config_attribs = [
+                0x3024, 8,  # Red size
+                0x3023, 8,  # Green size
+                0x3022, 8,  # Blue size
+                0x3021, 8,  # Alpha size
+                0x3038, 1,  # Renderable type (OpenGL ES 2.0)
+                0x3031, 0   # None
+            ]
+            config = eglChooseConfig(display, config_attribs, 1)
+
+            # Create an EGL context
+            context = eglCreateContext(display, config, None, None)
+            eglMakeCurrent(display, None, None, context)
 
             # Clear the screen
             glClearColor(0.0, 0.0, 0.0, 1.0)
@@ -147,8 +170,10 @@ def render_views(obj_path, save_dir):
             # Render a placeholder image (black image for now)
             img = np.zeros((512, 512, 3), dtype=np.uint8)
 
-            # Process OpenGL events
-            glutMainLoopEvent()
+            # Clean up EGL context after rendering
+            eglMakeCurrent(display, None, None, None)
+            eglDestroyContext(display, context)
+            eglTerminate(display)
 
         img_path = os.path.join(save_dir, f"view_{i:02d}.png")
         imageio.imwrite(img_path, img)
