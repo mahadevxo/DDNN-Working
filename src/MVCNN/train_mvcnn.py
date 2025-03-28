@@ -55,7 +55,7 @@ if __name__ == '__main__':
     print(f'num_train_files: {len(train_dataset.filepaths)}')
     print(f'num_val_files: {len(val_dataset.filepaths)}')
     trainer = ModelNetTrainer(cnet, train_loader, val_loader, optimizer, nn.CrossEntropyLoss(), 'svcnn', log_dir, num_views=1)
-    trainer.train(30)
+    trainer.train(10)
 
     # STAGE 2
     log_dir = f'{args.name}_stage_2'
@@ -73,4 +73,4 @@ if __name__ == '__main__':
     print(f'num_train_files: {len(train_dataset.filepaths)}')
     print(f'num_val_files: {len(val_dataset.filepaths)}')
     trainer = ModelNetTrainer(cnet_2, train_loader, val_loader, optimizer, nn.CrossEntropyLoss(), 'mvcnn', log_dir, num_views=args.num_views)
-    trainer.train(30)
+    trainer.train(10)

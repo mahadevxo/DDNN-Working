@@ -6,7 +6,7 @@ import random
 import time
 import gc
 import sys
-sys.path.append('/Users/mahadevsunilkumar/Desktop/DDNN-Working/src/pruning/taylor_series/')
+sys.path.append('./taylor_series/')
 from FilterPruner import FilterPruner
 from Pruning import Pruning
 
