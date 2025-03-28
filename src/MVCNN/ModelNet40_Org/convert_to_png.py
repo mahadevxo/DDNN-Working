@@ -3,13 +3,22 @@ import numpy as np
 import trimesh
 import imageio
 import pygfx as gfx
+import random
+import platform
 import wgpu
 from wgpu.gui.offscreen import WgpuCanvas
 from tqdm import tqdm
-import random
+from OpenGL import GL  # OpenGL for NVIDIA GPUs (CUDA)
+from OpenGL.GL import shaders
+import pycuda.driver as cuda
+import pycuda.autoinit  # Initializes CUDA
 
-# Ensure Metal GPU Backend
-device = wgpu.utils.get_default_device()
+# Ensure Metal GPU Backend for Mac or CUDA for NVIDIA GPUs
+if platform.system() == "Darwin":
+    device = wgpu.utils.get_default_device()  # Metal for macOS
+else:
+    cuda.init()
+    device = None  # Use CUDA directly for NVIDIA GPU
 
 # Paths
 INPUT_DIR = "./ModelNet40_OBJ"
@@ -67,8 +76,17 @@ def render_views(obj_path, save_dir):
     camera_distance = max_dim * 2.5  # Adjust based on model size
 
     # Create rendering canvas and renderer
-    canvas = WgpuCanvas()
-    renderer = gfx.renderers.WgpuRenderer(canvas)
+    canvas = WgpuCanvas() if platform.system() == "Darwin" else None  # Metal (macOS) or OpenGL for NVIDIA
+    renderer = gfx.renderers.WgpuRenderer(canvas) if platform.system() == "Darwin" else None
+
+    if platform.system() != "Darwin":
+        # Use PyCUDA/OpenGL for NVIDIA GPUs
+        import OpenGL.GL as gl
+        from OpenGL.GL import shaders
+
+        # Initialize OpenGL context
+        # Here you can set up OpenGL with shaders, buffers, and textures
+        pass  # OpenGL setup code will go here
 
     # Prepare scene
     scene, obj = setup_scene(mesh)
@@ -91,8 +109,12 @@ def render_views(obj_path, save_dir):
         camera.local.position = (x, y, camera_distance)
         camera.look_at((0, 0, 0))  # Always look at the object's center
 
-        renderer.render(scene, camera)
-        img = np.asarray(renderer.target.draw())
+        if platform.system() == "Darwin":
+            renderer.render(scene, camera)
+            img = np.asarray(renderer.target.draw())
+        else:
+            # Use OpenGL for NVIDIA GPU rendering (CUDA)
+            pass  # OpenGL render code here
 
         img_path = os.path.join(save_dir, f"view_{i:02d}.png")
         imageio.imwrite(img_path, img)
