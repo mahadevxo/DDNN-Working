@@ -115,6 +115,21 @@ def render_views(obj_path, save_dir):
         framebuffer = glGenFramebuffers(1)
         glBindFramebuffer(GL_FRAMEBUFFER, framebuffer)
 
+        # Create and bind a renderbuffer for the framebuffer
+        from OpenGL.GL import glGenRenderbuffers, glBindRenderbuffer, glRenderbufferStorage, GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, GL_RGBA, GL_COLOR_ATTACHMENT0, GL_DEPTH_ATTACHMENT
+
+        # Generate and attach a color renderbuffer
+        color_renderbuffer = glGenRenderbuffers(1)
+        glBindRenderbuffer(GL_RENDERBUFFER, color_renderbuffer)
+        glRenderbufferStorage(GL_RENDERBUFFER, GL_RGBA, 512, 512)
+        glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, color_renderbuffer)
+
+        # Generate and attach a depth renderbuffer
+        depth_renderbuffer = glGenRenderbuffers(1)
+        glBindRenderbuffer(GL_RENDERBUFFER, depth_renderbuffer)
+        glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, 512, 512)
+        glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, depth_renderbuffer)
+
         # Ensure the framebuffer is complete
         from OpenGL.GL import glCheckFramebufferStatus, GL_FRAMEBUFFER_COMPLETE
         status = glCheckFramebufferStatus(GL_FRAMEBUFFER)
@@ -192,6 +207,21 @@ def render_views(obj_path, save_dir):
             from OpenGL.GL import glGenFramebuffers, glBindFramebuffer, GL_FRAMEBUFFER
             framebuffer = glGenFramebuffers(1)
             glBindFramebuffer(GL_FRAMEBUFFER, framebuffer)
+
+            # Create and bind a renderbuffer for the framebuffer
+            from OpenGL.GL import glGenRenderbuffers, glBindRenderbuffer, glRenderbufferStorage, GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, GL_RGBA, GL_COLOR_ATTACHMENT0, GL_DEPTH_ATTACHMENT
+
+            # Generate and attach a color renderbuffer
+            color_renderbuffer = glGenRenderbuffers(1)
+            glBindRenderbuffer(GL_RENDERBUFFER, color_renderbuffer)
+            glRenderbufferStorage(GL_RENDERBUFFER, GL_RGBA, 512, 512)
+            glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, color_renderbuffer)
+
+            # Generate and attach a depth renderbuffer
+            depth_renderbuffer = glGenRenderbuffers(1)
+            glBindRenderbuffer(GL_RENDERBUFFER, depth_renderbuffer)
+            glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, 512, 512)
+            glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, depth_renderbuffer)
 
             # Ensure the framebuffer is complete
             from OpenGL.GL import glCheckFramebufferStatus, GL_FRAMEBUFFER_COMPLETE
