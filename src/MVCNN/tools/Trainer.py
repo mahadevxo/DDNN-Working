@@ -59,11 +59,12 @@ class ModelNetTrainer(object):
             for i, data in enumerate(pbar):
 
                 if self.model_name == 'mvcnn':
-                    N,V,C,H,W = data[1].size()
-                    in_data = Variable(data[1]).view(-1,C,H,W).to(self.device)
+                    N, V, C, H, W = data[1].size()
+                    in_data = Variable(data[1]).view(-1, C, H, W).to(self.device)  # Reshape to (batch_size * num_views, C, H, W)
+                    target = Variable(data[0]).to(self.device).repeat_interleave(V)  # Repeat target for each view
                 else:
                     in_data = Variable(data[1].to(self.device))
-                target = Variable(data[0]).to(self.device).long()
+                    target = Variable(data[0]).to(self.device).long()
 
                 self.optimizer.zero_grad()
 
@@ -134,8 +135,8 @@ class ModelNetTrainer(object):
         
         for _, data in enumerate(val_pbar, 0):
             if self.model_name == 'mvcnn':
-                N,V,C,H,W = data[1].size()
-                in_data = Variable(data[1]).view(-1,C,H,W).to(self.device)
+                N, V, C, H, W = data[1].size()
+                in_data = Variable(data[1]).view(-1, C, H, W).to(self.device)
             else: # 'svcnn'
                 in_data = Variable(data[1]).to(self.device)
             target = Variable(data[0]).to(self.device)

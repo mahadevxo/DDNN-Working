@@ -28,6 +28,13 @@ def create_folder(log_dir):
         shutil.rmtree(log_dir)
     os.mkdir(log_dir)
 
+def load_checkpoint(model, checkpoint_path):
+        if os.path.exists(checkpoint_path):
+            print(f"Loading checkpoint from {checkpoint_path}")
+            model.load_state_dict(torch.load(checkpoint_path))
+        else:
+            print(f"Checkpoint not found at {checkpoint_path}, starting from scratch.")
+
 if __name__ == '__main__':
     args = parser.parse_args()
     device = 'mps' if torch.backends.mps.is_available() else \
@@ -38,35 +45,49 @@ if __name__ == '__main__':
     create_folder(args.name)
     with open(os.path.join(log_dir, 'config.json'), 'w') as config_f:
         json.dump(vars(args), config_f)
-    # STAGE 1
-    log_dir = f'{args.name}_stage_1'
-    create_folder(log_dir)
-    cnet = SVCNN(args.name, nclasses=40, pretraining=pretraining, cnn_name=args.cnn_name).to(device)
 
-    optimizer = optim.Adam(cnet.parameters(), lr=args.lr, weight_decay=args.weight_decay)
+    # Ask user if they want to train SVCNN again
+    train_svcnn = input("Do you want to train SVCNN again? (yes/no): ").strip().lower()
 
-    n_models_train = args.num_models*args.num_views
+    if train_svcnn == 'yes':
+        # Train SVCNN from scratch
+        log_dir = f'{args.name}_stage_1'
+        create_folder(log_dir)
+        cnet = SVCNN(args.name, nclasses=40, pretraining=pretraining, cnn_name=args.cnn_name).to(device)
 
-    train_dataset = SingleImgDataset(args.train_path, scale_aug=False, rot_aug=False, num_models=n_models_train, num_views=args.num_views)
-    train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=64, shuffle=True, num_workers=4)
+        optimizer = optim.Adam(cnet.parameters(), lr=args.lr, weight_decay=args.weight_decay)
 
-    val_dataset = SingleImgDataset(args.val_path, scale_aug=False, rot_aug=False, test_mode=True)
-    val_loader = torch.utils.data.DataLoader(val_dataset, batch_size=64, shuffle=False, num_workers=4)
-    print(f'num_train_files: {len(train_dataset.filepaths)}')
-    print(f'num_val_files: {len(val_dataset.filepaths)}')
-    trainer = ModelNetTrainer(cnet, train_loader, val_loader, optimizer, nn.CrossEntropyLoss(), 'svcnn', log_dir, num_views=1)
-    trainer.train(10)
+        n_models_train = args.num_models * args.num_views
 
-    # STAGE 2
+        train_dataset = SingleImgDataset(args.train_path, scale_aug=False, rot_aug=False, num_models=n_models_train, num_views=args.num_views)
+        train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=64, shuffle=True, num_workers=4)
+
+        val_dataset = SingleImgDataset(args.val_path, scale_aug=False, rot_aug=False, test_mode=True)
+        val_loader = torch.utils.data.DataLoader(val_dataset, batch_size=64, shuffle=False, num_workers=4)
+        print(f'num_train_files: {len(train_dataset.filepaths)}')
+        print(f'num_val_files: {len(val_dataset.filepaths)}')
+        trainer = ModelNetTrainer(cnet, train_loader, val_loader, optimizer, nn.CrossEntropyLoss(), 'svcnn', log_dir, num_views=1)
+        trainer.train(10)
+    else:
+        # Load pre-trained SVCNN model
+        log_dir = f'{args.name}_stage_1'
+        cnet = SVCNN(args.name, nclasses=40, pretraining=pretraining, cnn_name=args.cnn_name).to(device)
+        svcnn_checkpoint = os.path.join(log_dir, 'model-00006.pth')  # Adjust filename as needed
+        load_checkpoint(cnet, svcnn_checkpoint)
+
+    # Train MVCNN
     log_dir = f'{args.name}_stage_2'
     create_folder(log_dir)
     cnet_2 = MVCNN(args.name, cnet, nclasses=40, cnn_name=args.cnn_name, num_views=args.num_views).to(device)
     del cnet
 
+    mvcnn_checkpoint = os.path.join(log_dir, 'model-00006.pth')  # Adjust filename as needed
+    load_checkpoint(cnet_2, mvcnn_checkpoint)
+
     optimizer = optim.Adam(cnet_2.parameters(), lr=args.lr, weight_decay=args.weight_decay, betas=(0.9, 0.999))
 
     train_dataset = MultiviewImgDataset(args.train_path, scale_aug=False, rot_aug=False, num_models=n_models_train, num_views=args.num_views)
-    train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=4, shuffle=False, num_workers=4)# shuffle needs to be false! it's done within the trainer
+    train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=4, shuffle=False, num_workers=4)  # shuffle needs to be false! it's done within the trainer
 
     val_dataset = MultiviewImgDataset(args.val_path, scale_aug=False, rot_aug=False, num_views=args.num_views)
     val_loader = torch.utils.data.DataLoader(val_dataset, batch_size=4, shuffle=False, num_workers=4)
