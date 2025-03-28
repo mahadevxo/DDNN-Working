@@ -137,19 +137,34 @@ class ModelNetTrainer(object):
             if self.model_name == 'mvcnn':
                 N, V, C, H, W = data[1].size()
                 in_data = Variable(data[1]).view(-1, C, H, W).to(self.device)
+                # Fix: Repeat target for each view to match the batch size of in_data
+                target = Variable(data[0]).to(self.device).repeat_interleave(V)
             else: # 'svcnn'
                 in_data = Variable(data[1]).to(self.device)
-            target = Variable(data[0]).to(self.device)
-
+                target = Variable(data[0]).to(self.device)
+                
             out_data = self.model(in_data)
             pred = torch.max(out_data, 1)[1]
             all_loss += self.loss_fn(out_data, target).cpu().data.numpy()
             results = pred == target
-
-            for i in range(results.size()[0]):
-                if not bool(results[i].cpu().data.numpy()):
-                    wrong_class[target.cpu().data.numpy().astype('int')[i]] += 1
-                samples_class[target.cpu().data.numpy().astype('int')[i]] += 1
+            
+            # For class accuracy calculation, we need to handle repeated targets for MVCNN
+            if self.model_name == 'mvcnn':
+                # Only count each object once by taking every V-th prediction
+                for i in range(N):
+                    obj_preds = pred[i*V:(i+1)*V]
+                    # Use majority voting across views
+                    obj_pred = torch.mode(obj_preds)[0]
+                    obj_target = target[i*V]  # All targets for the same object are identical
+                    
+                    if obj_pred != obj_target:
+                        wrong_class[obj_target.cpu().data.numpy().astype('int')] += 1
+                    samples_class[obj_target.cpu().data.numpy().astype('int')] += 1
+            else:
+                for i in range(results.size()[0]):
+                    if not bool(results[i].cpu().data.numpy()):
+                        wrong_class[target.cpu().data.numpy().astype('int')[i]] += 1
+                    samples_class[target.cpu().data.numpy().astype('int')[i]] += 1
             
             correct_points = torch.sum(results.long())
             all_correct_points += correct_points
@@ -158,13 +173,13 @@ class ModelNetTrainer(object):
             # Update progress bar with running validation accuracy
             current_acc = correct_points.float() / results.size()[0]
             val_pbar.set_postfix({'acc': f"{current_acc.item():.3f}"})
-
+            
         # Calculate final metrics
         val_mean_class_acc = np.mean((samples_class-wrong_class)/samples_class)
         val_overall_acc = all_correct_points.float() / all_points
         val_overall_acc = val_overall_acc.cpu().data.numpy()
         loss = all_loss / len(self.val_loader)
-
+        
         # Print final validation results in a clean format
         print(f"Validation Results - Epoch {epoch+1}:")
         print(f"  Total samples: {all_points}")
@@ -172,7 +187,7 @@ class ModelNetTrainer(object):
         print(f"  Overall Accuracy: {val_overall_acc:.4f}")
         print(f"  Loss: {loss:.4f}")
         print("-" * 50)
-
+        
         self.model.train()
         return loss, val_overall_acc, val_mean_class_acc
 
