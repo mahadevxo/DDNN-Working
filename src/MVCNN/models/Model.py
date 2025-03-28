@@ -9,6 +9,7 @@ class Model(nn.Module):
     def __init__(self, name):
         super(Model, self).__init__()
         self.name = name
+        self.device = 'mps' if torch.backends.mps.is_available() else 'cuda' if torch.cuda.is_available() else 'cpu'
 
 
     def save(self, path, epoch=0):

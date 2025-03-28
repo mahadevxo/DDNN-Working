@@ -1,0 +1,1 @@
+{"name": "MVCNN", "batchSize": 8, "num_models": 1000, "lr": 5e-05, "weight_decay": 0.001, "no_pretraining": false, "cnn_name": "vgg11", "num_views": 12, "train_path": "ModelNet40_12View/*/train", "val_path": "ModelNet40_12View/*/test", "train": false}

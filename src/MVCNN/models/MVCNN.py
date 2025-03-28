@@ -7,12 +7,10 @@ from torch.autograd import Variable
 import torchvision.models as models
 from .Model import Model
 
-device = 'mps' if torch.backends.mps.is_available() else \
-    'cuda' if torch.cuda.is_available() else \
-        'cpu'
+device = 'mps' if torch.backends.mps.is_available() else 'cuda' if torch.cuda.is_available() else 'cpu'
 
-mean = Variable(torch.FloatTensor([0.485, 0.456, 0.406]), requires_grad=False).to(device)
-std = Variable(torch.FloatTensor([0.229, 0.224, 0.225]), requires_grad=False).to(device)
+mean = torch.FloatTensor([0.485, 0.456, 0.406]).to(device)
+std = torch.FloatTensor([0.229, 0.224, 0.225]).to(device)
 
 def flip(x, dim):
     xsize = x.size()
@@ -25,7 +23,7 @@ def flip(x, dim):
 
 class SVCNN(Model):
 
-    def __init__(self, name, nclasses=40, pretraining=True, cnn_name='vgg11', device='cuda'):
+    def __init__(self, name, nclasses=40, pretraining=True, cnn_name='vgg11', device=None):
         super(SVCNN, self).__init__(name)
 
         self.classnames=['airplane','bathtub','bed','bench','bookshelf','bottle','bowl','car','chair',
@@ -38,30 +36,30 @@ class SVCNN(Model):
         self.pretraining = pretraining
         self.cnn_name = cnn_name
         self.use_resnet = cnn_name.startswith('resnet')
-        self.device = device
-        self.mean = Variable(torch.FloatTensor([0.485, 0.456, 0.406]), requires_grad=False).to(device)
-        self.std = Variable(torch.FloatTensor([0.229, 0.224, 0.225]), requires_grad=False).to(device)
+        self.device = 'mps' if torch.backends.mps.is_available() else 'cuda' if torch.cuda.is_available() else 'cpu'
+        self.mean = torch.FloatTensor([0.485, 0.456, 0.406]).to(device)
+        self.std = torch.FloatTensor([0.229, 0.224, 0.225]).to(device)
 
         if self.use_resnet:
             if self.cnn_name == 'resnet18':
-                self.net = models.resnet18(pretrained=self.pretraining)
-                self.net.fc = nn.Linear(512,40)
+                self.net = models.resnet18(pretrained=self.pretraining).to(device=self.device)
+                self.net.fc = nn.Linear(512,40).to(self.device)
             elif self.cnn_name == 'resnet34':
-                self.net = models.resnet34(pretrained=self.pretraining)
-                self.net.fc = nn.Linear(512,40)
+                self.net = models.resnet34(pretrained=self.pretraining).to(self.device)
+                self.net.fc = nn.Linear(512,40).to(self.device)
             elif self.cnn_name == 'resnet50':
-                self.net = models.resnet50(pretrained=self.pretraining)
-                self.net.fc = nn.Linear(2048,40)
+                self.net = models.resnet50(pretrained=self.pretraining).to(self.device)
+                self.net.fc = nn.Linear(2048,40).to(self.device)
         else:
             if self.cnn_name == 'alexnet':
-                self.net_1 = models.alexnet(pretrained=self.pretraining).features
-                self.net_2 = models.alexnet(pretrained=self.pretraining).classifier
+                self.net_1 = models.alexnet(pretrained=self.pretraining).features.to(self.device)
+                self.net_2 = models.alexnet(pretrained=self.pretraining).classifier.to(self.device)
             elif self.cnn_name == 'vgg11':
-                self.net_1 = models.vgg11(pretrained=self.pretraining).features
-                self.net_2 = models.vgg11(pretrained=self.pretraining).classifier
+                self.net_1 = models.vgg11(pretrained=self.pretraining).features.to(self.device)
+                self.net_2 = models.vgg11(pretrained=self.pretraining).classifier.to(self.device)
             elif self.cnn_name == 'vgg16':
-                self.net_1 = models.vgg16(pretrained=self.pretraining).features
-                self.net_2 = models.vgg16(pretrained=self.pretraining).classifier
+                self.net_1 = models.vgg16(pretrained=self.pretraining).features.to(self.device)
+                self.net_2 = models.vgg16(pretrained=self.pretraining).classifier.to(self.device)
             
             self.net_2._modules['6'] = nn.Linear(4096,40)
 
@@ -74,7 +72,7 @@ class SVCNN(Model):
 
 class MVCNN(Model):
 
-    def __init__(self, name, model, nclasses=40, cnn_name='vgg11', num_views=12, device = 'cuda'):
+    def __init__(self, name, model, nclasses=40, cnn_name='vgg11', num_views=12, device = None):
         super(MVCNN, self).__init__(name)
 
         self.classnames=['airplane','bathtub','bed','bench','bookshelf','bottle','bowl','car','chair',
@@ -85,18 +83,17 @@ class MVCNN(Model):
 
         self.nclasses = nclasses
         self.num_views = num_views
-        self.device = device
-        self.mean = Variable(torch.FloatTensor([0.485, 0.456, 0.406]), requires_grad=False).to(device)
-        self.std = Variable(torch.FloatTensor([0.229, 0.224, 0.225]), requires_grad=False).to(device)
-
+        self.device = 'mps' if torch.backends.mps.is_available() else 'cuda' if torch.cuda.is_available() else 'cpu'
+        self.mean = torch.FloatTensor([0.485, 0.456, 0.406]).to(device)
+        self.std = torch.FloatTensor([0.229, 0.224, 0.225]).to(device)
         self.use_resnet = cnn_name.startswith('resnet')
 
         if self.use_resnet:
-            self.net_1 = nn.Sequential(*list(model.net.children())[:-1])
-            self.net_2 = model.net.fc
+            self.net_1 = nn.Sequential(*list(model.net.children())[:-1]).to(self.device)
+            self.net_2 = model.net.fc.to(self.device)
         else:
-            self.net_1 = model.net_1
-            self.net_2 = model.net_2
+            self.net_1 = model.net_1.to(self.device)
+            self.net_2 = model.net_2.to(self.device)
 
     def forward(self, x):
         y = self.net_1(x)

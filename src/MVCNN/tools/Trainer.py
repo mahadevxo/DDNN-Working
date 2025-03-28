@@ -21,7 +21,7 @@ class ModelNetTrainer(object):
         self.model_name = model_name
         self.log_dir = log_dir
         self.num_views = num_views
-        self.device = device
+        self.device = 'mps' if torch.backends.mps.is_available() else 'cuda' if torch.cuda.is_available() else 'cpu'
 
         self.model.to(device)
         if self.log_dir is not None:
