@@ -63,8 +63,8 @@ class ModelNetTrainer(object):
                     in_data = Variable(data[1]).view(-1, C, H, W).to(self.device)  # Reshape to (batch_size * num_views, C, H, W)
                     target = Variable(data[0]).to(self.device).repeat_interleave(V)  # Repeat target for each view
                 else:
-                    in_data = Variable(data[1].to(self.device))
-                    target = Variable(data[0]).to(self.device).long()
+                    in_data = Variable(data[1]).to(self.device)
+                    target = Variable(data[0]).to(self.device)
 
                 self.optimizer.zero_grad()
 
