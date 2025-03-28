@@ -102,8 +102,12 @@ def render_views(obj_path, save_dir):
         config = ctypes.POINTER(ctypes.c_void_p)()
         eglChooseConfig(display, config_attribs, ctypes.byref(config), 1, ctypes.byref(num_configs))
 
-        # Create an EGL context
-        context = eglCreateContext(display, config, None, None)
+        # Create an EGL context with proper attributes
+        context_attribs = [
+            0x3098, 2,  # EGL_CONTEXT_CLIENT_VERSION = 2 (OpenGL ES 2.0)
+            0x3038, 0   # EGL_NONE to terminate the list
+        ]
+        context = eglCreateContext(display, config, None, context_attribs)
         eglMakeCurrent(display, None, None, context)
 
         # Clear the screen
@@ -165,8 +169,12 @@ def render_views(obj_path, save_dir):
             config = ctypes.POINTER(ctypes.c_void_p)()
             eglChooseConfig(display, config_attribs, ctypes.byref(config), 1, ctypes.byref(num_configs))
 
-            # Create an EGL context
-            context = eglCreateContext(display, config, None, None)
+            # Create an EGL context with proper attributes
+            context_attribs = [
+                0x3098, 2,  # EGL_CONTEXT_CLIENT_VERSION = 2 (OpenGL ES 2.0)
+                0x3038, 0   # EGL_NONE to terminate the list
+            ]
+            context = eglCreateContext(display, config, None, context_attribs)
             eglMakeCurrent(display, None, None, context)
 
             # Clear the screen
