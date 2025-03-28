@@ -116,12 +116,12 @@ def render_views(obj_path, save_dir):
         glBindFramebuffer(GL_FRAMEBUFFER, framebuffer)
 
         # Create and bind a renderbuffer for the framebuffer
-        from OpenGL.GL import glGenRenderbuffers, glBindRenderbuffer, glRenderbufferStorage, GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, GL_RGBA, GL_COLOR_ATTACHMENT0, GL_DEPTH_ATTACHMENT
+        from OpenGL.GL import glGenRenderbuffers, glBindRenderbuffer, glRenderbufferStorage, GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, GL_RGBA8, GL_COLOR_ATTACHMENT0, GL_DEPTH_ATTACHMENT
 
         # Generate and attach a color renderbuffer
         color_renderbuffer = glGenRenderbuffers(1)
         glBindRenderbuffer(GL_RENDERBUFFER, color_renderbuffer)
-        glRenderbufferStorage(GL_RENDERBUFFER, GL_RGBA, 512, 512)
+        glRenderbufferStorage(GL_RENDERBUFFER, GL_RGBA8, 512, 512)  # Use GL_RGBA8 for the color renderbuffer
         glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, color_renderbuffer)
 
         # Generate and attach a depth renderbuffer
@@ -209,12 +209,12 @@ def render_views(obj_path, save_dir):
             glBindFramebuffer(GL_FRAMEBUFFER, framebuffer)
 
             # Create and bind a renderbuffer for the framebuffer
-            from OpenGL.GL import glGenRenderbuffers, glBindRenderbuffer, glRenderbufferStorage, GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, GL_RGBA, GL_COLOR_ATTACHMENT0, GL_DEPTH_ATTACHMENT
+            from OpenGL.GL import glGenRenderbuffers, glBindRenderbuffer, glRenderbufferStorage, GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, GL_RGBA8, GL_COLOR_ATTACHMENT0, GL_DEPTH_ATTACHMENT
 
             # Generate and attach a color renderbuffer
             color_renderbuffer = glGenRenderbuffers(1)
             glBindRenderbuffer(GL_RENDERBUFFER, color_renderbuffer)
-            glRenderbufferStorage(GL_RENDERBUFFER, GL_RGBA, 512, 512)
+            glRenderbufferStorage(GL_RENDERBUFFER, GL_RGBA8, 512, 512)  # Use GL_RGBA8 for the color renderbuffer
             glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, color_renderbuffer)
 
             # Generate and attach a depth renderbuffer
