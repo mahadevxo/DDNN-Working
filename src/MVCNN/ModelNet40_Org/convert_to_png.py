@@ -6,6 +6,7 @@ import pygfx as gfx
 import wgpu
 from wgpu.gui.offscreen import WgpuCanvas
 from tqdm import tqdm
+import random
 
 # Ensure Metal GPU Backend
 device = wgpu.utils.get_default_device()
@@ -21,6 +22,9 @@ NUM_VIEWS = 12
 ANGLE_STEP = 360 / NUM_VIEWS
 PROGRESS_BAR_LENGTH = 150  # Define progress bar length
 
+def random_color():
+    """Generates a random RGB color."""
+    return (random.random(), random.random(), random.random())
 
 def setup_scene(mesh):
     """Prepares the 3D scene with the object and realistic shading."""
@@ -30,10 +34,13 @@ def setup_scene(mesh):
     vertices = np.array(mesh.vertices, dtype=np.float32)
     faces = np.array(mesh.faces, dtype=np.uint32)
 
+    # Generate a random color for the object
+    color = random_color()
+
     # Create GPU geometry with shading
     geometry = gfx.Geometry(positions=vertices, indices=faces)
     material = gfx.MeshStandardMaterial(
-        color=(200, 200, 200),  # Light gray for better shading
+        color=color,  # Set the object color to the random color
         metalness=0.3,          # Moderate metallic reflection
         roughness=0.7           # Adds shading detail
     )
