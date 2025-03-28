@@ -7,6 +7,7 @@ import pickle
 import os
 from tensorboardX import SummaryWriter
 import time
+from tqdm import tqdm
 
 class ModelNetTrainer(object):
 
@@ -48,7 +49,14 @@ class ModelNetTrainer(object):
             # train one epoch
             out_data = None
             in_data = None
-            for i, data in enumerate(self.train_loader):
+            
+            # Initialize tqdm progress bar
+            pbar = tqdm(self.train_loader, desc=f"Epoch {epoch+1}/{n_epochs}")
+            running_loss = 0.0
+            running_acc = 0.0
+            total_steps = 0
+            
+            for i, data in enumerate(pbar):
 
                 if self.model_name == 'mvcnn':
                     N,V,C,H,W = data[1].size()
@@ -62,6 +70,7 @@ class ModelNetTrainer(object):
                 out_data = self.model(in_data)
 
                 loss = self.loss_fn(out_data, target)
+                running_loss += loss.item()
 
                 self.writer.add_scalar('train/train_loss', loss, i_acc+i+1)
 
@@ -70,14 +79,23 @@ class ModelNetTrainer(object):
                 correct_points = torch.sum(results.long())
 
                 acc = correct_points.float()/results.size()[0]
+                running_acc += acc.item()
+                total_steps += 1
+                
                 self.writer.add_scalar('train/train_overall_acc', acc, i_acc+i+1)
 
                 loss.backward()
                 self.optimizer.step()
 
-                log_str = 'epoch %d, step %d: train_loss %.3f; train_acc %.3f' % (epoch+1, i+1, loss, acc)
-                if (i+1)%1==0:
-                    print(log_str)
+                # Update progress bar
+                pbar.set_postfix({
+                    'loss': f"{running_loss/total_steps:.3f}", 
+                    'acc': f"{running_acc/total_steps:.3f}"
+                })
+            
+            # Print final statistics for the epoch
+            print(f"Epoch {epoch+1}/{n_epochs} - Avg Loss: {running_loss/total_steps:.3f}, Avg Accuracy: {running_acc/total_steps:.3f}")
+            
             i_acc += i
 
             # evaluation
