@@ -83,6 +83,7 @@ if __name__ == '__main__':
 
     mvcnn_checkpoint = os.path.join(log_dir, 'model-00006.pth')  # Adjust filename as needed
     load_checkpoint(cnet_2, mvcnn_checkpoint)
+    n_models_train = args.num_models * args.num_views
 
     optimizer = optim.Adam(cnet_2.parameters(), lr=args.lr, weight_decay=args.weight_decay, betas=(0.9, 0.999))
 
