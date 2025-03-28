@@ -63,14 +63,25 @@ class SVCNN(Model):
                 self.net_1 = models.vgg16(pretrained=self.pretraining).features.to(self.device)
                 self.net_2 = models.vgg16(pretrained=self.pretraining).classifier.to(self.device)
             
+            # Store the expected feature size for later reference
+            self.feature_size = self.net_2[0].in_features
             self.net_2._modules['6'] = nn.Linear(4096,40)
 
     def forward(self, x):
         if self.use_resnet:
             return self.net(x)
+        
         y = self.net_1(x)
         y = y.view(y.size(0), -1)
-        assert y.size(1) == self.net_2[0].in_features, f"Expected {self.net_2[0].in_features}, got {y.size(1)}"
+        
+        # Handle dynamic feature size by reshaping or using an adaptive layer
+        if not hasattr(self, 'feature_adapter') and y.size(1) != self.net_2[0].in_features:
+            self.feature_adapter = nn.Linear(y.size(1), self.net_2[0].in_features).to(self.device)
+            print(f"Created adapter layer: {y.size(1)} -> {self.net_2[0].in_features}")
+        
+        if hasattr(self, 'feature_adapter'):
+            y = self.feature_adapter(y)
+            
         return self.net_2(y)
 
 
@@ -98,17 +109,40 @@ class MVCNN(Model):
         else:
             self.net_1 = model.net_1.to(self.device)
             self.net_2 = model.net_2.to(self.device)
+            # Get sample input to determine feature size
+            self.expected_features = self.net_2[0].in_features
+        
+        # Define a flag to track if we've initialized the feature adapter
+        self.feature_adapter_initialized = False
 
     def forward(self, x):
-        y = self.net_1(x)  # Process input through net_1
-        y = y.view(y.size(0), -1)  # Flatten the tensor
-        print(f"Debug: Output shape after net_1: {y.shape}")  # Debugging output
-
-        # Dynamically adjust net_2 input features if mismatch occurs
-        expected_features = self.net_2[0].in_features
-        if y.size(1) != expected_features:
-            print(f"Warning: Adjusting net_2 input features from {expected_features} to {y.size(1)}")
-            self.net_2[0] = nn.Linear(y.size(1), self.net_2[0].out_features).to(self.device)
-
-        return self.net_2(y)  # Pass reshaped tensor to net_2
+        # If using MVCNN with multiple views
+        if x.size(1) > 3 and x.size(0) == 1:
+            # Reshape input for multiple views [1, views*channels, h, w] -> [views, channels, h, w]
+            x = x.view(self.num_views, 3, x.size(2), x.size(3))
+            
+            # Process each view
+            y = self.net_1(x)  # [views, features]
+            y = y.view(self.num_views, -1)
+            
+            # Pool over views (max pooling as in original MVCNN paper)
+            y = torch.max(y, 0)[0].unsqueeze(0)  # [1, features]
+        else:
+            # Standard forward pass for single view
+            y = self.net_1(x)
+            y = y.view(y.size(0), -1)
+        
+        # Check if we need to create an adapter layer
+        if not self.feature_adapter_initialized and not self.use_resnet:
+            feature_size = y.size(1)
+            if feature_size != self.expected_features:
+                self.feature_adapter = nn.Linear(feature_size, self.expected_features).to(self.device)
+                print(f"MVCNN: Created adapter layer: {feature_size} -> {self.expected_features}")
+            self.feature_adapter_initialized = True
+        
+        # Use the adapter if needed
+        if hasattr(self, 'feature_adapter'):
+            y = self.feature_adapter(y)
+            
+        return self.net_2(y)
 
