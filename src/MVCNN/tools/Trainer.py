@@ -123,30 +123,20 @@ class ModelNetTrainer(object):
     def update_validation_accuracy(self, epoch):
         all_correct_points = 0
         all_points = 0
-
-        # in_data = None
-        # out_data = None
-        # target = None
-
+        all_loss = 0
         wrong_class = np.zeros(40)
         samples_class = np.zeros(40)
-        all_loss = 0
 
         self.model.eval()
 
-        avgpool = nn.AvgPool1d(1, 1)
-
-        total_time = 0.0
-        total_print_time = 0.0
-        all_target = []
-        all_pred = []
-
-        for _, data in enumerate(self.val_loader, 0):
-
+        # Add progress bar for validation
+        val_pbar = tqdm(self.val_loader, desc=f"Validation - Epoch {epoch+1}")
+        
+        for _, data in enumerate(val_pbar, 0):
             if self.model_name == 'mvcnn':
                 N,V,C,H,W = data[1].size()
                 in_data = Variable(data[1]).view(-1,C,H,W).to(self.device)
-            else:#'svcnn'
+            else: # 'svcnn'
                 in_data = Variable(data[1]).to(self.device)
             target = Variable(data[0]).to(self.device)
 
@@ -159,22 +149,29 @@ class ModelNetTrainer(object):
                 if not bool(results[i].cpu().data.numpy()):
                     wrong_class[target.cpu().data.numpy().astype('int')[i]] += 1
                 samples_class[target.cpu().data.numpy().astype('int')[i]] += 1
+            
             correct_points = torch.sum(results.long())
-
             all_correct_points += correct_points
             all_points += results.size()[0]
+            
+            # Update progress bar with running validation accuracy
+            current_acc = correct_points.float() / results.size()[0]
+            val_pbar.set_postfix({'acc': f"{current_acc.item():.3f}"})
 
-        print ('Total # of test models: ', all_points)
+        # Calculate final metrics
         val_mean_class_acc = np.mean((samples_class-wrong_class)/samples_class)
-        acc = all_correct_points.float() / all_points
-        val_overall_acc = acc.cpu().data.numpy()
+        val_overall_acc = all_correct_points.float() / all_points
+        val_overall_acc = val_overall_acc.cpu().data.numpy()
         loss = all_loss / len(self.val_loader)
 
-        print ('val mean class acc. : ', val_mean_class_acc)
-        print ('val overall acc. : ', val_overall_acc)
-        print ('val loss : ', loss)
+        # Print final validation results in a clean format
+        print(f"Validation Results - Epoch {epoch+1}:")
+        print(f"  Total samples: {all_points}")
+        print(f"  Mean Class Accuracy: {val_mean_class_acc:.4f}")
+        print(f"  Overall Accuracy: {val_overall_acc:.4f}")
+        print(f"  Loss: {loss:.4f}")
+        print("-" * 50)
 
         self.model.train()
-
         return loss, val_overall_acc, val_mean_class_acc
 
