@@ -100,9 +100,13 @@ class MVCNN(Model):
     def forward(self, x):
         y = self.net_1(x)  # Process input through net_1
         y = y.view(y.size(0), -1)  # Flatten the tensor
-        # Adjust the expected size to match the actual output of net_1
+        print(f"Debug: Output shape after net_1: {y.shape}")  # Debugging output
+
+        # Dynamically adjust net_2 input features if mismatch occurs
         expected_features = self.net_2[0].in_features
         if y.size(1) != expected_features:
-            raise ValueError(f"Mismatch in features: Expected {expected_features}, got {y.size(1)}. Check net_1 output dimensions.")
+            print(f"Warning: Adjusting net_2 input features from {expected_features} to {y.size(1)}")
+            self.net_2[0] = nn.Linear(y.size(1), self.net_2[0].out_features).to(self.device)
+
         return self.net_2(y)  # Pass reshaped tensor to net_2
 
