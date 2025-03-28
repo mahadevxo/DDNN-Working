@@ -23,27 +23,27 @@ PROGRESS_BAR_LENGTH = 150  # Define progress bar length
 
 
 def setup_scene(mesh):
-    """Prepares the 3D scene with the object centered and lighting applied."""
+    """Prepares the 3D scene with the object and realistic shading."""
     scene = gfx.Scene()
     
     # Convert to float32 for GPU compatibility
     vertices = np.array(mesh.vertices, dtype=np.float32)
     faces = np.array(mesh.faces, dtype=np.uint32)
 
-    # Center the mesh at the origin
-    center = (mesh.bounds[0] + mesh.bounds[1]) / 2
-    vertices -= center  # Shift vertices to center the object
-
-    # Create GPU geometry
+    # Create GPU geometry with shading
     geometry = gfx.Geometry(positions=vertices, indices=faces)
-    material = gfx.MeshStandardMaterial(color=(150, 150, 150), metalness=0.5, roughness=0.8)
+    material = gfx.MeshStandardMaterial(
+        color=(200, 200, 200),  # Light gray for better shading
+        metalness=0.3,          # Moderate metallic reflection
+        roughness=0.7           # Adds shading detail
+    )
     obj = gfx.Mesh(geometry, material)
     scene.add(obj)
 
-    # Lighting
-    scene.add(gfx.AmbientLight((1, 1, 1), 0.5))
-    light = gfx.DirectionalLight((1, 1, 1), 1.5)
-    light.world.position = (5, 5, 5)  # Position light
+    # Improved Lighting
+    scene.add(gfx.AmbientLight((1, 1, 1), 0.3))  # Dim ambient light for contrast
+    light = gfx.DirectionalLight((1, 1, 1), 2.0)  # Stronger directional light
+    light.world.position = (2, 2, 5)  # Position for good shading effects
     scene.add(light)
 
     return scene, obj
