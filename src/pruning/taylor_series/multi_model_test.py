@@ -18,9 +18,9 @@ def create_results_file(filename):
     print(f"Results file created: {filename}")
     return filename
 
-def append_result(filename, acc_pre_fine_tuning, inference_time_pre_pruning, final_accuracy, compute_time, model_size):
+def append_result(filename, pruning_amount, acc_pre_fine_tuning, inference_time_pre_pruning, final_accuracy, compute_time, model_size):
     with open(filename, 'a') as f:
-        f.write(f"{acc_pre_fine_tuning:.2f}, {inference_time_pre_pruning:.2f}, {final_accuracy:.2f}, {compute_time:.2f}, {model_size:.2f}\n")
+        f.write(f"{pruning_amount}, {acc_pre_fine_tuning:.2f}, {inference_time_pre_pruning:.2f}, {final_accuracy:.2f}, {compute_time:.2f}, {model_size:.2f}\n")
 
 def get_model(model_name):
     if model_name == "VGG11":
@@ -73,8 +73,11 @@ def main():
                 
                 final_accuracy, compute_time = pruning_fine_tuner.test(pruning_fine_tuner.model, final_test=True)
                 model_size = pruning_fine_tuner.get_model_size(model)
+                
                 print(f"Pruning amount: {pruning_amount:.2f}%, Pre Fine Tuning Accuracy: {acc_pre_fine_tuning:.2f}%, Inference Time Pre Pruning: {inference_time_pre_pruning:.2f}, Final Accuracy: {final_accuracy:.2f}%, Compute Time: {compute_time:.2f}, Model Size: {model_size:.2f}")
+                
                 append_result(f"{model_name}_results.csv", "{pruning_amount:.2f}", acc_pre_fine_tuning, inference_time_pre_pruning, final_accuracy, compute_time, model_size)
+                
                 print(f"Results appended to {model_name}_results.csv")
                 
 
