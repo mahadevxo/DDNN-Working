@@ -9,4 +9,4 @@ src/MVCNN_org/MVCNN-Jetson_stage_2
 **/*.numbers
 **/imagenet-mini
 **/*.pth
-**/ModelNet40_*
+**/ModelNet40_Org
