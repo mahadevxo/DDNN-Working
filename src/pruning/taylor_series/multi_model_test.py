@@ -85,6 +85,8 @@ def main():
                 
         except Exception as e:
             print(f"An error occurred: {e}")
+            import traceback
+            traceback.print_exc()
             continue
         
 if __name__ == '__main__':
