@@ -50,13 +50,14 @@ def main():
     ]
     
     for model_name in models:
-        model = get_model(model_name).to(device)
+        
         print(f"Using model: {model_name}")
         create_results_file(f"{model_name}_results.csv")
         try:
             for pruning_amount in pruning_amounts:
                 clear_memory()
-                
+                # Load a fresh model for each pruning amount
+                model = get_model(model_name).to(device)
                 if 'PruningFineTuner' in sys.modules:
                     del sys.modules['PruningFineTuner']
                 from PruningFineTuner import PruningFineTuner
