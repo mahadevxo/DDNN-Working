@@ -114,7 +114,7 @@ def main():
         print(f"Testing model with pruning amount {pruning_amount}%")
         
         # Load the pruned model
-        model = torch.load(model_path, weights_only=False, map_location=device)
+        model = torch.load(model_path, map_location=device)
         
         # Get the size of the model
         model_size = get_model_size(model)
