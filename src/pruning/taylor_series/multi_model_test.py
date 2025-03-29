@@ -42,11 +42,8 @@ def main():
     print(f"Using device: {device}")
     
     models = [
-        'VGG11',
-        'VGG13',
-        'VGG16',
+        'AlexNet'
         'VGG19',
-        'AlexNet',
     ]
     
     for model_name in models:
