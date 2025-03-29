@@ -42,7 +42,7 @@ def main():
     print(f"Using device: {device}")
     
     models = [
-        'AlexNet'
+        'AlexNet',
         'VGG19',
     ]
     
