@@ -101,7 +101,7 @@ def main():
     print("Found models:")
     for model_path in model_paths:
         print(model_path)
-    print("========================================"*3)
+    print("========================================"*5)
 
     device = torch.device("cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu")
     print(f"Using device: {device}")
@@ -131,7 +131,7 @@ def main():
         del model
         clear_memory()
         print("Memory cleared.")
-        print("========================================"*3)
+        print("========================================"*5)
         
 if __name__ == "__main__":
     main()
