@@ -120,7 +120,7 @@ def main():
         model_size = get_model_size(model)
         
         # Test the model
-        accuracy, compute_time = test(model, test_loader, device, final_test=True)
+        accuracy, compute_time = test(model, test_loader, device, final_test=False)
         
         # Append results to file
         append_result(filename, model_path.split('_')[-1].split('.')[0], accuracy, compute_time, model_size)
