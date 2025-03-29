@@ -111,7 +111,7 @@ def main():
 
     for model_path in model_paths:
         pruning_amount = model_path.split('_')[-1].replace('.pth', '')
-        print(f"Testing model with pruning amount {pruning_amount}%")
+        print(f"Testing model {model_path} with pruning amount {pruning_amount}%")
         
         # Load the pruned model
         model = torch.load(model_path, map_location=device)
