@@ -233,7 +233,7 @@ class PruningFineTuner:
                 self._clear_memory()
                 epoch += 1
                 
-                if epoch > 3 and self._get_mean(prev_accs) >= np.arange(best_accuracy-1e-3, best_accuracy+1e-3, 1e-5).any() is True:
+                if epoch > 3 and best_accuracy - 1e-1 <= self._get_mean(prev_accs) <= best_accuracy + 1e-1:
                     print("No improvement in accuracy for 5 epochs, stopping fine-tuning")
                     print(f"Best accuracy: {best_accuracy:.2f}%")
                     print(f"Mean accuracy over last 5 epochs: {self._get_mean(prev_accs):.2f}%")
