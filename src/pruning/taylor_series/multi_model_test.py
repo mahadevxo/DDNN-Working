@@ -50,7 +50,7 @@ def main():
     ]
     for model_name in models:
         print(f"Using model: {model_name}")
-        create_results_file(f"{model_name}_results.csv")
+        create_results_file(f"{model_name}_final_results.csv")
         try:
             for pruning_amount in pruning_amounts:
                 clear_memory()
@@ -75,7 +75,7 @@ def main():
                 
                 print(f"Pruning amount: {pruning_amount:.2f}%, Pre Fine Tuning Accuracy: {acc_pre_fine_tuning:.2f}%, Inference Time Pre Pruning: {inference_time_pre_pruning:.2f}, Final Accuracy: {final_accuracy:.2f}%, Compute Time: {compute_time:.2f}, Model Size: {model_size:.2f}")
                 
-                append_result(f"{model_name}_results.csv", pruning_amount, acc_pre_fine_tuning, inference_time_pre_pruning, final_accuracy, compute_time, model_size)
+                append_result(f"{model_name}_final_results.csv", pruning_amount, acc_pre_fine_tuning, inference_time_pre_pruning, final_accuracy, compute_time, model_size)
                 
                 print(f"Results appended to {model_name}_final_results.csv")
                 

@@ -92,7 +92,7 @@ class PruningFineTuner:
                 self._clear_memory()
     
     def train_epoch(self, optimizer=None, rank_filter=False):
-        train_loader = self.get_images(self.train_path, num_samples=2000)
+        train_loader = self.get_images(self.train_path, num_samples=3000)
         self.train_batch(optimizer, train_loader, rank_filter)
         del train_loader
         self._clear_memory()
