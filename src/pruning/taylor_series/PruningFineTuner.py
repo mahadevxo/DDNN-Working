@@ -237,6 +237,7 @@ class PruningFineTuner:
                     print("No improvement in accuracy for 5 epochs, stopping fine-tuning")
                     print(f"Best accuracy: {best_accuracy:.2f}%")
                     print(f"Mean accuracy over last 5 epochs: {self._get_mean(prev_accs):.2f}%")
+                    break
 
                 
         # Final evaluation
