@@ -42,12 +42,13 @@ def main():
     print(f"Using device: {device}")
     
     models = [
-        'AlexNet',
+        'VGG11',
+        'VGG13',
+        'VGG16',
         'VGG19',
+        'AlexNet',
     ]
-    
     for model_name in models:
-        
         print(f"Using model: {model_name}")
         create_results_file(f"{model_name}_results.csv")
         try:
@@ -76,9 +77,8 @@ def main():
                 
                 append_result(f"{model_name}_results.csv", pruning_amount, acc_pre_fine_tuning, inference_time_pre_pruning, final_accuracy, compute_time, model_size)
                 
-                print(f"Results appended to {model_name}_results.csv")
+                print(f"Results appended to {model_name}_final_results.csv")
                 
-
                 pruning_fine_tuner.reset()
                 del pruning_fine_tuner
                 del model

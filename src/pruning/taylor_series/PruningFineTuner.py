@@ -9,6 +9,7 @@ import sys
 sys.path.append('./taylor_series/')
 from FilterPruner import FilterPruner
 from Pruning import Pruning
+import numpy as np
 
 class PruningFineTuner:
     def __init__(self, model):
@@ -46,6 +47,7 @@ class PruningFineTuner:
     def train_batch(self, optimizer, train_loader, rank_filter=False):
         self.model.train()
         self.model.to(self.device)
+        
         for batch_idx, (image, label) in enumerate(train_loader):
             try:
                 with torch.autograd.set_grad_enabled(True):
@@ -166,7 +168,7 @@ class PruningFineTuner:
         # Convert to MB
         return total_size / (1024 ** 2)
     
-    def prune(self, pruning_percentage):  # sourcery skip: extract-method
+    def prune(self, pruning_percentage):  # sourcery skip: extract-method, low-code-quality
         self.model.train()
         
         # Enable gradients for pruning
@@ -215,16 +217,27 @@ class PruningFineTuner:
             best_accuracy = 0.0
             
             # Fine-tuning phase
-            num_finetuning_epochs = 5
-            for epoch in range(num_finetuning_epochs):
-                print(f"Fine-tuning epoch {epoch+1}/{num_finetuning_epochs}")
+            epoch = 0
+            prev_accs = []
+            while True:
+                print(f"Fine-tuning epoch {epoch+1}")
                 self.train_epoch(optimizer, rank_filter=False)
                 val_results = self.test(self.model)
                 print(f"Validation Accuracy: {val_results[0]:.2f}%")
+                prev_accs.append(val_results[0])
+                if len(prev_accs) > 5:
+                    prev_accs.pop(0)
                 scheduler.step(val_results[0])
                 if val_results[0] > best_accuracy:
                     best_accuracy = val_results[0]
                 self._clear_memory()
+                epoch += 1
+                
+                if epoch > 3 and self._get_mean(prev_accs) >= np.arange(best_accuracy-1e-3, best_accuracy+1e-3, 1e-5).any() is True:
+                    print("No improvement in accuracy for 5 epochs, stopping fine-tuning")
+                    print(f"Best accuracy: {best_accuracy:.2f}%")
+                    print(f"Mean accuracy over last 5 epochs: {self._get_mean(prev_accs):.2f}%")
+
                 
         # Final evaluation
         acc_time = self.test(self.model)
