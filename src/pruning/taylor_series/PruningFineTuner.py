@@ -238,6 +238,9 @@ class PruningFineTuner:
                     print(f"Best accuracy: {best_accuracy:.2f}%")
                     print(f"Mean accuracy over last 5 epochs: {self._get_mean(prev_accs):.2f}%")
                     break
+                elif epoch > 20:
+                    print("Fine-tuning stopped after 20 epochs")
+                    break
 
                 
         # Final evaluation
