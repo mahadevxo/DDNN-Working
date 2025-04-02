@@ -132,10 +132,14 @@ def render_views(obj_path, save_dir, class_name, model_id):
     """Renders 12 views of a 3D model using Matplotlib and saves as PNG."""
     try:
         mesh = trimesh.load(obj_path, process=False, force='mesh')
-        
+
+        if mesh.vertices.size == 0:
+            raise ValueError(f"Mesh has no vertices: {obj_path}")
+        if mesh.faces.size == 0:
+            raise ValueError(f"Mesh has no faces: {obj_path}")
+
         # Center and normalize the mesh
         vertices = mesh.vertices - mesh.vertices.mean(axis=0)
-        # Get the max dimension for proper scaling
         max_dim = max(vertices.max(axis=0) - vertices.min(axis=0))
         vertices = vertices / max_dim  # Normalize to [-0.5, 0.5] range
         
@@ -144,37 +148,29 @@ def render_views(obj_path, save_dir, class_name, model_id):
         # Set matplotlib to use non-interactive backend
         plt.switch_backend('Agg')
         
-        # Create figure with equal aspect ratio
-        fig = plt.figure(figsize=(5, 5), dpi=100)  # Increased figure size for better quality
+        fig = plt.figure(figsize=(5, 5), dpi=100)
         ax = fig.add_subplot(111, projection='3d')
-        
-        # Create uniform limits for all axes to ensure correct proportions
+
         axis_limit = 0.6  # Slightly larger than the normalized object size
         
-        # Prepare directory
         os.makedirs(save_dir, exist_ok=True)
         
-        # Pre-compute poly3d
         poly3d = [[vertices[vert] for vert in face] for face in faces]
-        
+
         for i in range(VIEWS):
             ax.clear()
             
-            # Add mesh collection
             mesh_collection = Poly3DCollection(poly3d, facecolors='lightgray', edgecolors='k', linewidths=0.1)
             ax.add_collection3d(mesh_collection)
             
-            # Set uniform limits for all axes
             ax.set_xlim(-axis_limit, axis_limit)
             ax.set_ylim(-axis_limit, axis_limit)
             ax.set_zlim(-axis_limit, axis_limit)
             
-            # Ensure equal aspect ratio
             ax.set_box_aspect([1, 1, 1])
             ax.view_init(elev=30, azim=i * AZIMUTH_STEP)
             ax.axis("off")
             
-            # Save figure with tight layout
             plt.tight_layout()
             fig.savefig(f"{save_dir}/{class_name}_{model_id}_view_{i}.png", bbox_inches='tight', pad_inches=0)
             
