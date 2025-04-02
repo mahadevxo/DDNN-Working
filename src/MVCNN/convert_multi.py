@@ -195,6 +195,7 @@ def process_single_model(args):
 def detect_optimal_cores():
     """Detect the optimal number of cores for the current system."""
     total_cores = mp.cpu_count()
+    print(f"Total CPU cores detected: {total_cores}")
 
     # For Apple Silicon
     if platform.system() == "Darwin" and platform.processor() == "arm":
@@ -214,7 +215,7 @@ def detect_optimal_cores():
 
     # For NVIDIA GPU systems, use a bit fewer cores than available
     # This prevents overloading the system while GPU is active
-    return max(4, total_cores - 2)
+    return max(4, total_cores - 10)
 
 def setup_gpu_environment():
     """Set up the environment for GPU usage if available."""
