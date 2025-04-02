@@ -18,73 +18,75 @@ AZIMUTH_STEP = 360 / VIEWS  # 30-degree steps
 
 
 def off_to_obj(off_path, obj_path):
-    """Converts a .off file to .obj format with improved error handling."""
+    """Converts a .off file to .obj format, handling both standard and non-standard headers."""
     with open(off_path, "r") as f:
         lines = f.readlines()
     
-    # Skip empty lines and handle potential variations in OFF header
+    # Skip empty lines and handle potential comments
     line_index = 0
     while line_index < len(lines) and (not lines[line_index].strip() or lines[line_index].strip().startswith('#')):
         line_index += 1
-    
-    # Check if we have a valid OFF file
+
+    # Check if we have a valid file
     if line_index >= len(lines) or not lines[line_index].strip():
         raise ValueError(f"Empty or invalid OFF file: {off_path}")
     
-    # Handle both "OFF" alone and "OFF num_vertices num_faces num_edges" formats
-    header = lines[line_index].strip().split()
-    if header[0] != "OFF":
-        raise ValueError(f"Not an OFF file: {off_path}, header: {header}")
+    # Read the header line
+    header = lines[line_index].strip()
     
-    # Move to next line if header only contains "OFF"
-    if len(header) == 1:
-        line_index += 1
-        if line_index >= len(lines):
-            raise ValueError(f"Incomplete OFF file: {off_path}")
-        counts = list(map(int, lines[line_index].strip().split()))
-        num_vertices, num_faces = counts[0], counts[1]
+    if header.startswith("OFF"):
+        # Standard OFF format
+        parts = header.split()
+        if len(parts) == 1:
+            # Next line contains vertex and face counts
+            line_index += 1
+            if line_index >= len(lines):
+                raise ValueError(f"Incomplete OFF file: {off_path}")
+            counts = list(map(int, lines[line_index].strip().split()))
+        else:
+            # Header contains the counts directly
+            counts = list(map(int, parts[1:]))
     else:
-        # Header contains counts already
-        num_vertices, num_faces = int(header[1]), int(header[2])
+        # Non-standard OFF format where the first line contains counts
+        counts = list(map(int, header.split()))
     
+    # Ensure valid count values
+    if len(counts) < 2:
+        raise ValueError(f"Invalid OFF header: {header}")
+    
+    num_vertices, num_faces = counts[0], counts[1]
     line_index += 1
-    
+
     # Read vertices
     vertices = []
     for _ in range(num_vertices):
+        while line_index < len(lines) and (not lines[line_index].strip() or lines[line_index].startswith('#')):
+            line_index += 1  # Skip empty/comment lines
+
         if line_index >= len(lines):
             raise ValueError(f"Incomplete vertex data in OFF file: {off_path}")
-        v_line = lines[line_index].strip()
-        # Skip comment lines
-        while v_line.startswith('#') or not v_line:
-            line_index += 1
-            if line_index >= len(lines):
-                raise ValueError(f"Incomplete vertex data in OFF file: {off_path}")
-            v_line = lines[line_index].strip()
         
-        vertices.append(list(map(float, v_line.split())))
+        vertices.append(list(map(float, lines[line_index].strip().split())))
         line_index += 1
     
     # Read faces
     faces = []
     for _ in range(num_faces):
+        while line_index < len(lines) and (not lines[line_index].strip() or lines[line_index].startswith('#')):
+            line_index += 1  # Skip empty/comment lines
+
         if line_index >= len(lines):
             raise ValueError(f"Incomplete face data in OFF file: {off_path}")
-        f_line = lines[line_index].strip()
-        # Skip comment lines
-        while f_line.startswith('#') or not f_line:
-            line_index += 1
-            if line_index >= len(lines):
-                raise ValueError(f"Incomplete face data in OFF file: {off_path}")
-            f_line = lines[line_index].strip()
         
-        face_data = list(map(int, f_line.split()))
-        if face_data[0] != 3 and face_data[0] < len(face_data)-1:
-            # Some OFF files might not have vertex count as first number
-            faces.append(face_data)
-        else:
-            # Standard format with vertex count as first number
+        face_data = list(map(int, lines[line_index].strip().split()))
+        
+        if face_data[0] >= len(face_data) - 1:
+            # Standard OFF format with vertex count as first number
             faces.append(face_data[1:])
+        else:
+            # Some OFF files omit the count, use as-is
+            faces.append(face_data)
+
         line_index += 1
 
     # Write to OBJ format
@@ -92,9 +94,8 @@ def off_to_obj(off_path, obj_path):
         for v in vertices:
             f.write(f"v {v[0]} {v[1]} {v[2]}\n")
         for face in faces:
-            # Ensure we're using proper indices
             if len(face) >= 3:
-                f.write(f"f {face[0]+1} {face[1]+1} {face[2]+1}\n")  # OBJ is 1-based indexing
+                f.write(f"f {face[0] + 1} {face[1] + 1} {face[2] + 1}\n")  # Convert 0-based to 1-based indexing
 
 def convert_all_off_to_obj():
     successful = 0
@@ -207,7 +208,9 @@ def detect_optimal_cores():
         except Exception as e:
             print(f"Error detecting performance cores: {e}")
             # Fallback to half of total cores
-            return max(2, total_cores // 2)
+            
+            total_cores = mp.cpu_count()
+            return max(4, min(16, total_cores // 2)) 
 
     # For NVIDIA GPU systems, use a bit fewer cores than available
     # This prevents overloading the system while GPU is active
@@ -223,8 +226,12 @@ def setup_gpu_environment():
             nvidia_gpu_available = True
             print(f"NVIDIA GPU detected: {torch.cuda.get_device_name(0)}")
             # Set environment variables for NVIDIA GPUs
-            os.environ["OMP_NUM_THREADS"] = "4"  # Limit OpenMP threads
+            os.environ["OMP_NUM_THREADS"] = "2"  # Limit OpenMP threads
             os.environ["CUDA_VISIBLE_DEVICES"] = "0"  # Use first GPU
+            os.environ["OPENBLAS_NUM_THREADS"] = "2"  # Reduce OpenBLAS threads
+            os.environ["MKL_NUM_THREADS"] = "2"  # Reduce MKL threads
+            os.environ["VECLIB_MAXIMUM_THREADS"] = "2"  # Reduce macOS BLAS threads
+            os.environ["NUMEXPR_NUM_THREADS"] = "2"  # Reduce NumExpr threads
     except Exception as e:
         print(f"Error checking for NVIDIA GPU: {e}")
     
@@ -283,10 +290,10 @@ def process_modelnet40():
     print(f"Processing using {num_processes} cores with method: {mp_context.get_start_method()}")
 
     # Adjust chunk size based on system
-    chunk_size = min(50, max(1, total_files // (num_processes * 2)))
+    chunk_size = max(100, total_files // (num_processes * 4))
 
     # Use context manager for proper resource cleanup
-    with mp_context.Pool(processes=num_processes) as pool:
+    with mp_context.Pool(processes=min(8, num_processes)) as pool:
         # Process with tqdm for progress tracking
         results = list(tqdm(
             pool.imap(process_single_model, tasks, chunksize=chunk_size),
