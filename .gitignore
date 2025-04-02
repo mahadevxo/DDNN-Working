@@ -1,5 +1,5 @@
 src/pruning_taylor/imagenet-mini
-rc/pruning_RL/__pycache__
+src/pruning_RL/__pycache__
 src/pruning_RL/imagenet-mini
 src/MVCNN_org/MVCNN-Jetson_stage_1
 src/MVCNN_org/MVCNN-Jetson_stage_2
@@ -11,3 +11,5 @@ src/MVCNN_org/MVCNN-Jetson_stage_2
 **/*.pth
 **/ModelNet40_Org
 **/ModelNet40_12View
+**/ModelNet40_12ViewFinal
+**/AlexNetPruned

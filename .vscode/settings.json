@@ -24,6 +24,7 @@
         "sess",
         "startuml",
         "surr",
+        "svcnn",
         "traj"
     ],
     "git.ignoreLimitWarning": true

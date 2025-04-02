@@ -23,19 +23,18 @@ def flip(x, dim):
 
 class SVCNN(Model):
 
-    def __init__(self, name, nclasses=40, pretraining=True, cnn_name='vgg11', device=None):
+    def __init__(self, name, num_classes=40, pre_training=True, cnn_name='vgg11', device=None):
+        # sourcery skip: low-code-quality
         super(SVCNN, self).__init__(name)
-        
-        print("HIHIHIHIHIHI")
 
-        self.classnames=['airplane','bathtub','bed','bench','bookshelf','bottle','bowl','car','chair',
+        self.class_names=['airplane','bathtub','bed','bench','bookshelf','bottle','bowl','car','chair',
                          'cone','cup','curtain','desk','door','dresser','flower_pot','glass_box',
                          'guitar','keyboard','lamp','laptop','mantel','monitor','night_stand',
                          'person','piano','plant','radio','range_hood','sink','sofa','stairs',
                          'stool','table','tent','toilet','tv_stand','vase','wardrobe','xbox']
 
-        self.nclasses = nclasses
-        self.pretraining = pretraining
+        self.num_classes = num_classes
+        self.pre_training = pre_training
         self.cnn_name = cnn_name
         self.use_resnet = cnn_name.startswith('resnet')
         self.device = 'mps' if torch.backends.mps.is_available() else 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -44,24 +43,30 @@ class SVCNN(Model):
 
         if self.use_resnet:
             if self.cnn_name == 'resnet18':
-                self.net = models.resnet18(pretrained=self.pretraining).to(device=self.device)
+                weights = models.ResNet18_Weights.DEFAULT if self.pre_training else None
+                self.net = models.resnet18(weights=weights).to(device=self.device)
                 self.net.fc = nn.Linear(512,40).to(self.device)
             elif self.cnn_name == 'resnet34':
-                self.net = models.resnet34(pretrained=self.pretraining).to(self.device)
+                weights = models.ResNet34_Weights.DEFAULT if self.pre_training else None
+                self.net = models.resnet34(weights=weights).to(self.device)
                 self.net.fc = nn.Linear(512,40).to(self.device)
             elif self.cnn_name == 'resnet50':
-                self.net = models.resnet50(pretrained=self.pretraining).to(self.device)
+                weights = models.ResNet50_Weights.DEFAULT if self.pre_training else None
+                self.net = models.resnet50(weights=weights).to(self.device)
                 self.net.fc = nn.Linear(2048,40).to(self.device)
         else:
             if self.cnn_name == 'alexnet':
-                self.net_1 = models.alexnet(pretrained=self.pretraining).features.to(self.device)
-                self.net_2 = models.alexnet(pretrained=self.pretraining).classifier.to(self.device)
+                weights = models.AlexNet_Weights.DEFAULT if self.pre_training else None
+                self.net_1 = models.alexnet(weights=weights).features.to(self.device)
+                self.net_2 = models.alexnet(weights=weights).classifier.to(self.device)
             elif self.cnn_name == 'vgg11':
-                self.net_1 = models.vgg11(pretrained=self.pretraining).features.to(self.device)
-                self.net_2 = models.vgg11(pretrained=self.pretraining).classifier.to(self.device)
+                weights = models.VGG11_Weights.DEFAULT if self.pre_training else None
+                self.net_1 = models.vgg11(weights=weights).features.to(self.device)
+                self.net_2 = models.vgg11(weights=weights).classifier.to(self.device)
             elif self.cnn_name == 'vgg16':
-                self.net_1 = models.vgg16(pretrained=self.pretraining).features.to(self.device)
-                self.net_2 = models.vgg16(pretrained=self.pretraining).classifier.to(self.device)
+                weights = models.VGG16_Weights.DEFAULT if self.pre_training else None
+                self.net_1 = models.vgg16(weights=weights).features.to(self.device)
+                self.net_2 = models.vgg16(weights=weights).classifier.to(self.device)
             
             # Modify the classifier to handle the correct input size
             self.net_2._modules['6'] = nn.Linear(4096,40)
@@ -81,16 +86,16 @@ class SVCNN(Model):
 
 class MVCNN(Model):
 
-    def __init__(self, name, model, nclasses=40, cnn_name='vgg11', num_views=12, device = None):
+    def __init__(self, name, model, num_classes=40, cnn_name='vgg11', num_views=12, device = None):
         super(MVCNN, self).__init__(name)
 
-        self.classnames=['airplane','bathtub','bed','bench','bookshelf','bottle','bowl','car','chair',
+        self.class_names=['airplane','bathtub','bed','bench','bookshelf','bottle','bowl','car','chair',
                          'cone','cup','curtain','desk','door','dresser','flower_pot','glass_box',
                          'guitar','keyboard','lamp','laptop','mantel','monitor','night_stand',
                          'person','piano','plant','radio','range_hood','sink','sofa','stairs',
                          'stool','table','tent','toilet','tv_stand','vase','wardrobe','xbox']
 
-        self.nclasses = nclasses
+        self.num_classes = num_classes
         self.num_views = num_views
         self.device = 'mps' if torch.backends.mps.is_available() else 'cuda' if torch.cuda.is_available() else 'cpu'
         self.mean = torch.FloatTensor([0.485, 0.456, 0.406]).to(device)
