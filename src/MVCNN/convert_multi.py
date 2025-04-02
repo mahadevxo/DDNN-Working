@@ -18,37 +18,114 @@ AZIMUTH_STEP = 360 / VIEWS  # 30-degree steps
 
 
 def off_to_obj(off_path, obj_path):
-    """Converts a .off file to .obj format."""
+    """Converts a .off file to .obj format with improved error handling."""
     with open(off_path, "r") as f:
         lines = f.readlines()
-
-    assert lines[0].strip() == "OFF", "Invalid OFF file"
-    num_vertices, num_faces, _ = map(int, lines[1].strip().split())
     
-    vertices = [list(map(float, line.strip().split())) for line in lines[2:2+num_vertices]]
-    faces = [list(map(int, line.strip().split()[1:])) for line in lines[2+num_vertices:2+num_vertices+num_faces]]
+    # Skip empty lines and handle potential variations in OFF header
+    line_index = 0
+    while line_index < len(lines) and (not lines[line_index].strip() or lines[line_index].strip().startswith('#')):
+        line_index += 1
+    
+    # Check if we have a valid OFF file
+    if line_index >= len(lines) or not lines[line_index].strip():
+        raise ValueError(f"Empty or invalid OFF file: {off_path}")
+    
+    # Handle both "OFF" alone and "OFF num_vertices num_faces num_edges" formats
+    header = lines[line_index].strip().split()
+    if header[0] != "OFF":
+        raise ValueError(f"Not an OFF file: {off_path}, header: {header}")
+    
+    # Move to next line if header only contains "OFF"
+    if len(header) == 1:
+        line_index += 1
+        if line_index >= len(lines):
+            raise ValueError(f"Incomplete OFF file: {off_path}")
+        counts = list(map(int, lines[line_index].strip().split()))
+        num_vertices, num_faces = counts[0], counts[1]
+    else:
+        # Header contains counts already
+        num_vertices, num_faces = int(header[1]), int(header[2])
+    
+    line_index += 1
+    
+    # Read vertices
+    vertices = []
+    for _ in range(num_vertices):
+        if line_index >= len(lines):
+            raise ValueError(f"Incomplete vertex data in OFF file: {off_path}")
+        v_line = lines[line_index].strip()
+        # Skip comment lines
+        while v_line.startswith('#') or not v_line:
+            line_index += 1
+            if line_index >= len(lines):
+                raise ValueError(f"Incomplete vertex data in OFF file: {off_path}")
+            v_line = lines[line_index].strip()
+        
+        vertices.append(list(map(float, v_line.split())))
+        line_index += 1
+    
+    # Read faces
+    faces = []
+    for _ in range(num_faces):
+        if line_index >= len(lines):
+            raise ValueError(f"Incomplete face data in OFF file: {off_path}")
+        f_line = lines[line_index].strip()
+        # Skip comment lines
+        while f_line.startswith('#') or not f_line:
+            line_index += 1
+            if line_index >= len(lines):
+                raise ValueError(f"Incomplete face data in OFF file: {off_path}")
+            f_line = lines[line_index].strip()
+        
+        face_data = list(map(int, f_line.split()))
+        if face_data[0] != 3 and face_data[0] < len(face_data)-1:
+            # Some OFF files might not have vertex count as first number
+            faces.append(face_data)
+        else:
+            # Standard format with vertex count as first number
+            faces.append(face_data[1:])
+        line_index += 1
 
+    # Write to OBJ format
     with open(obj_path, "w") as f:
         for v in vertices:
             f.write(f"v {v[0]} {v[1]} {v[2]}\n")
         for face in faces:
-            f.write(f"f {face[0]+1} {face[1]+1} {face[2]+1}\n")  # OBJ is 1-based indexing
+            # Ensure we're using proper indices
+            if len(face) >= 3:
+                f.write(f"f {face[0]+1} {face[1]+1} {face[2]+1}\n")  # OBJ is 1-based indexing
 
 def convert_all_off_to_obj():
+    successful = 0
+    failed = 0
     for category in tqdm(os.listdir(MODELNET40_PATH), desc="Converting .off to .obj"):
         cat_path = os.path.join(MODELNET40_PATH, category)
+        if not os.path.isdir(cat_path):
+            continue
+            
         obj_cat_path = os.path.join(MODELNET40_OBJ_PATH, category)
         os.makedirs(obj_cat_path, exist_ok=True)
 
         for split in ["train", "test"]:
             split_path = os.path.join(cat_path, split)
+            if not os.path.exists(split_path):
+                continue
+                
             obj_split_path = os.path.join(obj_cat_path, split)
             os.makedirs(obj_split_path, exist_ok=True)
 
             for file in os.listdir(split_path):
                 if file.endswith(".off"):
                     obj_file = os.path.join(obj_split_path, file.replace(".off", ".obj"))
-                    off_to_obj(os.path.join(split_path, file), obj_file)
+                    try:
+                        off_to_obj(os.path.join(split_path, file), obj_file)
+                        successful += 1
+                    except Exception as e:
+                        failed += 1
+                        print(f"Error converting {file}: {e}")
+    
+    print(f"Conversion complete: {successful} successful, {failed} failed")
 
 def render_views(obj_path, save_dir, class_name, model_id):
     """Renders 12 views of a 3D model using Matplotlib and saves as PNG."""
