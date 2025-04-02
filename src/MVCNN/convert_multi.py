@@ -318,7 +318,7 @@ if __name__ == "__main__":
         print("Converted .off files to .obj.")
 
     else:
-        MODELNET40_PATH = MODELNET40_OBJ_PATH
+        MODELNET40_PATH ='ModelNet40_OBJ'
         print("Skipping .obj conversion.")
     # Render views
 
