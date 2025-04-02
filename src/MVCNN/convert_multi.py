@@ -16,25 +16,23 @@ OUTPUT_PATH = "ModelNet40_12View"
 VIEWS = 12  # 12 views per model
 AZIMUTH_STEP = 360 / VIEWS  # 30-degree steps
 
-def off_to_obj(off_file, obj_file):
-    with open(off_file, "r") as f:
+
+def off_to_obj(off_path, obj_path):
+    """Converts a .off file to .obj format."""
+    with open(off_path, "r") as f:
         lines = f.readlines()
+
+    assert lines[0].strip() == "OFF", "Invalid OFF file"
+    num_vertices, num_faces, _ = map(int, lines[1].strip().split())
     
-    if lines[0].strip() != "OFF":
-        lines.insert(0, "OFF")  # Some files lack the OFF header
+    vertices = [list(map(float, line.strip().split())) for line in lines[2:2+num_vertices]]
+    faces = [list(map(int, line.strip().split()[1:])) for line in lines[2+num_vertices:2+num_vertices+num_faces]]
 
-    vertices, faces = [], []
-    n_vertices, n_faces, _ = map(int, lines[1].split())
-
-    for line in lines[2:2 + n_vertices]:
-        vertices.append("v " + line.strip())
-
-    for line in lines[2 + n_vertices:2 + n_vertices + n_faces]:
-        indices = line.strip().split()[1:]  # Ignore first number
-        faces.append(f"f {' '.join(str(int(i) + 1) for i in indices)}")
-
-    with open(obj_file, "w") as f:
-        f.write("\n".join(vertices + faces))
+    with open(obj_path, "w") as f:
+        for v in vertices:
+            f.write(f"v {v[0]} {v[1]} {v[2]}\n")
+        for face in faces:
+            f.write(f"f {face[0]+1} {face[1]+1} {face[2]+1}\n")  # OBJ is 1-based indexing
 
 def convert_all_off_to_obj():
     for category in tqdm(os.listdir(MODELNET40_PATH), desc="Converting .off to .obj"):
@@ -119,7 +117,7 @@ def process_single_model(args):
 def detect_optimal_cores():
     """Detect the optimal number of cores for the current system."""
     total_cores = mp.cpu_count()
-    
+
     # For Apple Silicon
     if platform.system() == "Darwin" and platform.processor() == "arm":
         try:
@@ -128,12 +126,12 @@ def detect_optimal_cores():
                 ["sysctl", "-n", "hw.perflevel0.physicalcpu"],
                 capture_output=True, text=True, check=True
             )
-            perf_cores = int(result.stdout.strip())
-            return perf_cores
-        except:
+            return int(result.stdout.strip())
+        except Exception as e:
+            print(f"Error detecting performance cores: {e}")
             # Fallback to half of total cores
             return max(2, total_cores // 2)
-    
+
     # For NVIDIA GPU systems, use a bit fewer cores than available
     # This prevents overloading the system while GPU is active
     return max(4, total_cores - 2)
@@ -150,8 +148,8 @@ def setup_gpu_environment():
             # Set environment variables for NVIDIA GPUs
             os.environ["OMP_NUM_THREADS"] = "4"  # Limit OpenMP threads
             os.environ["CUDA_VISIBLE_DEVICES"] = "0"  # Use first GPU
-    except:
-        pass
+    except Exception as e:
+        print(f"Error checking for NVIDIA GPU: {e}")
     
     # For Apple Silicon
     if platform.system() == "Darwin" and platform.processor() == "arm":
@@ -188,12 +186,12 @@ def process_modelnet40():
     """Processes ModelNet40's .obj files and renders 12 views per model using multiprocessing."""
     # Set up GPU environment if available
     nvidia_gpu = setup_gpu_environment()
-    
+
     # Get all tasks
     tasks, total_files = collect_tasks()
-    
+
     print(f"Found {total_files} models to process")
-    
+
     # Determine optimal multiprocessing approach
     if platform.system() == 'Windows':
         mp_context = mp.get_context('spawn')
@@ -201,15 +199,15 @@ def process_modelnet40():
         # 'fork' is more efficient on Linux/NVIDIA systems, 'spawn' safer on macOS
         mp_method = 'spawn' if platform.system() == 'Darwin' else 'fork'
         mp_context = mp.get_context(mp_method)
-    
+
     # Number of processes - optimized for the system
     num_processes = detect_optimal_cores()
-    
+
     print(f"Processing using {num_processes} cores with method: {mp_context.get_start_method()}")
-    
+
     # Adjust chunk size based on system
     chunk_size = min(50, max(1, total_files // (num_processes * 2)))
-    
+
     # Use context manager for proper resource cleanup
     with mp_context.Pool(processes=num_processes) as pool:
         # Process with tqdm for progress tracking
@@ -219,24 +217,24 @@ def process_modelnet40():
             desc="Rendering views",
             unit="model"
         ))
-    
+
     # Report completion statistics
-    successful = sum(1 for r in results if r is True)
+    successful = sum(r is True for r in results)
     print(f"Completed rendering {successful}/{total_files} models successfully")
 
 if __name__ == "__main__":
     
-    obj = input("Convert to .obj? Y/N")
-    if obj.lower() == "y" or obj.lower() == "yes":
+    obj = input("Convert to .obj? Y/N: ")
+    if obj.lower() in ["y", "yes"]:
         if not os.path.exists(MODELNET40_OBJ_PATH):
             os.makedirs(MODELNET40_OBJ_PATH, exist_ok=True)
         print("Converting .off files to .obj...")
         convert_all_off_to_obj()
         MODELNET40_PATH = MODELNET40_OBJ_PATH
         print("Converted .off files to .obj.")
-        
+
     else:
         print("Skipping .obj conversion.")
     # Render views
-    
+
     process_modelnet40()
