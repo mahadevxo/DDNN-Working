@@ -88,6 +88,7 @@ def render_views(obj_path, output_dir, ctx):
 def start_render():
     ctx = create_context()  # No window needed
     for category in os.listdir(MODELNET40_OBJ_PATH):
+        print("*"*20, category, "*"*20)
         cat_path = os.path.join(MODELNET40_OBJ_PATH, category)
         if not os.path.isdir(cat_path):
             continue
@@ -103,6 +104,8 @@ def start_render():
                     out_path = os.path.join(OUTPUT_PATH, category, split, file.replace(".obj", ""))
                     os.makedirs(os.path.dirname(out_path), exist_ok=True)
                     render_views(obj_file, out_path, ctx)
+            print(f"Finished rendering {split} split for {category}")
+    print(f"Finished rendering category: {category}")
 
 if __name__ == "__main__":
     start_render()
