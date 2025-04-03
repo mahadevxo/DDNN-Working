@@ -14,14 +14,15 @@ OUTPUT_PATH = "ModelNet40_12View"
 VIEWS = 12  # 12 views per model
 AZIMUTH_STEP = 360 / VIEWS  # 30-degree steps
 
-# OpenGL Initialization
+# OpenGL Initialization with EGL
 def create_context():
     if not glfw.init():
         raise RuntimeError("Failed to initialize GLFW")
     
     glfw.window_hint(glfw.VISIBLE, glfw.FALSE)
-    glfw.window_hint(glfw.CONTEXT_CREATION_API, glfw.EGL_CONTEXT_API)
+    glfw.window_hint(glfw.CONTEXT_CREATION_API, glfw.EGL_CONTEXT_API)  # Use EGL for headless rendering
     window = glfw.create_window(800, 800, "Offscreen", None, None)
+    
     if not window:
         glfw.terminate()
         raise RuntimeError("Failed to create GLFW window")
@@ -48,7 +49,7 @@ def render_views(obj_path, output_dir, ctx):
     vbo = ctx.buffer(vertices)
     ibo = ctx.buffer(indices)
 
-    vao = ctx.simple_vertex_array(ctx.program(
+    program = ctx.program(
         vertex_shader="""
         #version 330
         in vec3 in_vert;
@@ -64,16 +65,26 @@ def render_views(obj_path, output_dir, ctx):
             fragColor = vec4(1.0, 1.0, 1.0, 1.0);
         }
         """
-    ), vbo, 'in_vert')
+    )
 
+    vao = ctx.simple_vertex_array(program, vbo, 'in_vert')
     fbo = ctx.framebuffer(color_attachments=[ctx.texture((800, 800), 4)])
 
     for i, angle in enumerate(np.linspace(0, 360, num=13)[:-1]):
+        rotation_matrix = np.array([
+            [np.cos(np.radians(angle)), 0, np.sin(np.radians(angle)), 0],
+            [0, 1, 0, 0],
+            [-np.sin(np.radians(angle)), 0, np.cos(np.radians(angle)), -3],
+            [0, 0, 0, 1]
+        ], dtype='f4')
+
+        program['modelview'].write(rotation_matrix.tobytes())
         fbo.use()
         ctx.clear(0.0, 0.0, 0.0)
         vao.render()
         data = fbo.read(components=3)
         img = Image.frombytes('RGB', (800, 800), data)
+        img = img.transpose(Image.FLIP_TOP_BOTTOM)  # Flip to correct orientation
         img.save(os.path.join(output_dir, f'view_{i:02d}.png'))
 
     vao.release()
