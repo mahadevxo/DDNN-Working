@@ -117,6 +117,9 @@ class ModelNetTrainer(object):
                 for param_group in self.optimizer.param_groups:
                     param_group['lr'] = param_group['lr']*0.5
 
+            # Free up unused GPU memory at the end of each epoch
+            torch.cuda.empty_cache()
+
         # export scalar data to JSON for external processing
         self.writer.export_scalars_to_json(f"{self.log_dir}/all_scalars.json")
         self.writer.close()
