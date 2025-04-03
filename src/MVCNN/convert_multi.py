@@ -23,7 +23,7 @@ OUTPUT_DIR = "ModelNet40_12View"
 # Camera settings
 AZIMUTHS = np.linspace(0, 330, 12)  # 12 views (every 30 degrees)le
 ELEVATION = 30  # Camera elevation in degrees
-DISTANCE = 2.5  # Distance from object
+DISTANCE = 3  # Distance from object
 
 # Initialize PyTorch3D renderer
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -59,6 +59,11 @@ def normalize_mesh(mesh):
     verts = verts * scale
     
     faces = mesh.faces_packed()
+    
+    # Ensure a consistent "up" direction (align with Z-axis)
+    _, _, V = torch.svd(verts)  # SVD for orientation normalization
+    rotation = V[:, [2, 1, 0]]  # Swap axes if necessary
+    verts = verts @ rotation.T  # Apply rotation
     
     # Assign white color to vertices (since textures are missing)
     colors = torch.ones_like(verts).unsqueeze(0).to(device)  # Shape: (1, num_verts, 3)
