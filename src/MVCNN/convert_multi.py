@@ -21,7 +21,7 @@ INPUT_DIR = "ModelNet40_OBJ"
 OUTPUT_DIR = "ModelNet40_12View"
 
 # Camera settings
-AZIMUTHS = np.linspace(0, 330, 12)  # 12 views (every 30 degrees)
+AZIMUTHS = np.linspace(0, 330, 12)  # 12 views (every 30 degrees)le
 ELEVATION = 30  # Camera elevation in degrees
 DISTANCE = 2.5  # Distance from object
 
@@ -94,7 +94,7 @@ for category in tqdm(os.listdir(INPUT_DIR), desc="Processing Categories"):
 
             # Render 12 views
             for i, azimuth in enumerate(AZIMUTHS):
-                R, T = look_at_view_transform(DISTANCE, ELEVATION, azimuth, device=device)
+                R, T = look_at_view_transform(DISTANCE, -ELEVATION, azimuth, device=device)
                 cameras = FoVPerspectiveCameras(device=device, R=R, T=T)
 
                 image = renderer(mesh.extend(len(R)), cameras=cameras)  
