@@ -20,6 +20,7 @@ def create_context():
         raise RuntimeError("Failed to initialize GLFW")
     
     glfw.window_hint(glfw.VISIBLE, glfw.FALSE)
+    glfw.window_hint(glfw.CONTEXT_CREATION_API, glfw.EGL_CONTEXT_API)
     window = glfw.create_window(800, 800, "Offscreen", None, None)
     if not window:
         glfw.terminate()
