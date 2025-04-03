@@ -87,25 +87,23 @@ def render_views(obj_path, output_dir, ctx):
 # Process all models
 def start_render():
     ctx = create_context()  # No window needed
-    for category in os.listdir(MODELNET40_OBJ_PATH):
-        print("*"*20, category, "*"*20)
+    categories = os.listdir(MODELNET40_OBJ_PATH)
+    for category in tqdm(categories, desc="Processing categories"):
         cat_path = os.path.join(MODELNET40_OBJ_PATH, category)
         if not os.path.isdir(cat_path):
             continue
-        
+
         for split in ["train", "test"]:
             split_path = os.path.join(cat_path, split)
             if not os.path.exists(split_path):
                 continue
-                
-            for file in os.listdir(split_path):
-                if file.endswith(".obj"):
-                    obj_file = os.path.join(split_path, file)
-                    out_path = os.path.join(OUTPUT_PATH, category, split, file.replace(".obj", ""))
-                    os.makedirs(os.path.dirname(out_path), exist_ok=True)
-                    render_views(obj_file, out_path, ctx)
-            print(f"Finished rendering {split} split for {category}")
-    print(f"Finished rendering category: {category}")
+
+            obj_files = [file for file in os.listdir(split_path) if file.endswith(".obj")]
+            for file in tqdm(obj_files, desc=f"Processing {category}/{split}", leave=False):
+                obj_file = os.path.join(split_path, file)
+                out_path = os.path.join(OUTPUT_PATH, category, split, file.replace(".obj", ""))
+                os.makedirs(os.path.dirname(out_path), exist_ok=True)
+                render_views(obj_file, out_path, ctx)
 
 if __name__ == "__main__":
     start_render()
