@@ -26,13 +26,13 @@ def create_context():
 
 # Load OBJ file
 def load_mesh(obj_path):
-    scene = load(obj_path)
-    if not scene.meshes:
-        raise ValueError(f"No meshes found in {obj_path}")
-    mesh = scene.meshes[0]
-    vertices = np.array(mesh.vertices, dtype='f4')
-    indices = np.array(mesh.faces, dtype='i4').flatten()
-    return vertices, indices
+    with load(obj_path) as scene:
+        if not scene.meshes:
+            raise ValueError(f"No meshes found in {obj_path}")
+        mesh = scene.meshes[0]
+        vertices = np.array(mesh.vertices, dtype='f4')
+        indices = np.array(mesh.faces, dtype='i4').flatten()
+        return vertices, indices
 
 # Render a model from different views
 def render_views(obj_path, output_dir, ctx):
