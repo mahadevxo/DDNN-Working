@@ -15,7 +15,7 @@ parser.add_argument("-bs", "--batchSize", type=int, help="Batch size for the sec
 parser.add_argument("-num_models", type=int, help="number of models per class", default=1000)
 parser.add_argument("-lr", type=float, help="learning rate", default=5e-5)
 parser.add_argument("-weight_decay", type=float, help="weight decay", default=0.001)
-parser.add_argument("-no_pretraining", dest='no_pretraining', action='store_true')
+parser.add_argument("-no_pre_training", dest='no_pre_training', action='store_true')
 parser.add_argument("-cnn_name", "--cnn_name", type=str, help="cnn model name", default="vgg11")
 parser.add_argument("-num_views", type=int, help="number of views", default=12)
 parser.add_argument("-train_path", type=str, default="ModelNet40_12View/*/train")
@@ -40,7 +40,7 @@ if __name__ == '__main__':
     device = 'mps' if torch.backends.mps.is_available() else \
     'cuda' if torch.cuda.is_available() else \
         'cpu'
-    pretraining = not args.no_pretraining
+    pre_training = not args.no_pre_training
     log_dir = args.name
     create_folder(args.name)
     with open(os.path.join(log_dir, 'config.json'), 'w') as config_f:
@@ -54,7 +54,7 @@ if __name__ == '__main__':
         # Train SVCNN from scratch
         log_dir = f'{args.name}_stage_1'
         create_folder(log_dir)
-        cnet = SVCNN(args.name, num_classes=40, pretraining=pretraining, cnn_name=args.cnn_name).to(device)
+        cnet = SVCNN(args.name, num_classes=40, pre_training=pre_training, cnn_name=args.cnn_name).to(device)
 
         optimizer = optim.Adam(cnet.parameters(), lr=args.lr, weight_decay=args.weight_decay)
 
@@ -72,7 +72,7 @@ if __name__ == '__main__':
     else:
         # Load pre-trained SVCNN model
         log_dir = f'{args.name}_stage_1'
-        cnet = SVCNN(args.name, num_classes=40, pretraining=pretraining, cnn_name=args.cnn_name).to(device)
+        cnet = SVCNN(args.name, num_classes=40, pre_training=pre_training, cnn_name=args.cnn_name).to(device)
         svcnn_checkpoint = 'MVCNN_stage_1/MVCNN/model-00006.pth'
         load_checkpoint(cnet, svcnn_checkpoint)
 
