@@ -11,12 +11,13 @@ from pytorch3d.renderer import (
     HardPhongShader,
     look_at_view_transform,
     PointLights,
+    TexturesVertex
 )
 from pytorch3d.structures import Meshes
 from pytorch3d.renderer.cameras import FoVPerspectiveCameras
 
 # Input and output directories
-INPUT_DIR = "ModelNet40_OBJ"
+INPUT_DIR = "ModelNet40"
 OUTPUT_DIR = "ModelNet40_12View"
 
 # Camera settings
@@ -35,26 +36,33 @@ def create_renderer(image_size=224):
     )
     lights = PointLights(device=device, location=[[0.0, 0.0, 3.0]])
     
-    cameras = FoVPerspectiveCameras(device=device)  # ✅ Cameras added here
+    cameras = FoVPerspectiveCameras(device=device)  
 
     return MeshRenderer(
         rasterizer=MeshRasterizer(
-            cameras=cameras,  # ✅ Fix: Attach cameras
+            cameras=cameras,  
             raster_settings=raster_settings
         ),
-        shader=HardPhongShader(device=device, lights=lights, cameras=cameras)  # ✅ Fix: Attach cameras
+        shader=HardPhongShader(device=device, lights=lights, cameras=cameras)  
     )
 
 renderer = create_renderer()
 
 def normalize_mesh(mesh):
-    """ Normalize mesh to fit within a unit sphere. """
+    """ Normalize mesh to fit within a unit sphere and assign dummy textures. """
     verts = mesh.verts_packed()
-    center = verts.mean(dim=0)  # Compute centroid
-    verts = verts - center  # Center the object
-    scale = 1.0 / torch.max(torch.norm(verts, dim=1))  # Scale to unit size
+    center = verts.mean(dim=0)  
+    verts = verts - center  
+    scale = 1.0 / torch.max(torch.norm(verts, dim=1))  
     verts = verts * scale
-    return Meshes(verts=[verts], faces=[mesh.faces_packed()]).to(device)
+    
+    faces = mesh.faces_packed()
+    
+    # Assign white color to vertices (since textures are missing)
+    colors = torch.ones_like(verts).unsqueeze(0).to(device)  # Shape: (1, num_verts, 3)
+    textures = TexturesVertex(verts_features=colors)
+
+    return Meshes(verts=[verts], faces=[faces], textures=textures).to(device)
 
 # Process each object in ModelNet40
 for category in tqdm(os.listdir(INPUT_DIR), desc="Processing Categories"):
@@ -70,14 +78,14 @@ for category in tqdm(os.listdir(INPUT_DIR), desc="Processing Categories"):
 
         for model_file in tqdm(model_files, desc=f"Rendering {category}/{split}", leave=False):
             model_path = os.path.join(category_path, model_file)
-            output_model_path = os.path.join(output_category_path, model_file[:-4])  # Remove .obj
+            output_model_path = os.path.join(output_category_path, model_file[:-4])  
             
             os.makedirs(output_model_path, exist_ok=True)
 
             # Load and normalize mesh
             try:
                 mesh = load_objs_as_meshes([model_path], device=device)
-                mesh = normalize_mesh(mesh)
+                mesh = normalize_mesh(mesh)  # ✅ Now it has vertex colors
             except Exception as e:
                 print(f"❌ Failed to load {model_file}: {e}")
                 continue
@@ -87,8 +95,8 @@ for category in tqdm(os.listdir(INPUT_DIR), desc="Processing Categories"):
                 R, T = look_at_view_transform(DISTANCE, ELEVATION, azimuth, device=device)
                 cameras = FoVPerspectiveCameras(device=device, R=R, T=T)
 
-                image = renderer(mesh.extend(len(R)), cameras=cameras)  # ✅ Batch size fix
-                image = image[0, ..., :3].detach().cpu().numpy()  # ✅ Detach before CPU
+                image = renderer(mesh.extend(len(R)), cameras=cameras)  
+                image = image[0, ..., :3].detach().cpu().numpy()  
 
                 output_file = os.path.join(output_model_path, f"view_{i}.png")
                 imageio.imwrite(output_file, (image * 255).astype(np.uint8))
