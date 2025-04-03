@@ -18,7 +18,7 @@ AZIMUTH_STEP = 360 / VIEWS  # 30-degree steps
 # OpenGL Initialization with EGL (NO GLFW)
 def create_context():
     try:
-        ctx = moderngl.create_context()
+        ctx = moderngl.create_context(standalone=True, backend='egl')
         print("Successfully created EGL context!")
         return ctx
     except Exception as e:
