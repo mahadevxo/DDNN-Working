@@ -46,16 +46,25 @@ def render_views(obj_path, output_dir, ctx):
         vertex_shader="""
         #version 330
         in vec3 in_vert;
+        in vec3 in_norm;
+        out vec3 fragNormal;
         uniform mat4 modelview;
+
         void main() {
+            fragNormal = mat3(modelview) * in_norm; // Transform normals
             gl_Position = modelview * vec4(in_vert, 1.0);
         }
         """,
         fragment_shader="""
         #version 330
+        in vec3 fragNormal;
         out vec4 fragColor;
+
         void main() {
-            fragColor = vec4(1.0, 1.0, 1.0, 1.0);
+            vec3 lightDir = normalize(vec3(0.5, 1.0, 0.5));
+            float diff = max(dot(fragNormal, lightDir), 0.0);
+            vec3 color = vec3(1.0, 1.0, 1.0) * diff; // White light
+            fragColor = vec4(color, 1.0);
         }
         """
     )
