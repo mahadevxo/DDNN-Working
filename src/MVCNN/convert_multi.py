@@ -7,10 +7,9 @@ from tqdm import tqdm
 import multiprocessing as mp
 import platform
 import subprocess
-import torch  # Added for NVIDIA GPU detection
+import torch
 import time
 from concurrent.futures import ThreadPoolExecutor
-# Modify imports to remove PyCUDA GL dependency
 from PIL import Image
 import torch.nn as nn
 
@@ -392,30 +391,6 @@ def detect_optimal_cores():
     # Default for other systems
     return max(4, total_cores - 4)
 
-def collect_tasks():
-    """Collect all rendering tasks."""
-    tasks = []
-    base_paths = {'model_path': MODELNET40_PATH, 'output_path': OUTPUT_PATH}
-    
-    # Count total files
-    total_files = 0
-    for class_name in sorted(os.listdir(MODELNET40_PATH)):
-        class_path = os.path.join(MODELNET40_PATH, class_name)
-        if not os.path.isdir(class_path):
-            continue
-            
-        for split in ["train", "test"]:
-            split_path = os.path.join(class_path, split)
-            if not os.path.exists(split_path):
-                continue
-                
-            for model_name in sorted(os.listdir(split_path)):
-                if model_name.endswith(".obj"):
-                    total_files += 1
-                    tasks.append((class_name, split, model_name, base_paths))
-    
-    return tasks, total_files
-
 def batch_process_models(tasks, batch_size=50):
     """Process models in batches to optimize GPU memory usage."""
     try:
@@ -457,6 +432,30 @@ def batch_process_models(tasks, batch_size=50):
         torch.cuda.empty_cache()
     
     return successful, total
+
+def collect_tasks():
+    """Collect all rendering tasks."""
+    tasks = []
+    base_paths = {'model_path': MODELNET40_PATH, 'output_path': OUTPUT_PATH}
+    
+    # Count total files
+    total_files = 0
+    for class_name in sorted(os.listdir(MODELNET40_PATH)):
+        class_path = os.path.join(MODELNET40_PATH, class_name)
+        if not os.path.isdir(class_path):
+            continue
+            
+        for split in ["train", "test"]:
+            split_path = os.path.join(class_path, split)
+            if not os.path.exists(split_path):
+                continue
+                
+            for model_name in sorted(os.listdir(split_path)):
+                if model_name.endswith(".obj"):
+                    total_files += 1
+                    tasks.append((class_name, split, model_name, base_paths))
+    
+    return tasks, total_files
 
 def process_modelnet40():
     """Processes ModelNet40's .obj files and renders 12 views per model using GPU acceleration."""
@@ -507,7 +506,67 @@ def process_modelnet40():
     print(f"Total processing time: {elapsed_time:.2f} seconds")
     print(f"Average time per model: {elapsed_time/total:.4f} seconds")
 
+def process_single_model(args):
+    """Process a single model for multiprocessing."""
+    class_name, split, model_name, base_paths = args
+    model_id = model_name.split(".")[0]
+    obj_path = os.path.join(base_paths['model_path'], class_name, split, model_name)
+    output_dir = os.path.join(base_paths['output_path'], class_name, split, model_id)
+    
+    # Use matplotlib for CPU-based rendering
+    try:
+        mesh = trimesh.load(obj_path, process=False, force='mesh')
+
+        if mesh.vertices.size == 0:
+            raise ValueError(f"Mesh has no vertices: {obj_path}")
+        if mesh.faces.size == 0:
+            raise ValueError(f"Mesh has no faces: {obj_path}")
+
+        # Center and normalize the mesh
+        vertices = mesh.vertices - mesh.vertices.mean(axis=0)
+        max_dim = max(vertices.max(axis=0) - vertices.min(axis=0))
+        vertices = vertices / max_dim  # Normalize to [-0.5, 0.5] range
+        
+        faces = mesh.faces
+        
+        # Set matplotlib to use non-interactive backend
+        plt.switch_backend('Agg')
+        
+        fig = plt.figure(figsize=(5, 5), dpi=100)
+        ax = fig.add_subplot(111, projection='3d')
+
+        axis_limit = 0.6  # Slightly larger than the normalized object size
+        
+        os.makedirs(output_dir, exist_ok=True)
+        
+        poly3d = [[vertices[vert] for vert in face] for face in faces]
+
+        for i in range(VIEWS):
+            ax.clear()
+            
+            mesh_collection = Poly3DCollection(poly3d, facecolors='lightgray', edgecolors='k', linewidths=0.1)
+            ax.add_collection3d(mesh_collection)
+            
+            ax.set_xlim(-axis_limit, axis_limit)
+            ax.set_ylim(-axis_limit, axis_limit)
+            ax.set_zlim(-axis_limit, axis_limit)
+            
+            ax.set_box_aspect([1, 1, 1])
+            ax.view_init(elev=30, azim=i * AZIMUTH_STEP)
+            ax.axis("off")
+            
+            plt.tight_layout()
+            fig.savefig(f"{output_dir}/{class_name}_{model_id}_view_{i}.png", bbox_inches='tight', pad_inches=0)
+            
+        plt.close(fig)
+        return True
+    except Exception as e:
+        print(f"Error processing {obj_path}: {e}")
+        return False
+
 if __name__ == "__main__":
+    # Make sure output directory exists
+    os.makedirs(OUTPUT_PATH, exist_ok=True)
     
     obj = input("Convert to .obj? Y/N: ")
     if obj.lower() in ["y", "yes"]:
@@ -517,10 +576,9 @@ if __name__ == "__main__":
         convert_all_off_to_obj()
         MODELNET40_PATH = MODELNET40_OBJ_PATH
         print("Converted .off files to .obj.")
-
     else:
-        MODELNET40_PATH ='ModelNet40_OBJ'
+        MODELNET40_PATH = 'ModelNet40_OBJ'
         print("Skipping .obj conversion.")
+    
     # Render views
-
     process_modelnet40()
