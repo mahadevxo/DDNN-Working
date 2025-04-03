@@ -18,16 +18,18 @@ AZIMUTH_STEP = 360 / VIEWS  # 30-degree steps
 def create_context():
     if not glfw.init():
         raise RuntimeError("Failed to initialize GLFW")
-    
+
     glfw.window_hint(glfw.VISIBLE, glfw.FALSE)
-    glfw.window_hint(glfw.CONTEXT_CREATION_API, glfw.EGL_CONTEXT_API)  # Use EGL for headless rendering
+    glfw.window_hint(glfw.CONTEXT_CREATION_API, glfw.EGL_CONTEXT_API)  # Force EGL
+
     window = glfw.create_window(800, 800, "Offscreen", None, None)
-    
     if not window:
         glfw.terminate()
         raise RuntimeError("Failed to create GLFW window")
-    
+
     glfw.make_context_current(window)
+    print("GLFW context API:", glfw.get_current_context())  # Debugging output
+
     ctx = moderngl.create_standalone_context()
     return ctx, window
 
