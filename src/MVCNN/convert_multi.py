@@ -6,7 +6,6 @@ import imageio
 from PIL import Image
 from pyassimp import load
 from tqdm import tqdm
-import glfw
 
 # Paths
 MODELNET40_OBJ_PATH = "ModelNet40_OBJ"
@@ -14,24 +13,14 @@ OUTPUT_PATH = "ModelNet40_12View"
 VIEWS = 12  # 12 views per model
 AZIMUTH_STEP = 360 / VIEWS  # 30-degree steps
 
-# OpenGL Initialization with EGL
+# OpenGL Initialization with EGL (NO GLFW)
 def create_context():
-    if not glfw.init():
-        raise RuntimeError("Failed to initialize GLFW")
-
-    glfw.window_hint(glfw.VISIBLE, glfw.FALSE)
-    glfw.window_hint(glfw.CONTEXT_CREATION_API, glfw.EGL_CONTEXT_API)  # Force EGL
-
-    window = glfw.create_window(800, 800, "Offscreen", None, None)
-    if not window:
-        glfw.terminate()
-        raise RuntimeError("Failed to create GLFW window")
-
-    glfw.make_context_current(window)
-    print("GLFW context API:", glfw.get_current_context())  # Debugging output
-
-    ctx = moderngl.create_standalone_context()
-    return ctx, window
+    try:
+        ctx = moderngl.create_context(standalone=True)  # Force headless EGL
+        print("Successfully created EGL context!")
+        return ctx
+    except Exception as e:
+        raise RuntimeError(f"Failed to create ModernGL context: {e}")
 
 # Load OBJ file
 def load_mesh(obj_path):
@@ -95,7 +84,7 @@ def render_views(obj_path, output_dir, ctx):
 
 # Process all models
 def start_render():
-    ctx, window = create_context()
+    ctx = create_context()  # No window needed
     for category in os.listdir(MODELNET40_OBJ_PATH):
         cat_path = os.path.join(MODELNET40_OBJ_PATH, category)
         if not os.path.isdir(cat_path):
@@ -112,8 +101,6 @@ def start_render():
                     out_path = os.path.join(OUTPUT_PATH, category, split, file.replace(".obj", ""))
                     os.makedirs(os.path.dirname(out_path), exist_ok=True)
                     render_views(obj_file, out_path, ctx)
-    
-    glfw.terminate()
 
 if __name__ == "__main__":
     start_render()
