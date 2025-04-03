@@ -60,11 +60,6 @@ def normalize_mesh(mesh):
     
     faces = mesh.faces_packed()
     
-    # Ensure a consistent "up" direction (align with Z-axis)
-    _, _, V = torch.svd(verts)  # SVD for orientation normalization
-    rotation = V[:, [2, 1, 0]]  # Swap axes if necessary
-    verts = verts @ rotation.T  # Apply rotation
-    
     # Assign white color to vertices (since textures are missing)
     colors = torch.ones_like(verts).unsqueeze(0).to(device)  # Shape: (1, num_verts, 3)
     textures = TexturesVertex(verts_features=colors)
