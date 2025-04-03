@@ -17,7 +17,7 @@ from tqdm import tqdm
 # Paths
 MODELNET40_PATH = "ModelNet40"
 MODELNET40_OBJ_PATH = "ModelNet40_OBJ"
-OUTPUT_PATH = "ModelNet40_12View_pytorch3d"
+OUTPUT_PATH = "ModelNet40_12View"
 VIEWS = 12  # 12 views per model
 AZIMUTH_STEP = 360 / VIEWS  # 30-degree steps
 
