@@ -234,7 +234,8 @@ class GpuMeshRasterizer(nn.Module):
         
         # Simple flat shading - prepare face normals in 3D space
         v0, v1, v2 = [vertices_rotated[faces_tensor[:, i]] for i in range(3)]
-        face_normals = torch.cross(v1 - v0, v2 - v0)
+        # Fix the deprecated torch.cross usage by specifying dimension
+        face_normals = torch.cross(v1 - v0, v2 - v0, dim=1)
         face_normals = face_normals / (torch.norm(face_normals, dim=1, keepdim=True) + 1e-8)
         
         # Lighting direction
