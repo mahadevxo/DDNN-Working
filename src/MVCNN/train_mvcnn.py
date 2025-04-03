@@ -54,7 +54,7 @@ if __name__ == '__main__':
         # Train SVCNN from scratch
         log_dir = f'{args.name}_stage_1'
         create_folder(log_dir)
-        cnet = SVCNN(args.name, nclasses=40, pretraining=pretraining, cnn_name=args.cnn_name).to(device)
+        cnet = SVCNN(args.name, num_classes=40, pretraining=pretraining, cnn_name=args.cnn_name).to(device)
 
         optimizer = optim.Adam(cnet.parameters(), lr=args.lr, weight_decay=args.weight_decay)
 
@@ -72,7 +72,7 @@ if __name__ == '__main__':
     else:
         # Load pre-trained SVCNN model
         log_dir = f'{args.name}_stage_1'
-        cnet = SVCNN(args.name, nclasses=40, pretraining=pretraining, cnn_name=args.cnn_name).to(device)
+        cnet = SVCNN(args.name, num_classes=40, pretraining=pretraining, cnn_name=args.cnn_name).to(device)
         svcnn_checkpoint = 'MVCNN_stage_1/MVCNN/model-00006.pth'
         load_checkpoint(cnet, svcnn_checkpoint)
 
