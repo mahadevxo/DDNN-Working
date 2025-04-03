@@ -17,7 +17,7 @@ from pytorch3d.structures import Meshes
 from pytorch3d.renderer.cameras import FoVPerspectiveCameras
 
 # Input and output directories
-INPUT_DIR = "ModelNet40"
+INPUT_DIR = "ModelNet40_OBJ"
 OUTPUT_DIR = "ModelNet40_12View"
 
 # Camera settings
