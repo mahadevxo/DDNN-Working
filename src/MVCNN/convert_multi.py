@@ -16,11 +16,11 @@ AZIMUTH_STEP = 360 / VIEWS  # 30-degree steps
 # OpenGL Initialization with EGL (NO GLFW)
 def create_context():
     try:
-        ctx = moderngl.create_context(standalone=True)  # Force headless EGL
+        ctx = moderngl.create_context(require=330, mode='egl')
         print("Successfully created EGL context!")
         return ctx
     except Exception as e:
-        raise RuntimeError(f"Failed to create ModernGL context: {e}")
+        raise RuntimeError(f"Failed to create ModernGL context: {e}") from e
 
 # Load OBJ file
 def load_mesh(obj_path):
