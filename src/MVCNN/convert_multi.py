@@ -10,14 +10,9 @@ import subprocess
 import torch  # Added for NVIDIA GPU detection
 import time
 from concurrent.futures import ThreadPoolExecutor
-# New imports for GPU acceleration
-from OpenGL.GL import *
-from OpenGL.GLU import *
-from OpenGL.GLUT import *
+# Modify imports to remove PyCUDA GL dependency
 from PIL import Image
-import pycuda.driver as cuda
-import pycuda.gl as cuda_gl
-import pycuda.autoinit
+import torch.nn as nn
 
 # Paths
 MODELNET40_PATH = "ModelNet40"
@@ -183,81 +178,140 @@ def setup_gpu_environment():
     
     return nvidia_gpu_available
 
-class GPURenderer:
-    """Class for GPU-accelerated rendering using OpenGL and CUDA."""
-    def __init__(self, width=WINDOW_SIZE, height=WINDOW_SIZE):
-        self.width = width
-        self.height = height
-        self.initialized = False
+class GpuMeshRasterizer(nn.Module):
+    """PyTorch-based mesh rasterizer that uses GPU acceleration without OpenGL."""
+    def __init__(self, image_size=WINDOW_SIZE):
+        super().__init__()
+        self.image_size = image_size
+        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         
-    def initialize(self):
-        if self.initialized:
-            return
+    def to_device(self, tensor):
+        """Helper to move tensors to the correct device."""
+        if isinstance(tensor, np.ndarray):
+            return torch.from_numpy(tensor).to(self.device)
+        return tensor.to(self.device)
+        
+    def render_view(self, vertices, faces, elevation=30, azimuth=0):
+        """Render a view of the mesh using PyTorch operations."""
+        # Convert inputs to tensors and move to GPU
+        vertices_tensor = self.to_device(vertices).float()
+        faces_tensor = self.to_device(faces).long()
+        
+        # Create rotation matrices for camera view
+        elev_rad = torch.tensor(elevation * np.pi / 180.0).to(self.device)
+        azim_rad = torch.tensor(azimuth * np.pi / 180.0).to(self.device)
+        
+        # Create rotation matrices
+        rot_y = torch.tensor([
+            [torch.cos(azim_rad), 0, torch.sin(azim_rad)],
+            [0, 1, 0],
+            [-torch.sin(azim_rad), 0, torch.cos(azim_rad)]
+        ]).to(self.device)
+        
+        rot_x = torch.tensor([
+            [1, 0, 0],
+            [0, torch.cos(elev_rad), -torch.sin(elev_rad)],
+            [0, torch.sin(elev_rad), torch.cos(elev_rad)]
+        ]).to(self.device)
+        
+        # Apply rotations
+        vertices_rotated = torch.matmul(vertices_tensor, torch.matmul(rot_y, rot_x))
+        
+        # Move vertices slightly back for better perspective
+        vertices_rotated[:, 2] += 2.0
+        
+        # Simple projection to image plane (z=1)
+        vertices_2d = vertices_rotated[:, :2] / vertices_rotated[:, 2:3]
+        
+        # Scale to image coordinates
+        vertices_2d = (vertices_2d + 1) * self.image_size / 2
+        
+        # Create an empty image
+        image = torch.ones((self.image_size, self.image_size, 3), device=self.device) * 255
+        
+        # Get triangles for rasterization
+        triangles = vertices_2d[faces_tensor]
+        
+        # Simple flat shading - prepare face normals in 3D space
+        v0, v1, v2 = [vertices_rotated[faces_tensor[:, i]] for i in range(3)]
+        face_normals = torch.cross(v1 - v0, v2 - v0)
+        face_normals = face_normals / (torch.norm(face_normals, dim=1, keepdim=True) + 1e-8)
+        
+        # Lighting direction
+        light_dir = torch.tensor([0.0, 0.0, 1.0], device=self.device)
+        
+        # Compute lighting (simple diffuse)
+        diffuse = torch.matmul(face_normals, light_dir)
+        diffuse = torch.clamp(diffuse, 0, 1) * 180 + 75  # Scale to reasonable gray values
+        
+        # Create colors for each face
+        face_colors = torch.ones((len(faces_tensor), 3), device=self.device) * diffuse.view(-1, 1)
+        
+        # Rasterize triangles
+        with torch.no_grad():
+            # Sort faces by z-depth for basic z-buffering
+            z_depths = vertices_rotated[faces_tensor, 2].mean(dim=1)
+            _, indices = torch.sort(z_depths, descending=True)
             
-        # Initialize GLUT
-        glutInit()
-        glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH)
-        glutInitWindowSize(self.width, self.height)
-        glutCreateWindow(b"GPU Renderer")
-        glutHideWindow()  # Hide the window as we're doing offscreen rendering
-        
-        # Configure OpenGL
-        glClearColor(1.0, 1.0, 1.0, 1.0)
-        glEnable(GL_DEPTH_TEST)
-        glEnable(GL_CULL_FACE)
-        glEnable(GL_LIGHTING)
-        glEnable(GL_LIGHT0)
-        glLightfv(GL_LIGHT0, GL_POSITION, [0, 0, 1, 0])
-        glLightfv(GL_LIGHT0, GL_DIFFUSE, [1, 1, 1, 1])
-        glEnable(GL_COLOR_MATERIAL)
-        glColorMaterial(GL_FRONT, GL_DIFFUSE)
-        
-        self.initialized = True
-        
-    def render_view(self, vertices, faces, elev=30, azim=0):
-        self.initialize()
-        
-        # Setup viewport and projection
-        glViewport(0, 0, self.width, self.height)
-        glMatrixMode(GL_PROJECTION)
-        glLoadIdentity()
-        gluPerspective(40, 1.0, 0.1, 100.0)
-        
-        glMatrixMode(GL_MODELVIEW)
-        glLoadIdentity()
-        glTranslatef(0, 0, -2)
-        gluLookAt(0, 0, 2, 0, 0, 0, 0, 1, 0)
-        
-        # Apply view rotation
-        glRotatef(elev, 1, 0, 0)
-        glRotatef(azim, 0, 1, 0)
-        
-        # Clear the buffer
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
-        
-        # Render mesh
-        glColor3f(0.7, 0.7, 0.7)  # Light gray color
-        
-        glBegin(GL_TRIANGLES)
-        for face in faces:
-            # Calculate face normal for lighting
-            v0, v1, v2 = vertices[face[0]], vertices[face[1]], vertices[face[2]]
-            normal = np.cross(v1 - v0, v2 - v0)
-            normal = normal / np.linalg.norm(normal)
-            glNormal3fv(normal)
-            
-            # Draw face
-            for v_idx in face:
-                glVertex3fv(vertices[v_idx])
-        glEnd()
-        
-        # Read pixels from framebuffer
-        glPixelStorei(GL_PACK_ALIGNMENT, 1)
-        data = glReadPixels(0, 0, self.width, self.height, GL_RGB, GL_UNSIGNED_BYTE)
-        image = np.frombuffer(data, dtype=np.uint8).reshape(self.height, self.width, 3)
-        image = np.flipud(image)  # OpenGL has origin at bottom left
-        
-        return image
+            # Process faces from back to front
+            for idx in indices:
+                try:
+                    tri = triangles[idx].long()
+                    color = face_colors[idx]
+                    
+                    # Get bounding box
+                    min_x = max(0, torch.min(tri[:, 0]).long())
+                    max_x = min(self.image_size - 1, torch.max(tri[:, 0]).long() + 1)
+                    min_y = max(0, torch.min(tri[:, 1]).long())
+                    max_y = min(self.image_size - 1, torch.max(tri[:, 1]).long() + 1)
+                    
+                    # Skip if triangle is outside view
+                    if max_x <= min_x or max_y <= min_y:
+                        continue
+                    
+                    # Create grid of points
+                    y, x = torch.meshgrid(
+                        torch.arange(min_y, max_y, device=self.device),
+                        torch.arange(min_x, max_x, device=self.device),
+                        indexing='ij'
+                    )
+                    points = torch.stack([x.flatten(), y.flatten()], dim=1)
+                    
+                    # Check if points are inside triangle using barycentric coordinates
+                    v0 = tri[0]
+                    v1 = tri[1]
+                    v2 = tri[2]
+                    
+                    area = 0.5 * torch.abs((v1[0] - v0[0]) * (v2[1] - v0[1]) - 
+                                           (v2[0] - v0[0]) * (v1[1] - v0[1]))
+                    
+                    # Skip degenerate triangles
+                    if area < 1e-5:
+                        continue
+                        
+                    # Calculate barycentric coordinates for each point
+                    w0 = 0.5 * torch.abs((v1[0] - points[:, 0]) * (v2[1] - points[:, 1]) - 
+                                        (v2[0] - points[:, 0]) * (v1[1] - points[:, 1])) / (area + 1e-8)
+                    w1 = 0.5 * torch.abs((v2[0] - points[:, 0]) * (v0[1] - points[:, 1]) - 
+                                        (v0[0] - points[:, 0]) * (v2[1] - points[:, 1])) / (area + 1e-8)
+                    w2 = 1 - w0 - w1
+                    
+                    # Points inside triangle have all weights between 0 and 1
+                    mask = (w0 >= 0) & (w1 >= 0) & (w2 >= 0) & (w0 <= 1) & (w1 <= 1) & (w2 <= 1)
+                    
+                    # Get pixel coordinates of points inside triangle
+                    y_inside = points[mask, 1].long()
+                    x_inside = points[mask, 0].long()
+                    
+                    # Draw the pixels
+                    if len(y_inside) > 0:
+                        image[y_inside, x_inside] = color
+                except Exception as e:
+                    continue  # Skip problematic triangles
+                    
+        # Convert to numpy array
+        image_np = image.cpu().numpy().astype(np.uint8)
+        return image_np
 
 def gpu_render_views(obj_path, save_dir, class_name, model_id, renderer=None):
     """Renders 12 views of a 3D model using GPU acceleration."""
@@ -272,7 +326,7 @@ def gpu_render_views(obj_path, save_dir, class_name, model_id, renderer=None):
         # Center and normalize the mesh
         vertices = mesh.vertices - mesh.vertices.mean(axis=0)
         max_dim = max(vertices.max(axis=0) - vertices.min(axis=0))
-        vertices = vertices / (max_dim * 1.5)  # Normalize to fit in view
+        vertices = vertices / (max_dim * 0.8)  # Normalize to fit in view
         
         faces = mesh.faces
         
@@ -280,12 +334,12 @@ def gpu_render_views(obj_path, save_dir, class_name, model_id, renderer=None):
         
         # Initialize renderer if not provided
         if renderer is None:
-            renderer = GPURenderer()
+            renderer = GpuMeshRasterizer()
         
         # Render multiple views
         for i in range(VIEWS):
             azim = i * AZIMUTH_STEP
-            image = renderer.render_view(vertices, faces, elev=30, azim=azim)
+            image = renderer.render_view(vertices, faces, elevation=30, azimuth=azim)
             
             # Save the image
             output_path = f"{save_dir}/{class_name}_{model_id}_view_{i}.png"
@@ -363,7 +417,14 @@ def collect_tasks():
 
 def batch_process_models(tasks, batch_size=50):
     """Process models in batches to optimize GPU memory usage."""
-    renderer = GPURenderer()  # Create a single renderer for reuse
+    try:
+        # Create a single renderer to be reused
+        renderer = GpuMeshRasterizer()
+        renderer.to(torch.device('cuda'))
+    except Exception as e:
+        print(f"Error initializing GPU renderer: {e}")
+        return 0, len(tasks)
+    
     num_batches = (len(tasks) + batch_size - 1) // batch_size
     
     successful = 0
@@ -384,8 +445,11 @@ def batch_process_models(tasks, batch_size=50):
             
             # Collect results
             for future in futures:
-                if future.result():
-                    successful += 1
+                try:
+                    if future.result():
+                        successful += 1
+                except Exception as e:
+                    print(f"Error in batch processing: {e}")
         
         # Force CUDA synchronization and clear GPU memory
         torch.cuda.synchronize()
@@ -398,18 +462,43 @@ def process_modelnet40():
     # Set up GPU environment
     nvidia_gpu = setup_gpu_environment()
     
-    if not nvidia_gpu:
-        print("No NVIDIA GPU detected. Using CPU rendering instead.")
-        # Fall back to original CPU-based rendering
-        return
-    
     # Get all tasks
     tasks, total_files = collect_tasks()
     print(f"Found {total_files} models to process")
     
-    # Use batch processing for GPU optimization
     start_time = time.time()
-    successful, total = batch_process_models(tasks)
+    
+    if nvidia_gpu:
+        print("Using GPU acceleration for rendering")
+        successful, total = batch_process_models(tasks)
+    else:
+        print("No NVIDIA GPU detected. Using CPU rendering instead.")
+        # Determine optimal multiprocessing approach
+        if platform.system() == 'Windows':
+            mp_context = mp.get_context('spawn')
+        else:
+            mp_method = 'spawn' if platform.system() == 'Darwin' else 'fork'
+            mp_context = mp.get_context(mp_method)
+
+        # Number of processes - optimized for the system
+        num_processes = detect_optimal_cores()
+        print(f"Processing using {num_processes} cores with method: {mp_context.get_start_method()}")
+
+        # Adjust chunk size based on system
+        chunk_size = max(100, total_files // (num_processes * 4))
+
+        # Use context manager for proper resource cleanup
+        with mp_context.Pool(processes=min(8, num_processes)) as pool:
+            # Process with tqdm for progress tracking
+            results = list(tqdm(
+                pool.imap(process_single_model, tasks, chunksize=chunk_size),
+                total=len(tasks),
+                desc="Rendering views",
+                unit="model"
+            ))
+            successful = sum(r is True for r in results)
+            total = len(results)
+    
     elapsed_time = time.time() - start_time
     
     # Report completion statistics
