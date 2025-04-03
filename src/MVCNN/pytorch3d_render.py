@@ -159,8 +159,11 @@ def render_views(obj_path, output_dir, device="cuda"):
         shader=SoftPhongShader(device=device, cameras=cameras)
     )
     
+    # Ensure mesh batch size matches camera count
+    mesh_batch = mesh.extend(len(angles))
+    
     # Render views and save images
-    images = renderer(meshes_world=mesh)
+    images = renderer(meshes_world=mesh_batch)
     for i, img in enumerate(images):
         img = img[...,:3].cpu().numpy()  # Remove alpha channel
         imageio.imwrite(os.path.join(output_dir, f"view_{i:02d}.png"), (img * 255).astype('uint8'))
