@@ -18,8 +18,8 @@ parser.add_argument("-weight_decay", type=float, help="weight decay", default=0.
 parser.add_argument("-no_pre_training", dest='no_pre_training', action='store_true')
 parser.add_argument("-cnn_name", "--cnn_name", type=str, help="cnn model name", default="vgg11")
 parser.add_argument("-num_views", type=int, help="number of views", default=12)
-parser.add_argument("-train_path", type=str, default="ModelNet40_12View/*/train")
-parser.add_argument("-val_path", type=str, default="ModelNet40_12View/*/test")
+parser.add_argument("-train_path", type=str, default="./ModelNet40_12View/*/train")
+parser.add_argument("-val_path", type=str, default="./ModelNet40_12View/*/test")
 parser.set_defaults(train=False)
 
 def create_folder(log_dir):
@@ -49,7 +49,7 @@ if __name__ == '__main__':
     # Ask user if they want to train SVCNN again
     train_svcnn = input("Do you want to train SVCNN again? (yes/no): ").strip().lower()
 
-    if train_svcnn == 'yes':
+    if train_svcnn.lower() in ['yes', 'y']:
         print("TRAINING SVCNN")
         # Train SVCNN from scratch
         log_dir = f'{args.name}_stage_1'
