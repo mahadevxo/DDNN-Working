@@ -14,6 +14,13 @@ import os
 import imageio
 from tqdm import tqdm
 
+import torch
+torch.backends.cudnn.enabled = True
+torch.backends.cudnn.benchmark = True
+
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+print(f"Using device: {device}")
+
 # Paths
 MODELNET40_PATH = "ModelNet40"
 MODELNET40_OBJ_PATH = "ModelNet40_OBJ"
