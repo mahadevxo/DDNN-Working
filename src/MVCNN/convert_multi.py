@@ -2,7 +2,6 @@ import os
 import torch
 import numpy as np
 import imageio
-import trimesh
 from tqdm import tqdm
 from pytorch3d.io import load_objs_as_meshes
 from pytorch3d.renderer import (
@@ -35,9 +34,15 @@ def create_renderer(image_size=224):
         faces_per_pixel=1,
     )
     lights = PointLights(device=device, location=[[0.0, 0.0, 3.0]])
+    
+    cameras = FoVPerspectiveCameras(device=device)  # ✅ Cameras added here
+
     return MeshRenderer(
-        rasterizer=MeshRasterizer(raster_settings=raster_settings),
-        shader=HardPhongShader(device=device, lights=lights)
+        rasterizer=MeshRasterizer(
+            cameras=cameras,  # ✅ Fix: Attach cameras
+            raster_settings=raster_settings
+        ),
+        shader=HardPhongShader(device=device, lights=lights, cameras=cameras)  # ✅ Fix: Attach cameras
     )
 
 renderer = create_renderer()
@@ -82,8 +87,8 @@ for category in tqdm(os.listdir(INPUT_DIR), desc="Processing Categories"):
                 R, T = look_at_view_transform(DISTANCE, ELEVATION, azimuth, device=device)
                 cameras = FoVPerspectiveCameras(device=device, R=R, T=T)
 
-                image = renderer(mesh.extend(1), cameras=cameras)
-                image = image[0, ..., :3].cpu().numpy()  # Extract RGB
+                image = renderer(mesh.extend(len(R)), cameras=cameras)  # ✅ Batch size fix
+                image = image[0, ..., :3].detach().cpu().numpy()  # ✅ Detach before CPU
 
                 output_file = os.path.join(output_model_path, f"view_{i}.png")
                 imageio.imwrite(output_file, (image * 255).astype(np.uint8))
