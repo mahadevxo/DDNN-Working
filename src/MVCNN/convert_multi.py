@@ -7,6 +7,8 @@ from PIL import Image
 from pyassimp import load
 from tqdm import tqdm
 
+
+
 # Paths
 MODELNET40_OBJ_PATH = "ModelNet40_OBJ"
 OUTPUT_PATH = "ModelNet40_12View"
@@ -16,7 +18,7 @@ AZIMUTH_STEP = 360 / VIEWS  # 30-degree steps
 # OpenGL Initialization with EGL (NO GLFW)
 def create_context():
     try:
-        ctx = moderngl.create_context(require=330, mode='egl')
+        ctx = moderngl.create_context(standalone=True, backend='osmesa')
         print("Successfully created EGL context!")
         return ctx
     except Exception as e:
