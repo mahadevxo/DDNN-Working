@@ -26,7 +26,7 @@ def create_context():
         raise RuntimeError("Failed to create GLFW window")
     
     glfw.make_context_current(window)
-    ctx = moderngl.create_context()
+    ctx = moderngl.create_standalone_context()
     return ctx, window
 
 # Load OBJ file
