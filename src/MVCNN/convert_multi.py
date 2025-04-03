@@ -96,7 +96,7 @@ def render_views(obj_path, output_dir, ctx):
         void main() {
             vec4 worldPos = modelview * vec4(in_vert, 1.0);
             fragPos = worldPos.xyz;
-            fragNormal = mat3(modelview) * in_norm;
+            fragNormal = mat3(transpose(inverse(modelview))) * in_norm;  // Correctly transform normals
             gl_Position = projection * worldPos;
         }
         """,
@@ -110,18 +110,24 @@ def render_views(obj_path, output_dir, ctx):
             // Multiple light directions for better illumination
             vec3 lightDir1 = normalize(vec3(0.5, 1.0, 0.5));
             vec3 lightDir2 = normalize(vec3(-0.5, 0.7, 0.5));
+            vec3 lightDir3 = normalize(vec3(0.0, 0.0, 1.0));
             
             vec3 norm = normalize(fragNormal);
             
-            // Calculate diffuse lighting from two sources
+            // Base material color - light gray
+            vec3 materialColor = vec3(0.8, 0.8, 0.8);
+            
+            // Calculate diffuse lighting from multiple sources
             float diff1 = max(dot(norm, lightDir1), 0.0);
             float diff2 = max(dot(norm, lightDir2), 0.0);
+            float diff3 = max(dot(norm, lightDir3), 0.0);
             
-            // Ambient light component to ensure nothing is completely black
-            float ambient = 0.2;
+            // Higher ambient light to prevent complete darkness
+            float ambient = 0.3;
             
-            // Combined lighting
-            vec3 color = vec3(1.0) * (diff1 + diff2 * 0.5 + ambient);
+            // Combined lighting with higher intensity
+            float diffuse = diff1 * 0.6 + diff2 * 0.3 + diff3 * 0.4;
+            vec3 color = materialColor * (diffuse + ambient);
             
             // Ensure nothing exceeds 1.0
             color = min(color, vec3(1.0));
@@ -164,18 +170,22 @@ def render_views(obj_path, output_dir, ctx):
     # Enable depth testing
     ctx.enable(moderngl.DEPTH_TEST)
     
+    # Clear the background to a light gray color instead of black
+    ctx.clear(0.9, 0.9, 0.9, 1.0)
+    
     for i, angle in enumerate(np.linspace(0, 360, num=13)[:-1]):
-        # Create modelview matrix: rotate around Y axis and move back 3 units
+        # Create modelview matrix: rotate around Y axis and move back 2.5 units
+        # Tilt the camera slightly upward for a better view
         rotation_matrix = np.array([
             [np.cos(np.radians(angle)), 0, np.sin(np.radians(angle)), 0],
-            [0, 1, 0, 0],
-            [-np.sin(np.radians(angle)), 0, np.cos(np.radians(angle)), -3],
+            [0, 1, 0, 0.2],  # Adding a slight Y offset to view from above
+            [-np.sin(np.radians(angle)), 0, np.cos(np.radians(angle)), -2.5],  # Moved closer to the model
             [0, 0, 0, 1]
         ], dtype='f4')
 
         program['modelview'].write(rotation_matrix.tobytes())
         fbo.use()
-        ctx.clear(0.0, 0.0, 0.0, 1.0)  # Clear color and depth buffer
+        ctx.clear(0.9, 0.9, 0.9, 1.0)  # Clear to light gray instead of black
         vao.render()
         data = fbo.read(components=3)
         img = Image.frombytes('RGB', (800, 800), data)
