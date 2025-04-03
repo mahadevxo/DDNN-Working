@@ -33,9 +33,11 @@ def create_renderer(image_size=224):
         image_size=image_size,
         blur_radius=0.0,
         faces_per_pixel=1,
+        bin_size=0,  # ✅ Use naive rasterization (fixes overflow issue)
+        max_faces_per_bin=50000  # ✅ Increase bin limit to prevent overflow
     )
-    lights = PointLights(device=device, location=[[0.0, 0.0, 3.0]])
     
+    lights = PointLights(device=device, location=[[0.0, 0.0, 3.0]])
     cameras = FoVPerspectiveCameras(device=device)  
 
     return MeshRenderer(
