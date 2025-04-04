@@ -62,6 +62,7 @@ if __name__ == '__main__':
     print('num_val_files: '+str(len(val_dataset.filepaths)))
     trainer = ModelNetTrainer(cnet, train_loader, val_loader, optimizer, nn.CrossEntropyLoss(), 'svcnn', log_dir, num_views=1)
     trainer.train(30)
+    torch.cuda.empty_cache()  # Clear GPU memory before stage 2
 
     # STAGE 2
     log_dir = args.name+'_stage_2'
