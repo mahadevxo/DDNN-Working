@@ -8,6 +8,7 @@ import os
 from tensorboardX import SummaryWriter
 import time
 from tqdm import tqdm
+import torch.cuda.amp
 
 class ModelNetTrainer(object):
 
@@ -24,10 +25,11 @@ class ModelNetTrainer(object):
         self.num_views = num_views
         self.device = 'mps' if torch.backends.mps.is_available() else 'cuda' if torch.cuda.is_available() else 'cpu'
 
-        self.model.to(device)
+        self.model.to(self.device)
         if self.log_dir is not None:
             self.writer = SummaryWriter(log_dir)
-
+        # Add GradScaler for mixed precision training
+        self.scaler = torch.cuda.amp.GradScaler()
 
     def train(self, n_epochs):
 
@@ -60,17 +62,18 @@ class ModelNetTrainer(object):
 
                 if self.model_name == 'mvcnn':
                     N, V, C, H, W = data[1].size()
-                    in_data = Variable(data[1]).view(-1, C, H, W).to(self.device)  # Reshape to (batch_size * num_views, C, H, W)
-                    target = Variable(data[0]).to(self.device).repeat_interleave(V)  # Repeat target for each view
+                    in_data = data[1].view(-1, C, H, W).to(self.device)  # Reshape to (batch_size * num_views, C, H, W)
+                    target = data[0].to(self.device).repeat_interleave(V)  # Repeat target for each view
                 else:
-                    in_data = Variable(data[1]).to(self.device)
-                    target = Variable(data[0]).to(self.device)
+                    in_data = data[1].to(self.device)
+                    target = data[0].to(self.device)
 
                 self.optimizer.zero_grad()
 
-                out_data = self.model(in_data)
+                with torch.cuda.amp.autocast():
+                    out_data = self.model(in_data)
+                    loss = self.loss_fn(out_data, target)
 
-                loss = self.loss_fn(out_data, target)
                 running_loss += loss.item()
 
                 self.writer.add_scalar('train/train_loss', loss, i_acc+i+1)
@@ -85,8 +88,9 @@ class ModelNetTrainer(object):
                 
                 self.writer.add_scalar('train/train_overall_acc', acc, i_acc+i+1)
 
-                loss.backward()
-                self.optimizer.step()
+                self.scaler.scale(loss).backward()
+                self.scaler.step(self.optimizer)
+                self.scaler.update()
 
                 # Update progress bar
                 pbar.set_postfix({
