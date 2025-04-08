@@ -29,7 +29,7 @@ class ModelNetTrainer(object):
         if self.log_dir is not None:
             self.writer = SummaryWriter(log_dir)
         # Add GradScaler for mixed precision training
-        self.scaler = torch.cuda.amp.GradScaler()
+        self.scaler = torch.amp.GradScaler('cuda')
 
     def train(self, n_epochs):
 
