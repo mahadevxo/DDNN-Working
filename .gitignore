@@ -10,6 +10,7 @@ src/MVCNN_org/MVCNN-Jetson_stage_2
 **/imagenet-mini
 **/*.pth
 **/ModelNet40_Org
-**/ModelNet40_12View
-**/ModelNet40_12ViewFinal
+**/ModelNet40-12View
 **/AlexNetPruned
+**/data
+**/trained-models

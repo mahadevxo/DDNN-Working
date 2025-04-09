@@ -5,7 +5,9 @@ import numpy as np
 import torch
 import torch.optim as optim
 import torch.nn as nn
-import os,shutil,json
+import os
+import shutil
+import json
 import argparse
 
 from tools.Trainer import ModelNetTrainer
@@ -41,17 +43,15 @@ if __name__ == '__main__':
     pretraining = not args.no_pretraining
     log_dir = args.name
     create_folder(args.name)
-    config_f = open(os.path.join(log_dir, 'config.json'), 'w')
-    json.dump(vars(args), config_f)
-    config_f.close()
-
+    with open(os.path.join(log_dir, 'config.json'), 'w') as config_f:
+        json.dump(vars(args), config_f)
     # STAGE 1
-    log_dir = args.name+'_stage_1'
+    log_dir = f'{args.name}_stage_1'
     create_folder(log_dir)
     cnet = SVCNN(args.name, nclasses=40, pretraining=pretraining, cnn_name=args.cnn_name)
 
     optimizer = optim.Adam(cnet.parameters(), lr=args.lr, weight_decay=args.weight_decay)
-    
+
     n_models_train = args.num_models*args.num_views
 
     train_dataset = SingleImgDataset(args.train_path, scale_aug=False, rot_aug=False, num_models=n_models_train, num_views=args.num_views)
@@ -59,7 +59,7 @@ if __name__ == '__main__':
 
     val_dataset = SingleImgDataset(args.val_path, scale_aug=False, rot_aug=False, test_mode=True)
     val_loader = torch.utils.data.DataLoader(val_dataset, batch_size=32, shuffle=False, num_workers=4)
-    print('num_train_files: '+str(len(train_dataset.filepaths)))
+    print(f'num_train_files: {len(train_dataset.filepaths)}')
     print('num_val_files: '+str(len(val_dataset.filepaths)))
     trainer = ModelNetTrainer(cnet, train_loader, val_loader, optimizer, nn.CrossEntropyLoss(), 'svcnn', log_dir, num_views=1)
     trainer.train(args.epoch)
@@ -74,13 +74,13 @@ if __name__ == '__main__':
     del cnet
 
     optimizer = optim.Adam(cnet_2.parameters(), lr=args.lr, weight_decay=args.weight_decay, betas=(0.9, 0.999))
-    
+
     train_dataset = MultiviewImgDataset(args.train_path, scale_aug=False, rot_aug=False, num_models=n_models_train, num_views=args.num_views)
     train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=args.batchSize, shuffle=False, num_workers=4)# shuffle needs to be false! it's done within the trainer
 
     val_dataset = MultiviewImgDataset(args.val_path, scale_aug=False, rot_aug=False, num_views=args.num_views)
     val_loader = torch.utils.data.DataLoader(val_dataset, batch_size=args.batchSize, shuffle=False, num_workers=4)
-    print('num_train_files: '+str(len(train_dataset.filepaths)))
+    print(f'num_train_files: {len(train_dataset.filepaths)}')
     print('num_val_files: '+str(len(val_dataset.filepaths)))
     trainer = ModelNetTrainer(cnet_2, train_loader, val_loader, optimizer, nn.CrossEntropyLoss(), 'mvcnn', log_dir, num_views=args.num_views)
     trainer.train(args.epoch)
