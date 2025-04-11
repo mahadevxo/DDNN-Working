@@ -48,11 +48,12 @@ if __name__ == '__main__':
     print(f"Learning Rate: {args.lr}, Weight Decay: {args.weight_decay}, Pretraining: {pretraining}")
     print(f"CNN Name: {args.cnn_name}, Num Views: {args.num_views}")
     print(f"Train Path: {args.train_path}, Val Path: {args.val_path}, Epochs: {args.epoch}")
+    print('*'*50, "---------", '*'*50)
     
     # STAGE 1
     log_dir = f'{args.name}_stage_1'
     create_folder(log_dir)
-    cnet = SVCNN(args.name, nclasses=40, pretraining=pretraining, cnn_name=args.cnn_name)
+    cnet = SVCNN(args.name, nclasses=33, pretraining=pretraining, cnn_name=args.cnn_name)
 
     optimizer = optim.Adam(cnet.parameters(), lr=args.lr, weight_decay=args.weight_decay)
 
@@ -74,7 +75,7 @@ if __name__ == '__main__':
     # STAGE 2
     log_dir = f'{args.name}_stage_2'
     create_folder(log_dir)
-    cnet_2 = MVCNN(args.name, cnet, nclasses=40, cnn_name=args.cnn_name, num_views=args.num_views)
+    cnet_2 = MVCNN(args.name, cnet, nclasses=33, cnn_name=args.cnn_name, num_views=args.num_views)
     del cnet
 
     optimizer = optim.Adam(cnet_2.parameters(), lr=args.lr, weight_decay=args.weight_decay, betas=(0.9, 0.999))

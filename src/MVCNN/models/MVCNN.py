@@ -23,7 +23,7 @@ def flip(x, dim):
 
 class SVCNN(Model):
 
-    def __init__(self, name, nclasses=40, pretraining=True, cnn_name='vgg11', device=None):
+    def __init__(self, name, nclasses=33, pretraining=True, cnn_name='vgg11', device=None):
         # sourcery skip: low-code-quality
         super(SVCNN, self).__init__(name)
 
@@ -45,15 +45,15 @@ class SVCNN(Model):
             if self.cnn_name == 'resnet18':
                 weights = models.ResNet18_Weights.DEFAULT if self.pretraining else None
                 self.net = models.resnet18(weights=weights).to(device=self.device)
-                self.net.fc = nn.Linear(512,40).to(self.device)
+                self.net.fc = nn.Linear(512,33).to(self.device)
             elif self.cnn_name == 'resnet34':
                 weights = models.ResNet34_Weights.DEFAULT if self.pretraining else None
                 self.net = models.resnet34(weights=weights).to(self.device)
-                self.net.fc = nn.Linear(512,40).to(self.device)
+                self.net.fc = nn.Linear(512,33).to(self.device)
             elif self.cnn_name == 'resnet50':
                 weights = models.ResNet50_Weights.DEFAULT if self.pretraining else None
                 self.net = models.resnet50(weights=weights).to(self.device)
-                self.net.fc = nn.Linear(2048,40).to(self.device)
+                self.net.fc = nn.Linear(2048,33).to(self.device)
         else:
             if self.cnn_name == 'alexnet':
                 weights = models.AlexNet_Weights.DEFAULT if self.pretraining else None
@@ -69,7 +69,10 @@ class SVCNN(Model):
                 self.net_2 = models.vgg16(weights=weights).classifier.to(self.device)
             
             # Modify the classifier to handle the correct input size
-            self.net_2._modules['6'] = nn.Linear(4096,40)
+            self.net_2._modules['6'] = nn.Linear(4096,33) 
+            '''
+            MY MODELNET DATASET HAS ONLY 33 MODELS
+            '''
 
     def forward(self, x):
         if self.use_resnet:
@@ -86,7 +89,7 @@ class SVCNN(Model):
 
 class MVCNN(Model):
 
-    def __init__(self, name, model, nclasses=40, cnn_name='vgg11', num_views=12, device = None):
+    def __init__(self, name, model, nclasses=33, cnn_name='vgg11', num_views=12, device = None):
         super(MVCNN, self).__init__(name)
 
         self.class_names=['airplane','bathtub','bed','bench','bookshelf','bottle','bowl','car','chair',
