@@ -1,7 +1,6 @@
 import os
 os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
 
-import numpy as np
 import torch
 import torch.optim as optim
 import torch.nn as nn
