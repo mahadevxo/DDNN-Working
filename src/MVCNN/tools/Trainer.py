@@ -13,7 +13,7 @@ import torch.cuda.amp
 class ModelNetTrainer(object):
 
     def __init__(self, model, train_loader, val_loader, optimizer, loss_fn, \
-                 model_name, log_dir, num_views=12, device='cuda'):
+                     model_name, log_dir, num_views=12, device='cuda'):
 
         self.optimizer = optimizer
         self.model = model
@@ -28,8 +28,9 @@ class ModelNetTrainer(object):
         self.model.to(self.device)
         if self.log_dir is not None:
             self.writer = SummaryWriter(log_dir)
-        # Add GradScaler for mixed precision training
-        self.scaler = torch.amp.GradScaler('cuda')
+        # Use AMP only if device is cuda
+        self.use_amp = (self.device == 'cuda')
+        self.scaler = torch.cuda.amp.GradScaler() if self.use_amp else None
 
     def train(self, n_epochs):
 
@@ -70,7 +71,11 @@ class ModelNetTrainer(object):
 
                 self.optimizer.zero_grad()
 
-                with torch.cuda.amp.autocast():
+                if self.use_amp:
+                    with torch.cuda.amp.autocast():
+                        out_data = self.model(in_data)
+                        loss = self.loss_fn(out_data, target)
+                else:
                     out_data = self.model(in_data)
                     loss = self.loss_fn(out_data, target)
 
@@ -88,9 +93,13 @@ class ModelNetTrainer(object):
                 
                 self.writer.add_scalar('train/train_overall_acc', acc, i_acc+i+1)
 
-                self.scaler.scale(loss).backward()
-                self.scaler.step(self.optimizer)
-                self.scaler.update()
+                if self.use_amp:
+                    self.scaler.scale(loss).backward()
+                    self.scaler.step(self.optimizer)
+                    self.scaler.update()
+                else:
+                    loss.backward()
+                    self.optimizer.step()
 
                 # Update progress bar
                 pbar.set_postfix({

@@ -29,13 +29,10 @@ parser.add_argument("-epoch", '-e', type=int, help="number of epochs", default=3
 parser.set_defaults(train=False)
 
 def create_folder(log_dir):
-    # make summary folder
-    if not os.path.exists(log_dir):
-        os.mkdir(log_dir)
-    else:
+    if os.path.exists(log_dir):
         print('WARNING: summary folder already exists!! It will be overwritten!!')
         shutil.rmtree(log_dir)
-        os.mkdir(log_dir)
+    os.mkdir(log_dir)
 
 if __name__ == '__main__':
     args = parser.parse_args()
@@ -60,7 +57,7 @@ if __name__ == '__main__':
     val_dataset = SingleImgDataset(args.val_path, scale_aug=False, rot_aug=False, test_mode=True)
     val_loader = torch.utils.data.DataLoader(val_dataset, batch_size=32, shuffle=False, num_workers=4)
     print(f'num_train_files: {len(train_dataset.filepaths)}')
-    print('num_val_files: '+str(len(val_dataset.filepaths)))
+    print(f'num_val_files: {len(val_dataset.filepaths)}')
     trainer = ModelNetTrainer(cnet, train_loader, val_loader, optimizer, nn.CrossEntropyLoss(), 'svcnn', log_dir, num_views=1)
     trainer.train(args.epoch)
     torch.cuda.empty_cache()  # Clear GPU memory before stage 2
@@ -68,7 +65,7 @@ if __name__ == '__main__':
     cnet.save(log_dir, args.epoch)
 
     # STAGE 2
-    log_dir = args.name+'_stage_2'
+    log_dir = f'{args.name}_stage_2'
     create_folder(log_dir)
     cnet_2 = MVCNN(args.name, cnet, nclasses=40, cnn_name=args.cnn_name, num_views=args.num_views)
     del cnet
@@ -81,7 +78,7 @@ if __name__ == '__main__':
     val_dataset = MultiviewImgDataset(args.val_path, scale_aug=False, rot_aug=False, num_views=args.num_views)
     val_loader = torch.utils.data.DataLoader(val_dataset, batch_size=args.batchSize, shuffle=False, num_workers=4)
     print(f'num_train_files: {len(train_dataset.filepaths)}')
-    print('num_val_files: '+str(len(val_dataset.filepaths)))
+    print(f'num_val_files: {len(val_dataset.filepaths)}')
     trainer = ModelNetTrainer(cnet_2, train_loader, val_loader, optimizer, nn.CrossEntropyLoss(), 'mvcnn', log_dir, num_views=args.num_views)
     trainer.train(args.epoch)
     torch.cuda.empty_cache()  # Clear GPU memory after training
