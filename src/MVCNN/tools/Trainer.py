@@ -30,7 +30,7 @@ class ModelNetTrainer(object):
             self.writer = SummaryWriter(log_dir)
         # Use AMP only if device is cuda
         self.use_amp = (self.device == 'cuda')
-        self.scaler = torch.cuda.amp.GradScaler() if self.use_amp else None
+        self.scaler = torch.amp.GradScaler('cuda') if self.use_amp else None
 
     def train(self, n_epochs):
 
@@ -72,7 +72,7 @@ class ModelNetTrainer(object):
                 self.optimizer.zero_grad()
 
                 if self.use_amp:
-                    with torch.cuda.amp.autocast():
+                    with torch.amp.autocast('cuda'):
                         out_data = self.model(in_data)
                         loss = self.loss_fn(out_data, target)
                 else:
