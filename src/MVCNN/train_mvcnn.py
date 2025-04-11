@@ -44,7 +44,7 @@ if __name__ == '__main__':
         json.dump(vars(args), config_f)
         
     print('*'*50, "Settings:", '*'*50)
-    print(f"Name: {args.name}, Batch Size: {args.bs}, Num Model: {args.num_models}")
+    print(f"Name: {args.name}, Num Model: {args.num_models}")
     print(f"Learning Rate: {args.lr}, Weight Decay: {args.weight_decay}, Pretraining: {pretraining}")
     print(f"CNN Name: {args.cnn_name}, Num Views: {args.num_views}")
     print(f"Train Path: {args.train_path}, Val Path: {args.val_path}, Epochs: {args.epochs}")
