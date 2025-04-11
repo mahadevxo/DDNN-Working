@@ -47,7 +47,7 @@ if __name__ == '__main__':
     print(f"Name: {args.name}, Num Model: {args.num_models}")
     print(f"Learning Rate: {args.lr}, Weight Decay: {args.weight_decay}, Pretraining: {pretraining}")
     print(f"CNN Name: {args.cnn_name}, Num Views: {args.num_views}")
-    print(f"Train Path: {args.train_path}, Val Path: {args.val_path}, Epochs: {args.epochs}")
+    print(f"Train Path: {args.train_path}, Val Path: {args.val_path}, Epochs: {args.epoch}")
     
     # STAGE 1
     log_dir = f'{args.name}_stage_1'
