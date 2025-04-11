@@ -1,14 +1,9 @@
 import numpy as np
 import glob
 import torch.utils.data
-import os
-import math
-from skimage import io, transform
 from PIL import Image
 import torch
-import torchvision as vision
-from torchvision import transforms, datasets
-import random
+from torchvision import transforms
 
 class MultiviewImgDataset(torch.utils.data.Dataset):
 
@@ -40,7 +35,7 @@ class MultiviewImgDataset(torch.utils.data.Dataset):
             else:
                 self.filepaths.extend(all_files[:min(num_models,len(all_files))])
 
-        if shuffle==True:
+        if shuffle is True:
             # permute
             rand_idx = np.random.permutation(int(len(self.filepaths)/num_views))
             filepaths_new = []
@@ -103,7 +98,7 @@ class SingleImgDataset(torch.utils.data.Dataset):
         set_ = root_dir.split('/')[-1]
         parent_dir = root_dir.rsplit('/',2)[0]
         self.filepaths = []
-        for item in self.classnames:
+        for item in self.class_names:
             all_files = sorted(glob.glob(f'{parent_dir}/{item}/{set_}/*shaded*.png'))
             if num_models == 0:
                 # Use the whole dataset
