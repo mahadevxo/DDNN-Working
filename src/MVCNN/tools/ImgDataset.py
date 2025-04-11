@@ -12,7 +12,7 @@ class MultiviewImgDataset(torch.utils.data.Dataset):
         self.class_names=['airplane','bed','bench','bookshelf','bottle','bowl','car','chair',
                          'cone','cup','curtain','door','flower_pot','glass_box',
                          'guitar','keyboard','lamp','laptop','mantel', 'person','piano',
-                         'plant','radio','range_hood','sink','sofa','stairs',
+                         'plant','radio','range_hood','sink','stairs',
                          'stool','tent','toilet','tv_stand','vase','wardrobe','xbox']
         self.root_dir = root_dir
         self.scale_aug = scale_aug
@@ -88,7 +88,7 @@ class SingleImgDataset(torch.utils.data.Dataset):
         self.class_names=['airplane','bed','bench','bookshelf','bottle','bowl','car','chair',
                          'cone','cup','curtain','door','flower_pot','glass_box',
                          'guitar','keyboard','lamp','laptop','mantel', 'person','piano',
-                         'plant','radio','range_hood','sink','sofa','stairs',
+                         'plant','radio','range_hood','sink','stairs',
                          'stool','tent','toilet','tv_stand','vase','wardrobe','xbox']
         self.root_dir = root_dir
         self.scale_aug = scale_aug

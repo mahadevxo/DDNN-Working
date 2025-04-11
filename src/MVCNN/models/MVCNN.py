@@ -26,7 +26,7 @@ class SVCNN(Model):
         self.class_names=['airplane','bed','bench','bookshelf','bottle','bowl','car','chair',
                          'cone','cup','curtain','door','flower_pot','glass_box',
                          'guitar','keyboard','lamp','laptop','mantel', 'person','piano',
-                         'plant','radio','range_hood','sink','sofa','stairs',
+                         'plant','radio','range_hood','sink','stairs',
                          'stool','tent','toilet','tv_stand','vase','wardrobe','xbox']
 
         self.nclasses = nclasses
@@ -91,7 +91,7 @@ class MVCNN(Model):
         self.class_names=['airplane','bed','bench','bookshelf','bottle','bowl','car','chair',
                          'cone','cup','curtain','door','flower_pot','glass_box',
                          'guitar','keyboard','lamp','laptop','mantel', 'person','piano',
-                         'plant','radio','range_hood','sink','sofa','stairs',
+                         'plant','radio','range_hood','sink','stairs',
                          'stool','tent','toilet','tv_stand','vase','wardrobe','xbox']
 
         self.nclasses = nclasses
