@@ -23,7 +23,7 @@ class MultiviewImgDataset(torch.utils.data.Dataset):
         set_ = root_dir.split('/')[-1]
         parent_dir = root_dir.rsplit('/',2)[0]
         self.filepaths = []
-        for item in self.classnames:
+        for item in self.class_names:
             all_files = sorted(glob.glob(f'{parent_dir}/{item}/{set_}/*.png'))
             ## Select subset for different number of views
             stride = int(12/self.num_views) # 12 6 4 3 2 1
@@ -68,7 +68,7 @@ class MultiviewImgDataset(torch.utils.data.Dataset):
     def __getitem__(self, idx):
         path = self.filepaths[idx*self.num_views]
         class_name = path.split('/')[-3]
-        class_id = self.classnames.index(class_name)
+        class_id = self.class_names.index(class_name)
         # Use PIL instead
         imgs = []
         for i in range(self.num_views):
@@ -121,7 +121,7 @@ class SingleImgDataset(torch.utils.data.Dataset):
     def __getitem__(self, idx):
         path = self.filepaths[idx]
         class_name = path.split('/')[-3]
-        class_id = self.classnames.index(class_name)
+        class_id = self.class_names.index(class_name)
 
         # Use PIL instead
         im = Image.open(self.filepaths[idx]).convert('RGB')
