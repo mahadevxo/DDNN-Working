@@ -42,6 +42,13 @@ if __name__ == '__main__':
     create_folder(args.name)
     with open(os.path.join(log_dir, 'config.json'), 'w') as config_f:
         json.dump(vars(args), config_f)
+        
+    print('*'*50, "Settings:", '*'*50)
+    print(f"Name: {args.name}, Batch Size: {args.bs}, Num Model: {args.num_models}")
+    print(f"Learning Rate: {args.lr}, Weight Decay: {args.weight_decay}, Pretraining: {pretraining}")
+    print(f"CNN Name: {args.cnn_name}, Num Views: {args.num_views}")
+    print(f"Train Path: {args.train_path}, Val Path: {args.val_path}, Epochs: {args.epochs}")
+    
     # STAGE 1
     log_dir = f'{args.name}_stage_1'
     create_folder(log_dir)
