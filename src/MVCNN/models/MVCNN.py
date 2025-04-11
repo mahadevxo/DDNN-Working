@@ -23,11 +23,11 @@ class SVCNN(Model):
         # sourcery skip: low-code-quality
         super(SVCNN, self).__init__(name)
 
-        self.class_names=['airplane','bathtub','bed','bench','bookshelf','bottle','bowl','car','chair',
-                         'cone','cup','curtain','desk','door','dresser','flower_pot','glass_box',
-                         'guitar','keyboard','lamp','laptop','mantel','monitor','night_stand',
-                         'person','piano','plant','radio','range_hood','sink','sofa','stairs',
-                         'stool','table','tent','toilet','tv_stand','vase','wardrobe','xbox']
+        self.class_names=['airplane','bed','bench','bookshelf','bottle','bowl','car','chair',
+                         'cone','cup','curtain','door','flower_pot','glass_box',
+                         'guitar','keyboard','lamp','laptop','mantel', 'person','piano',
+                         'plant','radio','range_hood','sink','sofa','stairs',
+                         'stool','tent','toilet','tv_stand','vase','wardrobe','xbox']
 
         self.nclasses = nclasses
         self.pretraining = pretraining
@@ -88,11 +88,11 @@ class MVCNN(Model):
     def __init__(self, name, model, nclasses=33, cnn_name='vgg11', num_views=12, device = None):
         super(MVCNN, self).__init__(name)
 
-        self.class_names=['airplane','bathtub','bed','bench','bookshelf','bottle','bowl','car','chair',
-                         'cone','cup','curtain','desk','door','dresser','flower_pot','glass_box',
-                         'guitar','keyboard','lamp','laptop','mantel','monitor','night_stand',
-                         'person','piano','plant','radio','range_hood','sink','sofa','stairs',
-                         'stool','table','tent','toilet','tv_stand','vase','wardrobe','xbox']
+        self.class_names=['airplane','bed','bench','bookshelf','bottle','bowl','car','chair',
+                         'cone','cup','curtain','door','flower_pot','glass_box',
+                         'guitar','keyboard','lamp','laptop','mantel', 'person','piano',
+                         'plant','radio','range_hood','sink','sofa','stairs',
+                         'stool','tent','toilet','tv_stand','vase','wardrobe','xbox']
 
         self.nclasses = nclasses
         self.num_views = num_views
