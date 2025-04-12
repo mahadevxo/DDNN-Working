@@ -36,7 +36,7 @@ class FilterPruner:
         self.model.zero_grad()
         
         activation_index = 0
-        for layer_index, layer in enumerate(self.model.features):   
+        for layer_index, layer in enumerate(self.model.net_1):   
             x = layer(x)
             if isinstance(layer, torch.nn.modules.conv.Conv2d):
                 self.activations.append(x)
@@ -44,7 +44,7 @@ class FilterPruner:
                 x.register_hook(lambda grad, idx=activation_index: self.compute_rank(grad, idx))
                 activation_index += 1
         x = x.view(x.size(0), -1)
-        x = self.model.classifier(x)
+        x = self.model.net_2(x)
         return x
     
     def compute_rank(self, grad, activation_index):
@@ -91,7 +91,7 @@ class FilterPruner:
             
     def get_pruning_plan(self, num_filters_to_prune):
         filters_to_prune = self.lowest_ranking_filters(num_filters_to_prune)
-        
+        return filters_to_prune
         filters_to_prune_per_layer = {}
         for (layer_n, f, _) in filters_to_prune:
             if layer_n not in filters_to_prune_per_layer:
@@ -112,3 +112,10 @@ class FilterPruner:
         self.reset()
         
         return filters_to_prune
+    
+    def get_sorted_filters(self):
+        data = []
+        for i in sorted(self.filter_ranks.keys()):
+            for j in range(self.filter_ranks[i].size(0)):
+                data.append((self.activation_to_layer[i], j, self.filter_ranks[i][j]))
+        return sorted(data, key=lambda x: x[2])

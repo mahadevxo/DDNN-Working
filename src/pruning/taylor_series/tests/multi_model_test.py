@@ -70,7 +70,7 @@ def main():
                 acc_pre_fine_tuning = prune_out[0][0]
                 inference_time_pre_pruning = prune_out[0][1]
                 
-                final_accuracy, compute_time = pruning_fine_tuner.test(pruning_fine_tuner.model, final_test=True)
+                final_accuracy, compute_time = pruning_fine_tuner.test_model(pruning_fine_tuner.model, final_test=True)
                 model_size = pruning_fine_tuner.get_model_size(model)
                 
                 print(f"Pruning amount: {pruning_amount:.2f}%, Pre Fine Tuning Accuracy: {acc_pre_fine_tuning:.2f}%, Inference Time Pre Pruning: {inference_time_pre_pruning:.2f}, Final Accuracy: {final_accuracy:.2f}%, Compute Time: {compute_time:.2f}, Model Size: {model_size:.2f}")

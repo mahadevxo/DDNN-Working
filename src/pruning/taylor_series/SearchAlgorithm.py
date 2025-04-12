@@ -40,7 +40,7 @@ class SearchAlgorithm:
             trial_model.load_state_dict(original_state)
             pruner = PruningFineTuner(trial_model)
             pruner.prune(pruning_percentage=mid)
-            final_acc = pruner.test(pruner.model)[0]
+            final_acc = pruner.test_model(pruner.model)[0]
             if final_acc >= self.min_accuracy:
                 best_percentage = mid
                 best_final_acc = final_acc
@@ -105,7 +105,7 @@ class SearchAlgorithm:
             from PruningFineTuner import PruningFineTuner
             pruner = PruningFineTuner(trial_model)
             pruner.prune(pruning_percentage=pruning_percentage)
-            final_acc = pruner.test(pruner.model)[0]
+            final_acc = pruner.test_model(pruner.model)[0]
 
             if final_acc >= self.min_accuracy:
                 best_percentage = pruning_percentage

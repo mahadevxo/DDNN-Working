@@ -14,3 +14,4 @@ src/MVCNN_org/MVCNN-Jetson_stage_2
 **/AlexNetPruned
 **/data
 **/trained-models
+/src/pruning/taylor_series/tests/outputs

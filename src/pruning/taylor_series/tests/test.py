@@ -65,7 +65,7 @@ def main():
             if model_save:
                 pruning_fine_tuner.save_model(f'pruned_{model_name}_{pruning_amount:.2f}.pth')
             else:
-                out = pruning_fine_tuner.test(pruning_fine_tuner.model, final_test = True)
+                out = pruning_fine_tuner.test_model(pruning_fine_tuner.model, final_test = True)
                 model_size = pruning_fine_tuner.get_model_size(model)
                 
                 append_result(results_filename, pruning_amount, out[0], out[1], model_size)

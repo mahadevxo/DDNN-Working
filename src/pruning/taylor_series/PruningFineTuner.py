@@ -98,12 +98,12 @@ class PruningFineTuner:
         self._clear_memory()
         
     def _get_mean(self, list1: list) -> float:
-        return sum(list1) / len(list1) if list1 else 0.0
+        return np.mean(list1)
             
-    def test(self, model, final_test=False):
+    def test_model(self, model, final_test=False):
         model.eval()
         model.to(self.device)
-        correct_top1 = 0
+        correct = 0
         total = 0
         compute_time = 0
         accuracies = []
@@ -127,7 +127,7 @@ class PruningFineTuner:
                         # Top-1 accuracy
                         _, predicted = torch.max(outputs, 1)
                         total += labels.size(0)
-                        correct_top1 += (predicted == labels).sum().item()
+                        correct += (predicted == labels).sum().item()
                         
                     finally:
                         # Free up memory
@@ -138,7 +138,7 @@ class PruningFineTuner:
                             del predicted
                         self._clear_memory()
             
-            accuracies.append(100.0 * correct_top1 / total if total > 0 else 0)
+            accuracies.append(100.0 * correct / total if total > 0 else 0)
             computation_times.append(compute_time)
             self._clear_memory()
         
@@ -157,8 +157,8 @@ class PruningFineTuner:
     def total_num_filters(self):
         return sum(
             layer.out_channels
-            for layer in self.model.features
-            if isinstance(layer, torch.nn.modules.conv.Conv2d)
+            for layer in self.model.net_1
+            if isinstance(layer, torch.nn.Conv2d)
         )
     
     def get_model_size(self, model):
@@ -168,19 +168,30 @@ class PruningFineTuner:
         # Convert to MB
         return total_size / (1024 ** 2)
     
-    def prune(self, pruning_percentage):  # sourcery skip: extract-method, low-code-quality
+    def get_all_ranked_filters(self):        
+        self.model.train()
+        for param in self.model.net_1.parameters():
+            param.requires_grad = True
+        self.train_epoch(rank_filter=True)
+        self.pruner.normalize_ranks_per_layer()
+        return self.pruner.get_sorted_filters()
+    
+    def prune(self, pruning_percentage, ranked_filters=None):  # sourcery skip: extract-method, low-code-quality
         self.model.train()
         
         # Enable gradients for pruning
-        for param in self.model.features.parameters():
+        for param in self.model.net_1.parameters():
             param.requires_grad = True
             
         original_filters = self.total_num_filters()
-        total_filters_to_prune = int(original_filters * (pruning_percentage / 100.0))
-        print(f"Total Filters to prune: {total_filters_to_prune} For Pruning Percentage: {pruning_percentage}")
+        num_filters_to_prune = int(original_filters * (pruning_percentage / 100.0))
+        print(f"Total Filters to prune: {num_filters_to_prune} For Pruning Percentage: {pruning_percentage}")
 
         # Rank and get the candidates to prune
-        prune_targets = self.get_candidates_to_prune(total_filters_to_prune)
+        prune_targets = self.get_candidates_to_prune(num_filters_to_prune)
+        print("Pruning targets", prune_targets)
+        return prune_targets
+        # Count the number of filters to prune per layer
         layers_pruned = {}
         for layer_index, filter_index in prune_targets:
             layers_pruned[layer_index] = layers_pruned.get(layer_index, 0) + 1
@@ -192,7 +203,7 @@ class PruningFineTuner:
         
         # Prune one filter at a time with memory cleanup after each
         for idx, (layer_index, filter_index) in enumerate(prune_targets):
-            model = pruner.prune_vgg_conv_layer(model, layer_index, filter_index)
+            model = pruner.prune_conv_layers(model, layer_index, filter_index)
             if idx % 5 == 0:  # Clean up every few iterations
                 self._clear_memory()
 
@@ -208,7 +219,7 @@ class PruningFineTuner:
         self._clear_memory()
 
         # Test and fine tune model
-        acc_pre_fine_tuning = self.test(model)
+        acc_pre_fine_tuning = self.test_model(model)
         if pruning_percentage != 0.0:
             print(f"Accuracy before fine tuning: {acc_pre_fine_tuning[0]:.2f}%")
             
@@ -222,7 +233,7 @@ class PruningFineTuner:
             while True:
                 print(f"Fine-tuning epoch {epoch+1}")
                 self.train_epoch(optimizer, rank_filter=False)
-                val_results = self.test(self.model)
+                val_results = self.test_model(self.model)
                 print(f"Validation Accuracy: {val_results[0]:.2f}%")
                 prev_accs.append(val_results[0])
                 if len(prev_accs) > 5:
@@ -241,10 +252,10 @@ class PruningFineTuner:
                 if epoch >= 20:
                     print("Fine-tuning stopped after 20 epochs")
                     break
-
-                
+        
+        
         # Final evaluation
-        acc_time = self.test(self.model)
+        acc_time = self.test_model(self.model)
         print("Finished Pruning for", pruning_percentage)
         print(f"Accuracy after fine tuning: {acc_time[0]:.2f}%")
         print(f"Time taken for inference: {acc_time[1]:.2f} seconds")

@@ -6,7 +6,7 @@ def main():
     device = 'mps' if torch.backends.mps.is_available() else 'cuda' if torch.cuda.is_available() else 'cpu'
     model = models.vgg16(weights=models.VGG16_Weights.IMAGENET1K_V1).to(device)
     pruning_fine_tuner = PruningFineTuner(model)
-    out = pruning_fine_tuner.test(model)
+    out = pruning_fine_tuner.test_model(model)
     print(f"Original Accuracy: {out[0]:.2f}%")
     print(f'Original Model Size: {pruning_fine_tuner.get_model_size(model):.2f} MB')
     del pruning_fine_tuner

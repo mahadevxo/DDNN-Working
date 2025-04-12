@@ -185,6 +185,7 @@ class ModelNetTrainer(object):
             val_pbar.set_postfix({'acc': f"{current_acc.item():.3f}"})
             
         # Calculate final metrics
+        print(samples_class)
         val_mean_class_acc = np.mean((samples_class-wrong_class)/samples_class)
         val_overall_acc = all_correct_points.float() / all_points
         val_overall_acc = val_overall_acc.cpu().data.numpy()
