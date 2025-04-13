@@ -89,9 +89,11 @@ class FilterPruner:
             v = v / torch.sqrt(torch.sum(v * v))  # Added epsilon for numerical stability
             self.filter_ranks[i] = v.cpu()
             
-    def get_pruning_plan(self, num_filters_to_prune):
+    def get_pruning_plan(self, num_filters_to_prune: int, get_filters=False):
         filters_to_prune = self.lowest_ranking_filters(num_filters_to_prune)
-        return filters_to_prune
+        if get_filters:
+            return filters_to_prune
+        
         filters_to_prune_per_layer = {}
         for (layer_n, f, _) in filters_to_prune:
             if layer_n not in filters_to_prune_per_layer:

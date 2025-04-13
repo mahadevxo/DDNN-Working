@@ -27,5 +27,8 @@
         "svcnn",
         "traj"
     ],
-    "git.ignoreLimitWarning": true
+    "git.ignoreLimitWarning": true,
+    "python.analysis.extraPaths": [
+        "./src/MVCNN"
+    ]
 }

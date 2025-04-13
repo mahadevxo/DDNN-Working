@@ -170,7 +170,7 @@ class ModelNetTrainer(object):
                     if obj_pred != obj_target:
                         wrong_class[obj_target.cpu().data.numpy().astype('int')] += 1
                     samples_class[obj_target.cpu().data.numpy().astype('int')] += 1
-            else:
+            else: #SVCNN
                 for i in range(results.size()[0]):
                     if not bool(results[i].cpu().data.numpy()):
                         wrong_class[target.cpu().data.numpy().astype('int')[i]] += 1
