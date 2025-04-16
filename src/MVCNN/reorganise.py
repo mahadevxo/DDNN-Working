@@ -2,8 +2,8 @@ import os
 import shutil
 
 # Define source and destination directories
-source_root = "ModelNet40_12View"
-dest_root = "modelnet40_12view_final"
+source_root = "ModelNet40-12View"
+dest_root = "modelnet40-12view_final"
 
 # Ensure destination directory exists
 os.makedirs(dest_root, exist_ok=True)
