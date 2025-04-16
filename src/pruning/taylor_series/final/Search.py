@@ -142,53 +142,82 @@ class Search:
         self._reset()
         return reward
             
-    def adam_gradient(self, initial_pruning=0.01, learning_rate=0.05, 
-                      beta1=0.9, beta2=0.999, epsilon=1e-8, 
-                      max_iter=30, delta=1e-3, 
-                      clip_range=(0.01, 0.99), x=0.33, y=0.33, z=0.33):
-        
+    def adam_gradient(
+    self, 
+    initial_pruning=0.01, 
+    learning_rate=0.05, 
+    beta1=0.9, 
+    beta2=0.999, 
+    epsilon=1e-8, 
+    max_iter=30, 
+    delta=1e-3, 
+    clip_range=(0.01, 0.99), 
+    x=0.33, 
+    y=0.33, 
+    z=0.33,
+    patience=5,
+    decay=0.95):
         pruning_amount = initial_pruning
         m, v = 0.0, 0.0
         best_pruning_amount = pruning_amount
-        best_reward = -(np.inf)
-        
-        
-        actual_fine_tune=False
+        best_reward = -np.inf
+        no_improve_steps = 0
+
+        actual_fine_tune = False
         self._init_csv()
-        for t in range(1, max_iter+1):
-            print(f"Starting Iteration {t}")
-            if t > int(max_iter/1.5):
-                actual_fine_tune=True
-                print("Fine tuning model")
-            
-            model_new = deepcopy(self.model)
-            model_new.to(self.device)
-            r_plus = self.prune_and_get_rewards(pruning_amount+delta, model_new, actual_fine_tune=False)
-            r_minus = self.prune_and_get_rewards(pruning_amount-delta, model_new, actual_fine_tune=False)
-            
+
+        for t in range(1, max_iter + 1):
+            print(f"\n=== Iteration {t} ===")
+            if t > int(max_iter * 0.5):
+                actual_fine_tune = True
+                print("Enabling fine-tuning")
+
+            # Slightly reduce LR to stabilize convergence
+            lr = learning_rate * (decay ** t)
+
+            # Gradient estimation using central difference
+            prune_plus = min(pruning_amount + delta, clip_range[1])
+            prune_minus = max(pruning_amount - delta, clip_range[0])
+
+            model_copy_1 = deepcopy(self.model).to(self.device)
+            r_plus = self.prune_and_get_rewards(prune_plus, model_copy_1, actual_fine_tune=False)
+
+            model_copy_2 = deepcopy(self.model).to(self.device)
+            r_minus = self.prune_and_get_rewards(prune_minus, model_copy_2, actual_fine_tune=False)
+
             grad = (r_plus - r_minus) / (2 * delta)
-            
+
+            # Adam moment updates
             m = beta1 * m + (1 - beta1) * grad
             v = beta2 * v + (1 - beta2) * (grad ** 2)
             m_hat = m / (1 - beta1 ** t)
             v_hat = v / (1 - beta2 ** t)
-            pruning_amount += learning_rate * m_hat / (np.sqrt(v_hat) + epsilon)
-            # Replace the np.clip call in adam_gradient with:
-            pruning_amount = np.clip(
-                pruning_amount.cpu().item() if hasattr(pruning_amount, "cpu") else pruning_amount,
-                clip_range[0],
-                clip_range[1]
-            )
-            pruning_amount = torch.tensor(pruning_amount, device=self.device)
-            
-            reward_now = self.prune_and_get_rewards(pruning_amount.item(), model_new, actual_fine_tune=actual_fine_tune)
-            if reward_now > best_reward:
+
+            # Update pruning amount with Adam
+            pruning_amount += lr * m_hat / (np.sqrt(v_hat) + epsilon)
+            pruning_amount = float(torch.clamp(torch.tensor(pruning_amount), *clip_range).item())
+
+            # Evaluate reward with updated pruning amount
+            model_copy_final = deepcopy(self.model).to(self.device)
+            reward_now = self.prune_and_get_rewards(pruning_amount, model_copy_final, actual_fine_tune=actual_fine_tune)
+
+            # Track best reward
+            if reward_now > best_reward + 1e-4:
                 best_reward = reward_now
-                best_pruning_amount = pruning_amount.item()
-            
-            print(f"Iteration {t}, Pruning Amount: {pruning_amount}, Reward: {reward_now}")
-        print(f"Best Pruning Amount: {best_pruning_amount}, Best Reward: {best_reward}")
+                best_pruning_amount = pruning_amount
+                no_improve_steps = 0
+            else:
+                no_improve_steps += 1
+
+            print(f"Pruning: {pruning_amount:.4f}, Reward: {reward_now:.4f}, Best: {best_reward:.4f}")
+
+            # Early stopping if not improving
+            if no_improve_steps >= patience:
+                print(f"Early stopping: no improvement in {patience} steps")
+                break
+
         self._reset()
+        print(f"\n==> Best Pruning Amount: {best_pruning_amount:.4f}, Best Reward: {best_reward:.4f}")
         return best_pruning_amount, best_reward
     
     def __del__(self):
