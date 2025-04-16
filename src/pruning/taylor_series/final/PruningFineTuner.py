@@ -1,22 +1,24 @@
 import torch
 import gc
 import sys
-sys.path.append('./taylor_series/')
-sys.path.append('../../MVCNN')
+sys.path.append('../taylor_series/')
+sys.path.append('./MVCNN')
 from FilterPruner import FilterPruner
 from Pruning import Pruning
 from MVCNN_Trainer import MVCNN_Trainer
 
 class PruningFineTuner:
-    def __init__(self, model):
-        self.train_path = '../../MVCNN/ModelNet40-12View/*/train'
-        self.test_path = '../../MVCNN/ModelNet40-12View/*/test'
+    def __init__(self, model, test_amt=0.1, train_amt=0.1):
+        self.train_path = './MVCNN/ModelNet40-12View/*/train'
+        self.test_path = './MVCNN/ModelNet40-12View/*/test'
         self.num_models = 1000*12
         self.num_views = 12
         self.device = 'mps' if torch.backends.mps.is_available() else 'cuda' if torch.cuda.is_available() else 'cpu'
         self.model = model.to(self.device)
         self.criterion = torch.nn.CrossEntropyLoss()
         self.pruner = FilterPruner(self.model)
+        self.test_amt = test_amt
+        self.train_amt = train_amt
         self._clear_memory()
         
     def _clear_memory(self):
@@ -27,9 +29,10 @@ class PruningFineTuner:
         elif torch.backends.mps.is_available():
             torch.mps.empty_cache()
     
-    def get_candidates_to_prune(self, num_filter_to_prune, get_filters=False):
+    def get_candidates_to_prune(self, num_filter_to_prune, get_filters=False, mvcnntrainer=None):
         self.pruner.reset()
-        self.train_epoch(rank_filter=True)
+        # Fix: Pass the existing pruner instance so that ranks accumulate
+        mvcnntrainer.train_model(self.model, rank_filter=True, pruner_instance=self.pruner)
         self.pruner.normalize_ranks_per_layer()
         return self.pruner.get_pruning_plan(num_filter_to_prune, get_filters=get_filters)
     
@@ -63,15 +66,16 @@ class PruningFineTuner:
             param.requires_grad = True
             
         original_filters = self.total_num_filters()
+        mvcnntrainer = MVCNN_Trainer(optimizer, train_amt=self.train_amt, test_amt=self.test_amt)
         
         if rank_filters:
-            return self.get_candidates_to_prune(int(original_filters), get_filters=True)
+            return self.get_candidates_to_prune(num_filter_to_prune=int(original_filters), get_filters=True, mvcnntrainer=mvcnntrainer)
         
         num_filters_to_prune = int(original_filters * (pruning_percentage / 100.0))
         print(f"Total Filters to prune: {num_filters_to_prune} For Pruning Percentage: {pruning_percentage}")
 
         # Rank and get the candidates to prune
-        prune_targets = self.get_candidates_to_prune(num_filters_to_prune)
+        prune_targets = self.get_candidates_to_prune(num_filters_to_prune=num_filters_to_prune, get_filters=False, mvcnntrainer=mvcnntrainer)
         print("Pruning targets", prune_targets)
         # Count the number of filters to prune per layer
         layers_pruned = {}

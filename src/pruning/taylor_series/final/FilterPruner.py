@@ -31,6 +31,7 @@ class FilterPruner:
         
     def forward(self, x):
         self.activations = []
+        self.activation_to_layer = {}  # Ensure this is reset
         self.grad_index = 0
         self.model.eval()
         self.model.zero_grad()
@@ -41,6 +42,7 @@ class FilterPruner:
             if isinstance(layer, torch.nn.modules.conv.Conv2d):
                 self.activations.append(x)
                 self.activation_to_layer[activation_index] = layer_index
+                # Fix: Ensure hooks are registered correctly
                 x.register_hook(lambda grad, idx=activation_index: self.compute_rank(grad, idx))
                 activation_index += 1
         x = x.view(x.size(0), -1)
@@ -73,7 +75,7 @@ class FilterPruner:
             self.filter_ranks[activation_index] = self.filter_ranks[activation_index].to(self.device)
             
         # Update the ranks
-        self.filter_ranks[activation_index] += taylor
+        self.filter_ranks[activation_index] += taylor.to(self.device)  # Ensure device consistency
         del taylor, activation, grad
         
     def lowest_ranking_filters(self, num):
@@ -92,27 +94,29 @@ class FilterPruner:
     def get_pruning_plan(self, num_filters_to_prune: int, get_filters=False):
         filters_to_prune = self.lowest_ranking_filters(num_filters_to_prune)
         if get_filters:
-            return filters_to_prune
+            print("Filters to prune:")
+            return [(layer_n, f, float(amt)) for layer_n, f, amt in filters_to_prune]
+        
         
         filters_to_prune_per_layer = {}
         for (layer_n, f, _) in filters_to_prune:
             if layer_n not in filters_to_prune_per_layer:
                 filters_to_prune_per_layer[layer_n] = []
             filters_to_prune_per_layer[layer_n].append(f)
-        
+
         for layer_n in filters_to_prune_per_layer:
             filters_to_prune_per_layer[layer_n] = sorted(filters_to_prune_per_layer[layer_n])
             for i in range(len(filters_to_prune_per_layer[layer_n])):
                 filters_to_prune_per_layer[layer_n][i] = filters_to_prune_per_layer[layer_n][i] - i
-        
+
         filters_to_prune = []
         for layer_n in filters_to_prune_per_layer:
             for i in filters_to_prune_per_layer[layer_n]:
                 filters_to_prune.append((layer_n, i))
-        
+
         # Clean up after pruning plan is created
         self.reset()
-        
+
         return filters_to_prune
     
     def get_sorted_filters(self):

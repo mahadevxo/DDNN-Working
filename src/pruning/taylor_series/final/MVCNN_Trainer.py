@@ -4,20 +4,22 @@ import numpy as np
 import sys
 import gc
 from FilterPruner import FilterPruner
-sys.path.append('../../MVCNN')
+sys.path.append('./MVCNN')
 from tools.ImgDataset import SingleImgDataset
 
 
 class MVCNN_Trainer():
-    def __init__(self, optimizer = None, num_views=12):
+    def __init__(self, optimizer = None, num_views=12, train_amt=0.1, test_amt=0.1):
         self.optimizer = optimizer
         self.loss_fn = torch.nn.CrossEntropyLoss()
         self.num_views = num_views
         self.device = 'mps' if torch.backends.mps.is_available() else 'cuda' if torch.cuda.is_available() else 'cpu'
-        self.train_path = '../../MVCNN/ModelNet40-12View/*/train'
-        self.test_path = '../../MVCNN/ModelNet40-12View/*/test'   
+        self.train_path = './MVCNN/ModelNet40-12View/*/train'
+        self.test_path = './MVCNN/ModelNet40-12View/*/test'   
         self.num_models=1000*12
         self.num_views=12
+        self.train_amt = train_amt
+        self.test_amt = test_amt
     
     def _clear_memory(self):
         gc.collect()
@@ -26,7 +28,7 @@ class MVCNN_Trainer():
         elif torch.backends.mps.is_available():
             torch.mps.empty_cache()
         
-    def get_train_data(self, subset_amount=0.1):
+    def get_train_data(self):
         train_dataset = SingleImgDataset(
             self.train_path, scale_aug=False, rot_aug=False,
             num_models=self.num_models, num_views=self.num_views,
@@ -34,7 +36,7 @@ class MVCNN_Trainer():
         total_models = int(len(train_dataset.filepaths) / self.num_views)
 
         # Determine how many models to sample
-        subset_size = int(subset_amount * total_models)
+        subset_size = int(self.train_amt * total_models)
 
         # Randomly sample model indices
         rand_model_indices = np.random.permutation(total_models)[:subset_size]
@@ -48,12 +50,13 @@ class MVCNN_Trainer():
 
         # Assign the new filepaths to the dataset
         train_dataset.filepaths = new_filepaths
+        print(f'Train Data: {len(new_filepaths)}')
 
         return torch.utils.data.DataLoader(
             train_dataset, batch_size=32, shuffle=True, num_workers=4
         )
     
-    def get_test_data(self, subset_amount=1.0):
+    def get_test_data(self):
         test_dataset = SingleImgDataset(
             self.test_path, scale_aug=False, rot_aug=False,
             num_models=self.num_models, num_views=self.num_views,
@@ -61,7 +64,7 @@ class MVCNN_Trainer():
         total_models = int(len(test_dataset.filepaths) / self.num_views)
 
         # Determine how many models to sample
-        subset_size = int(subset_amount * total_models)
+        subset_size = int(self.test_amt * total_models)
 
         # Randomly sample model indices
         rand_model_indices = np.random.permutation(total_models)[:subset_size]
@@ -75,19 +78,23 @@ class MVCNN_Trainer():
 
         # Assign the new filepaths to the dataset
         test_dataset.filepaths = new_filepaths
+        print(f'Test Data: {len(new_filepaths)}')
 
         return torch.utils.data.DataLoader(
             test_dataset, batch_size=32, shuffle=True, num_workers=4
         )
     
     
-    def get_val_accuracy(self, model, test_loader):
+    def get_val_accuracy(self, model, test_loader=None):
         all_correct_points = 0
         all_points = 0
         all_loss = 0
         wrong_class = np.zeros(40)
         samples_class = np.zeros(40)
         
+        if test_loader is None:
+            test_loader = self.get_test_data()
+        model = model.to(self.device)
         model.eval()
         
         for _, data in enumerate(test_loader, 0):
@@ -102,7 +109,7 @@ class MVCNN_Trainer():
             time_taken = t2 - t1
             
             pred = torch.max(output, 1)[1]
-            all_loss += self.loss_fn(output, labels).cpu().numpy()
+            all_loss += self.loss_fn(output, labels).cpu().detach().numpy()
             results = pred==labels
             
             for i in range(results.size()[0]):
@@ -114,23 +121,29 @@ class MVCNN_Trainer():
                 samples_class[labels[i].cpu().numpy()] += 1
         all_loss /= len(test_loader)
         
-        val_accuracy = (all_correct_points / all_points).cpu().numpy()
-        val_class_acc = 1 - (wrong_class / samples_class)
+        val_accuracy = float((all_correct_points / all_points)*100)
+        val_class_acc = 1 - (np.nan_to_num(wrong_class) / np.nan_to_num(samples_class))
         val_class_acc = np.mean(val_class_acc)
         val_class_acc = np.nan_to_num(val_class_acc)
         
         model.train()
         return all_loss, val_accuracy, val_class_acc, time_taken
     
-    def train_model(self, model, train_loader, rank_filter=False):
+    def train_model(self, model, train_loader=None, rank_filter=False, pruner_instance=None):
         model = model.train()
         model = model.to(self.device)
-        pruner = FilterPruner(model)
+
+        if train_loader is None:
+            train_loader = self.get_train_data()
+
         running_loss = 0.0
         running_acc = 0.0
         total_steps = 0.0
-        #SVCNN BTW
-        
+
+        # Use provided pruner_instance if ranking filters
+        if rank_filter:
+            pruner = pruner_instance if pruner_instance is not None else FilterPruner(model)
+
         for batch_idx, data in enumerate(train_loader):
             try:
                 with torch.autograd.set_grad_enabled(True):
@@ -138,25 +151,19 @@ class MVCNN_Trainer():
                         self.optimizer.zero_grad(set_to_none=True)
                     else:
                         model.zero_grad(set_to_none=True)
-                    
+
                     in_data = data[1].to(self.device)
                     labels = data[0].to(self.device)
-                    output = None
-                    
-                    if rank_filter:
-                        pruner.reset()
-                        output = pruner.forward(in_data)
-                    else:
-                        output = model(in_data)
-                    
+
+                    output = pruner.forward(in_data) if rank_filter else model(in_data)
                     loss = self.loss_fn(output, labels)
                     loss.backward()
-                    
+
                     running_loss += loss.item()
-                    
+
                     if self.optimizer is not None:
                         self.optimizer.step()
-                    
+
                     pred = torch.max(output, 1)[1]
                     results = pred==labels
                     correct_points = torch.sum(results.long())
@@ -165,9 +172,9 @@ class MVCNN_Trainer():
             except Exception as exp:
                 print(f"Error during training batch {batch_idx}: {exp}")
                 continue
-        
+
         vals = self.get_val_accuracy(model, self.get_test_data())
-        print(f'Train Loss: {running_loss/total_steps}, Train Accuracy: {running_acc/total_steps}, Val Loss: {vals[0]}, Val Accuracy: {vals[1]}')
+        # print(f'Train Loss: {running_loss/total_steps}, Train Accuracy: {running_acc/total_steps}, Val Loss: {vals[0]}, Val Accuracy: {vals[1]}')
         self._clear_memory()
         return model
             
@@ -210,4 +217,10 @@ class MVCNN_Trainer():
         print("---"*50, "Final Results", "---"*50)
         print(f"Final Validation Accuracy: {accuracy}")
         print(f"Best Validation Accuracy: {best_accuracy}")
-        return model
+        return model, accuracy
+    
+    def get_size(self, model):
+        total_size = sum(
+            param.nelement() * param.element_size() for param in model.parameters()
+        )
+        return total_size / (1024 ** 2)

@@ -1,5 +1,7 @@
 # DDNN Working Directory
+
 ## Directory Structure
+
 ```
 DDNN-Working
 ├── initialise_remote_machine.sh
@@ -71,17 +73,22 @@ DDNN-Working
 
 ---
 
-### src/MVCNN 
+### src/MVCNN
+
 MVCNN contains the original MVCNN code which was used for training the model. The code was adjusted to account for the newer pytorch versions.
 
 ---
 
 ### src/pruning/RL
-Tried a PPO approach to find the optimal pruning amount. Took too much time and was not feasible. So this method was abandoned. 
+
+Tried a PPO approach to find the optimal pruning amount. Took too much time and was not feasible. So this method was abandoned.
 
 ---
 
 ### src/pruning/taylor_series
-Contains the code for pruning the model using the taylor series approximation. This also adds a search algorithm based on gradient ascend. 
-#### ./tests 
+
+Contains the code for pruning the model using the taylor series approximation. This also adds a search algorithm based on gradient ascend.
+
+#### ./tests
+
 Consists of random tests that i conducted
