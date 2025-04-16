@@ -1,8 +1,6 @@
-import sys
 import torch
 from Search import Search
-sys.path.append('../../MVCNN')
-from models.MVCNN import SVCNN
+from MVCNN.models.MVCNN import SVCNN
 def main():
     device = 'mps' if torch.backends.mps.is_available() else 'cuda' if torch.cuda.is_available() else 'cpu'
     print(f"Using device: {device}")
