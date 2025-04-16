@@ -117,11 +117,14 @@ class Search:
         
         accuracy_pre_fine_tuning, comp_time, model_size = self.getResults.get_results(model)
         if actual_fine_tune:
+            print("Fine tuning model")
+            model.train()
             optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
             mvcnntrainer = MVCNN_Trainer(optimizer)
             _, fine_tuned = mvcnntrainer.fine_tine(model)
         
         else:
+            print("Approximating accuracy")
             fine_tuned = self.getResults.get_approx_acc(pruning_amount, accuracy_pre_fine_tuning, self.initial_accuracy).item()
         
         reward = self.rewardfn.getReward(
