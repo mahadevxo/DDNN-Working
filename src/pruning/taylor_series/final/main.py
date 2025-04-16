@@ -7,7 +7,7 @@ def main():
     device = 'mps' if torch.backends.mps.is_available() else 'cuda' if torch.cuda.is_available() else 'cpu'
     print(f"Using device: {device}")
     model = SVCNN(name='svcnn')
-    model_weights = torch.load('/Users/mahadevsunilkumar/Desktop/DDNN-Working/src/MVCNN/trained-models/MVCNN/model-00030.pth', map_location=device)
+    model_weights = torch.load('./model-00030.pth', map_location=device)
     model.load_state_dict(model_weights, strict=False)
     model = model.to(device)
     
