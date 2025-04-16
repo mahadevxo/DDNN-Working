@@ -169,7 +169,7 @@ class Search:
             v = beta2 * v + (1 - beta2) * (grad ** 2)
             m_hat = m / (1 - beta1 ** t)
             v_hat = v / (1 - beta2 ** t)
-            pruning_amount = pruning_amount.cpu().numpy()
+            pruning_amount = pruning_amount.numpy()
             pruning_amount += learning_rate * m_hat / (np.sqrt(v_hat) + epsilon)
             pruning_amount = np.clip(pruning_amount, clip_range[0], clip_range[1])
             pruning_amount = torch.tensor(pruning_amount, device=self.device)
