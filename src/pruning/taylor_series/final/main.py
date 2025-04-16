@@ -16,6 +16,6 @@ def main():
                     acc_imp=0.33, 
                     comp_time_imp=0.33, 
                     size_imp=0.33)
-    search.adam_gradient()
+    search.simulated_annealing()
 if __name__ == '__main__':
     main()

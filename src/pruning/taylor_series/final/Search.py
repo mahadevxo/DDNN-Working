@@ -8,6 +8,8 @@ import torch
 import numpy as np
 from heapq import nsmallest
 from MVCNN_Trainer import MVCNN_Trainer
+import random
+import math
 
 class Search:
     def __init__(self, model, min_acc, min_size, acc_imp=0.33, comp_time_imp=0.33, size_imp=0.33):
@@ -220,6 +222,55 @@ class Search:
         print(f"\n==> Best Pruning Amount: {best_pruning_amount:.4f}, Best Reward: {best_reward:.4f}")
         return best_pruning_amount, best_reward
     
+    def simulated_annealing(self, initial_pruning=5, max_iter=30, delta=1e-3, clip_range=(0.01, 0.99), temperature=1.0, cooling=0.95, patience=5):
+        from copy import deepcopy  # if not already imported
+        current_pruning = initial_pruning
+        current_reward = self.prune_and_get_rewards(current_pruning, deepcopy(self.model).to(self.device), actual_fine_tune=False)
+        best_pruning = current_pruning
+        best_reward = current_reward
+        no_improve_steps = 0
+
+        self._init_csv()
+
+        for t in range(1, max_iter + 1):
+            print(f"\n=== SA Iteration {t}, Temperature: {temperature:.4f} ===")
+            actual_fine_tune = t > int(max_iter * 0.5)
+            if actual_fine_tune:
+                print("Enabling fine-tuning")
+
+            perturbation = random.uniform(-delta, delta)
+            candidate_pruning = current_pruning + perturbation
+            candidate_pruning = float(torch.clamp(torch.tensor(candidate_pruning), *clip_range).item())
+
+            candidate_reward = self.prune_and_get_rewards(candidate_pruning, deepcopy(self.model).to(self.device), actual_fine_tune)
+
+            delta_reward = candidate_reward - current_reward
+            accept_prob = 1.0 if delta_reward > 0 else math.exp(delta_reward / temperature)
+            rand_val = random.random()
+
+            if rand_val < accept_prob:
+                print(f"Accepted candidate: pruning {candidate_pruning:.4f}, reward {candidate_reward:.4f} (delta: {delta_reward:.4f}, prob: {accept_prob:.4f})")
+                current_pruning = candidate_pruning
+                current_reward = candidate_reward
+                no_improve_steps = 0
+                if candidate_reward > best_reward:
+                    best_reward = candidate_reward
+                    best_pruning = candidate_pruning
+            else:
+                print(f"Rejected candidate: pruning {candidate_pruning:.4f}, reward {candidate_reward:.4f} (delta: {delta_reward:.4f}, prob: {accept_prob:.4f})")
+                no_improve_steps += 1
+
+            temperature *= cooling
+            print(f"Current: pruning {current_pruning:.4f}, reward {current_reward:.4f}, Best: {best_pruning:.4f}, reward {best_reward:.4f}")
+
+            if no_improve_steps >= patience:
+                print(f"Early stopping: no improvement in {patience} iterations")
+                break
+
+        self._reset()
+        print(f"\n==> Best Pruning Amount: {best_pruning:.4f}, Best Reward: {best_reward:.4f}")
+        return best_pruning, best_reward
+
     def __del__(self):
         self._reset()
         print("Reset Search object deleted and memory cleared.")
