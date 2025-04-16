@@ -40,7 +40,7 @@ class GetResults:
     def __init__(self):
         self.device = 'mps' if torch.backends.mps.is_available() else 'cuda' if torch.cuda.is_available() else 'cpu'
         self.learndata = LearnData()
-        self.learndata.load_state_dict(torch.load('learn_data.pth', weights_only=False))
+        self.learndata.load_state_dict(torch.load('learn_data.pth', weights_only=False, map_location=self.device))
         self.learndata.to(self.device)
         
     def get_results(self, model):
@@ -58,10 +58,9 @@ class GetResults:
     
     def get_approx_acc(self, pruning_amount, pre_pruning_acc, initial_acc):
         self.learndata.eval()
-        
+
         with torch.no_grad():
             x = torch.tensor([pruning_amount, pre_pruning_acc, initial_acc])
             x = x.unsqueeze(0).to(self.device)
-            approx_acc = self.learndata(x)
-            return approx_acc
+            return self.learndata(x)
         
