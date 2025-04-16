@@ -9,8 +9,8 @@ from MVCNN_Trainer import MVCNN_Trainer
 
 class PruningFineTuner:
     def __init__(self, model, test_amt=0.1, train_amt=0.1):
-        self.train_path = './MVCNN/ModelNet40-12View/*/train'
-        self.test_path = './MVCNN/ModelNet40-12View/*/test'
+        self.train_path = './ModelNet40-12View/*/train'
+        self.test_path = './ModelNet40-12View/*/test'
         self.num_models = 1000*12
         self.num_views = 12
         self.device = 'mps' if torch.backends.mps.is_available() else 'cuda' if torch.cuda.is_available() else 'cpu'

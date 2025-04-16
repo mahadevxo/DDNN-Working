@@ -14,8 +14,8 @@ class MVCNN_Trainer():
         self.loss_fn = torch.nn.CrossEntropyLoss()
         self.num_views = num_views
         self.device = 'mps' if torch.backends.mps.is_available() else 'cuda' if torch.cuda.is_available() else 'cpu'
-        self.train_path = './MVCNN/ModelNet40-12View/*/train'
-        self.test_path = './MVCNN/ModelNet40-12View/*/test'   
+        self.train_path = './ModelNet40-12View/*/train'
+        self.test_path = './ModelNet40-12View/*/test'   
         self.num_models=1000*12
         self.num_views=12
         self.train_amt = train_amt
