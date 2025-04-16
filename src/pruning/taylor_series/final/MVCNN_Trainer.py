@@ -1,10 +1,8 @@
 import time
 import torch
 import numpy as np
-import sys
 import gc
 from FilterPruner import FilterPruner
-sys.path.append('./MVCNN')
 from tools.ImgDataset import SingleImgDataset
 
 

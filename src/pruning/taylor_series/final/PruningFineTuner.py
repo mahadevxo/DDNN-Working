@@ -1,8 +1,5 @@
 import torch
 import gc
-import sys
-sys.path.append('../taylor_series/')
-sys.path.append('./MVCNN')
 from FilterPruner import FilterPruner
 from Pruning import Pruning
 from MVCNN_Trainer import MVCNN_Trainer
