@@ -62,5 +62,6 @@ class GetResults:
         with torch.no_grad():
             x = torch.tensor([pruning_amount, pre_pruning_acc, initial_acc])
             x = x.unsqueeze(0).to(self.device)
+            print(f"Input to model: {x}")
             return self.learndata(x)
         
