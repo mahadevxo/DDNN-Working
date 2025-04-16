@@ -13,9 +13,9 @@ def main():
     search = Search(model, 
                     min_acc=0.5, 
                     min_size=400, 
-                    acc_imp=0.33, 
-                    comp_time_imp=0.33, 
-                    size_imp=0.33)
+                    acc_imp=0.4, 
+                    comp_time_imp=0.1, 
+                    size_imp=0.5)
     search.simulated_annealing()
 if __name__ == '__main__':
     main()
