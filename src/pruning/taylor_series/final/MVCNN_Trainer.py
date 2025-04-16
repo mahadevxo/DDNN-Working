@@ -3,7 +3,7 @@ import torch
 import numpy as np
 import gc
 from FilterPruner import FilterPruner
-from tools.ImgDataset import SingleImgDataset
+from MVCNN.tools.ImgDataset import SingleImgDataset
 
 
 class MVCNN_Trainer():
