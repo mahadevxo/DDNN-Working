@@ -173,7 +173,12 @@ class Search:
             m_hat = m / (1 - beta1 ** t)
             v_hat = v / (1 - beta2 ** t)
             pruning_amount += learning_rate * m_hat / (np.sqrt(v_hat) + epsilon)
-            pruning_amount = np.clip(pruning_amount, clip_range[0], clip_range[1])
+            # Replace the np.clip call in adam_gradient with:
+            pruning_amount = np.clip(
+                pruning_amount.cpu().item() if hasattr(pruning_amount, "cpu") else pruning_amount,
+                clip_range[0],
+                clip_range[1]
+            )
             pruning_amount = torch.tensor(pruning_amount, device=self.device)
             
             reward_now = self.prune_and_get_rewards(pruning_amount.item(), model_new, actual_fine_tune=actual_fine_tune)
