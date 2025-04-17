@@ -208,7 +208,7 @@ class MVCNN_Trainer():
                 print(f'No improvement in accuracy; best accuracy {best_accuracy}')
                 print(f'Mean accuracy over the last 5 epochs: {np.mean(prev_accs).item()}')
                 break
-            if epoch >=20:
+            if epoch >=6:
                 print('Max epochs reached')
                 break
             epoch+=1
