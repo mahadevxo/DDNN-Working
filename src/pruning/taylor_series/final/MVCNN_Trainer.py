@@ -190,7 +190,7 @@ class MVCNN_Trainer():
             print(f'Fine Tuning Epoch {epoch+1}')
             model = self.train_model(
                 model, 
-                self.get_train_data,
+                self.get_train_data(),
                 rank_filter=rank_filer,
             )
             

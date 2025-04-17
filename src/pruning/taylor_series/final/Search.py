@@ -153,7 +153,7 @@ class Search:
     epsilon=1e-8, 
     max_iter=30, 
     delta=1e-3, 
-    clip_range=(0.01, 0.99), 
+    clip_range=(1.0, 99.0), 
     x=0.33, 
     y=0.33, 
     z=0.33,

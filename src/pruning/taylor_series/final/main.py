@@ -11,10 +11,10 @@ def main():
     
     # Initialize the Search class with the model and other parameters
     search = Search(model, 
-                    min_acc=0.5, 
-                    min_size=400, 
-                    acc_imp=0.4, 
-                    comp_time_imp=0.1, 
+                    min_acc=50, 
+                    min_size=300, 
+                    acc_imp=0.5, 
+                    comp_time_imp=0.0, 
                     size_imp=0.5)
     search.simulated_annealing()
 if __name__ == '__main__':
