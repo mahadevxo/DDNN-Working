@@ -2,7 +2,7 @@ import os
 import shutil
 
 # Define source and destination directories
-source_root = "ModelNet40_12View"
+source_root = "ModelNet40_12View/"
 dest_root = "ModelNet40-12View"
 
 # Ensure destination directory exists
@@ -32,8 +32,8 @@ for category in os.listdir(source_root):
                     view_index = view_file.split("_")[1].split(".")[0]  # Extract view index
                     new_filename = f"{obj_instance}_shaded_{view_index}.png"
                     
-                    # Define destination path
-                    category_dest_path = os.path.join(dest_root, category, split)
+                    # Define destination path including object instance folder
+                    category_dest_path = os.path.join(dest_root, category, split, obj_instance)
                     os.makedirs(category_dest_path, exist_ok=True)
                     
                     # Copy file
