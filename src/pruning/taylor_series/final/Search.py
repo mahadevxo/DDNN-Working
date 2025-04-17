@@ -119,7 +119,7 @@ class Search:
         model = model.to(self.device)
         self._clear_memory()
         
-        print(f"Number of Filters {self.old_num_filters} --> {self.mvcnntrainer.get_num_filters(model)} for Pruning Amount {pruning_amount}\n Removed {self.old_num_filters - self.mvcnntrainer.get_num_filters(model)} filters")
+        print(f"Number of Filters {self.old_num_filters} --> {self.mvcnntrainer.get_num_filters(model)} for Pruning Amount {pruning_amount}\nRemoved {self.old_num_filters - self.mvcnntrainer.get_num_filters(model)} filters")
         
         accuracy_pre_fine_tuning, comp_time, model_size = self.getResults.get_results(model)
         if actual_fine_tune:

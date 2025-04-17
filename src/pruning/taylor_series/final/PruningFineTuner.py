@@ -28,7 +28,6 @@ class PruningFineTuner:
     
     def get_candidates_to_prune(self, num_filter_to_prune, get_filters=False, mvcnntrainer=None):
         self.pruner.reset()
-        # Fix: Pass the existing pruner instance so that ranks accumulate
         mvcnntrainer.train_model(self.model, rank_filter=True, pruner_instance=self.pruner)
         self.pruner.normalize_ranks_per_layer()
         return self.pruner.get_pruning_plan(num_filter_to_prune, get_filters=get_filters)
@@ -72,7 +71,7 @@ class PruningFineTuner:
         print(f"Total Filters to prune: {num_filters_to_prune} For Pruning Percentage: {pruning_percentage}")
 
         # Rank and get the candidates to prune
-        prune_targets = self.get_candidates_to_prune(num_filters_to_prune=num_filters_to_prune, get_filters=False, mvcnntrainer=mvcnntrainer)
+        prune_targets = self.get_candidates_to_prune(num_filter_to_prune=num_filters_to_prune, get_filters=False, mvcnntrainer=mvcnntrainer)
         print("Pruning targets", prune_targets)
         # Count the number of filters to prune per layer
         layers_pruned = {}
