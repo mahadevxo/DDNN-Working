@@ -25,12 +25,12 @@ class Search:
         self.getResults = GetResults()
         print("Getting filter ranks")
         self.ranks = PruningFineTuner(model=self.model, 
-                                      train_amt=0.1, test_amt=0.1).prune(
+                                      train_amt=0.1, test_amt=0.5).prune(
                                           rank_filters=True)
         self.device = 'mps' if torch.backends.mps.is_available() else 'cuda' if torch.cuda.is_available() else 'cpu'
         self.model.to(self.device)
         self.rewardfn = Reward(min_acc, min_size)
-        self.mvcnntrainer = MVCNN_Trainer(optimizer=torch.optim.Adam(self.model.parameters(), lr=0.001), train_amt=0.1, test_amt=0.1)
+        self.mvcnntrainer = MVCNN_Trainer(optimizer=torch.optim.Adam(self.model.parameters(), lr=0.001), train_amt=0.1, test_amt=0.5)
         self.initial_accuracy = self.mvcnntrainer.get_val_accuracy(self.model)[1]
         print(f"Initial Accuracy: {self.initial_accuracy}")
         self.x = acc_imp
@@ -103,7 +103,9 @@ class Search:
     def prune_and_get_rewards(self, pruning_amount, model, actual_fine_tune):
         prune_targets = self.get_pruning_plan(pruning_amount)
         pruner = Pruning(model=model)
+        
         actual_fine_tune = True
+        
         for idx, (layer_index, filter_index) in enumerate(prune_targets):
             model = pruner.prune_conv_layers(model, layer_index=layer_index, filter_index=filter_index)
             

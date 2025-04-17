@@ -7,7 +7,7 @@ from MVCNN.tools.ImgDataset import SingleImgDataset
 
 
 class MVCNN_Trainer():
-    def __init__(self, optimizer = None, num_views=12, train_amt=0.1, test_amt=0.1):
+    def __init__(self, optimizer = None, num_views=12, train_amt=0.1, test_amt=0.5):
         self.optimizer = optimizer
         self.loss_fn = torch.nn.CrossEntropyLoss()
         self.num_views = num_views
@@ -18,6 +18,10 @@ class MVCNN_Trainer():
         self.num_views=12
         self.train_amt = train_amt
         self.test_amt = test_amt
+        self.test_loader = None
+        
+        if self.test_loader is None:
+            self.get_test_data()
     
     def _clear_memory(self):
         gc.collect()
@@ -25,7 +29,7 @@ class MVCNN_Trainer():
             torch.cuda.empty_cache()
         elif torch.backends.mps.is_available():
             torch.mps.empty_cache()
-        
+                    
     def get_train_data(self):
         train_dataset = SingleImgDataset(
             self.train_path, scale_aug=False, rot_aug=False,
@@ -76,25 +80,22 @@ class MVCNN_Trainer():
         # Assign the new filepaths to the dataset
         test_dataset.filepaths = new_filepaths
 
-        return torch.utils.data.DataLoader(
+        self.test_loader = torch.utils.data.DataLoader(
             test_dataset, batch_size=32, shuffle=True, num_workers=4
         )
     
     
-    def get_val_accuracy(self, model, test_loader=None):
+    def get_val_accuracy(self, model):
         all_correct_points = 0
         all_points = 0
         all_loss = 0
         wrong_class = np.zeros(40)
         samples_class = np.zeros(40)
         
-        if test_loader is None:
-            test_loader = self.get_test_data()
-        
         model = model.to(self.device)
         model.eval()
         
-        for _, data in enumerate(test_loader, 0):
+        for _, data in enumerate(self.test_loader, 0):
             
             # FOR SVCNN
             in_data = data[1].to(self.device)
@@ -116,7 +117,7 @@ class MVCNN_Trainer():
                     all_correct_points += 1
                 all_points += 1
                 samples_class[labels[i].cpu().numpy()] += 1
-        all_loss /= len(test_loader)
+        all_loss /= len(self.test_loader)
         
         val_accuracy = float((all_correct_points / all_points)*100)
         # val_class_acc = 1 - (np.nan_to_num(wrong_class) / np.nan_to_num(samples_class))
@@ -171,7 +172,7 @@ class MVCNN_Trainer():
                 print(f"Error during training batch {batch_idx}: {exp}")
                 continue
 
-        _ = self.get_val_accuracy(model, self.get_test_data())
+        _ = self.get_val_accuracy(model)
         # print(f'Train Loss: {running_loss/total_steps}, Train Accuracy: {running_acc/total_steps}, Val Loss: {vals[0]}, Val Accuracy: {vals[1]}')
         self._clear_memory()
         return model
@@ -180,7 +181,7 @@ class MVCNN_Trainer():
         print("Fine Tuning Model")        
         model = model.to(self.device)
         
-        _, val_accuracy, _, _ = self.get_val_accuracy(model, self.get_test_data())
+        _, val_accuracy, _, _ = self.get_val_accuracy(model)
         print(f"Initial Validation Accuracy: {val_accuracy}")
         model = model.train()
         epoch = 0
@@ -194,7 +195,7 @@ class MVCNN_Trainer():
                 rank_filter=rank_filter,
             )
             
-            accuracy = self.get_val_accuracy(model, self.get_test_data())[1]
+            accuracy = self.get_val_accuracy(model)[1]
             print(f"Validation Accuracy: {accuracy}")
             prev_accs.append(accuracy)
             print('*'*50)

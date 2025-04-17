@@ -1,4 +1,3 @@
-import csv
 import torch
 from copy import deepcopy
 from MVCNN_Trainer import MVCNN_Trainer
@@ -29,13 +28,13 @@ def main():
         # Use a fresh copy for each pruning percentage
         model_copy = deepcopy(model_original)
         optimizer = torch.optim.Adam(model_copy.parameters(), lr=0.001)
-        trainer = MVCNN_Trainer(optimizer, train_amt=0.1, test_amt=0.1)
+        trainer = MVCNN_Trainer(optimizer, train_amt=0.1, test_amt=0.5)
         
         # Evaluate pre-fine-tuning accuracy
         pre_acc = trainer.get_val_accuracy(deepcopy(model_copy))[1]
         
         # Prune and fine tune the model with the given pruning percentage
-        pft = PruningFineTuner(deepcopy(model_copy), test_amt=0.1, train_amt=0.1)
+        pft = PruningFineTuner(deepcopy(model_copy), test_amt=0.1, train_amt=0.5)
         pft.prune(pruning_percentage=pruning_percentage)
         
         # Evaluate post-fine-tuning accuracy
