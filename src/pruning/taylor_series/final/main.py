@@ -9,7 +9,6 @@ def main():
     model.load_state_dict(model_weights, strict=False)
     model = model.to(device)
     
-    # Initialize the Search class with the model and other parameters
     search = Search(model, 
                     min_acc=50, 
                     min_size=300, 

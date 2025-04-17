@@ -121,7 +121,8 @@ class Search:
         
         print(f"Number of Filters {self.old_num_filters} --> {self.mvcnntrainer.get_num_filters(model)} for Pruning Amount {pruning_amount}\nRemoved {self.old_num_filters - self.mvcnntrainer.get_num_filters(model)} filters")
         
-        accuracy_pre_fine_tuning, comp_time, model_size = self.getResults.get_results(model)
+        accuracy_pre_fine_tuning, comp_time, _ = self.getResults.get_results(model)
+        model_size  = sum(param.nelement() * param.element_size() for param in model.parameters())/ (1024 ** 2)
         if actual_fine_tune:
             print("Not Approximating Accuracy")
             model.train()
