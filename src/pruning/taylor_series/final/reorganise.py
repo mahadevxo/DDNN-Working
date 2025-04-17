@@ -40,7 +40,3 @@ for category in os.listdir(source_root):
                     shutil.copy(os.path.join(obj_path, view_file), os.path.join(category_dest_path, new_filename))
                     
 print("Dataset reorganization complete.")
-os.system(f"rm -rf {source_root}")
-print("Original dataset directory removed.")
-os.system(f"mv {dest_root} {source_root}")
-print("Dataset directory renamed.")
