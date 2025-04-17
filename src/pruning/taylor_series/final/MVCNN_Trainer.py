@@ -213,7 +213,7 @@ class MVCNN_Trainer():
                 break
             epoch+=1
         
-        print("---"*50, "Final Results", "---"*50)
+        print("---"*25, "Final Results", "---"*25)
         print(f"Final Validation Accuracy: {accuracy}")
         print(f"Best Validation Accuracy: {best_accuracy}")
         return model, accuracy
