@@ -100,7 +100,7 @@ class Search:
     def prune_and_get_rewards(self, pruning_amount, model, actual_fine_tune):
         prune_targets = self.get_pruning_plan(pruning_amount)
         pruner = Pruning(model=model)
-        
+        actual_fine_tune = True
         for idx, (layer_index, filter_index) in enumerate(prune_targets):
             model = pruner.prune_conv_layers(model, layer_index=layer_index, filter_index=filter_index)
             
@@ -123,7 +123,7 @@ class Search:
             model.train()
             optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
             mvcnntrainer = MVCNN_Trainer(optimizer)
-            _, fine_tuned = mvcnntrainer.fine_tine(model)
+            _, fine_tuned = mvcnntrainer.fine_tune(model)
         
         else:
             print("Approximating accuracy")

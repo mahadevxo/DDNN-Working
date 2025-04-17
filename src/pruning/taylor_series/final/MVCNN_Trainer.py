@@ -211,6 +211,7 @@ class MVCNN_Trainer():
             if epoch >=20:
                 print('Max epochs reached')
                 break
+            epoch+=1
         
         print("---"*50, "Final Results", "---"*50)
         print(f"Final Validation Accuracy: {accuracy}")
