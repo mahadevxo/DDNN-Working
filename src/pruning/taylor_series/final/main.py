@@ -16,6 +16,6 @@ def main():
                     acc_imp=0.5, 
                     comp_time_imp=0.0, 
                     size_imp=0.5)
-    search.simulated_annealing()
+    search.hill_climbing()
 if __name__ == '__main__':
     main()

@@ -273,6 +273,29 @@ class Search:
 
         return self.reset_show_output(best_pruning, best_reward)
     
+    def hill_climbing(self, initial_pruning=5, step_size=0.5, max_iter=50, clip_range=(1.0, 99.0), tolerance=1e-4, fine_tune=True):
+        current_pruning = initial_pruning
+        best_pruning = current_pruning
+        model_copy = deepcopy(self.model).to(self.device)
+        current_reward = self.prune_and_get_rewards(current_pruning, model_copy, actual_fine_tune=fine_tune)
+        iteration = 0
+        improved = True
+        while improved and iteration < max_iter:
+            improved = False
+            candidates = [current_pruning + step_size, current_pruning - step_size]
+            for candidate in candidates:
+                candidate = float(torch.clamp(torch.tensor(candidate), *clip_range).item())
+                model_copy = deepcopy(self.model).to(self.device)
+                candidate_reward = self.prune_and_get_rewards(candidate, model_copy, actual_fine_tune=fine_tune)
+                if candidate_reward > current_reward + tolerance:
+                    current_pruning = candidate
+                    current_reward = candidate_reward
+                    best_pruning = candidate
+                    improved = True
+            iteration += 1
+            print(f"Hill Climbing Iteration {iteration}: current pruning {current_pruning:.4f}, reward {current_reward:.4f}")
+        return self.reset_show_output(best_pruning, current_reward)
+    
     def reset_show_output(self, arg0, best_reward):
         self._reset()
         print(f"\n==> Best Pruning Amount: {arg0:.4f}, Best Reward: {best_reward:.4f}")
