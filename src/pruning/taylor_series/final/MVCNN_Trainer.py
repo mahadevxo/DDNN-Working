@@ -48,7 +48,6 @@ class MVCNN_Trainer():
 
         # Assign the new filepaths to the dataset
         train_dataset.filepaths = new_filepaths
-        print(f'Train Data: {len(new_filepaths)}')
 
         return torch.utils.data.DataLoader(
             train_dataset, batch_size=32, shuffle=True, num_workers=4
@@ -76,7 +75,6 @@ class MVCNN_Trainer():
 
         # Assign the new filepaths to the dataset
         test_dataset.filepaths = new_filepaths
-        print(f'Test Data: {len(new_filepaths)}')
 
         return torch.utils.data.DataLoader(
             test_dataset, batch_size=32, shuffle=True, num_workers=4
@@ -172,7 +170,7 @@ class MVCNN_Trainer():
                 print(f"Error during training batch {batch_idx}: {exp}")
                 continue
 
-        vals = self.get_val_accuracy(model, self.get_test_data())
+        _ = self.get_val_accuracy(model, self.get_test_data())
         # print(f'Train Loss: {running_loss/total_steps}, Train Accuracy: {running_acc/total_steps}, Val Loss: {vals[0]}, Val Accuracy: {vals[1]}')
         self._clear_memory()
         return model
@@ -205,7 +203,7 @@ class MVCNN_Trainer():
             if accuracy > best_accuracy:
                 best_accuracy = accuracy
             
-            if epoch > 3 and best_accuracy -2 <= np.mean(prev_accs).item() <= best_accuracy + 2:
+            if epoch > 3 and best_accuracy - 1.5 <= np.mean(prev_accs).item() <= best_accuracy + 1.5:
                 print(f'No improvement in accuracy; best accuracy {best_accuracy}')
                 print(f'Mean accuracy over the last 5 epochs: {np.mean(prev_accs).item()}')
                 break
@@ -224,3 +222,6 @@ class MVCNN_Trainer():
             param.nelement() * param.element_size() for param in model.parameters()
         )
         return total_size / (1024 ** 2)
+    
+    def get_num_filters(self, model):
+        return sum(param.nelement() for param in model.parameters())

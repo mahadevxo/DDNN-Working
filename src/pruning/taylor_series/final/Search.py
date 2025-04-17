@@ -36,6 +36,7 @@ class Search:
         self.y = comp_time_imp
         self.z = size_imp
         print(f"Acc: {self.x}, Comp Time: {self.y}, Size: {self.z}")
+        self.old_num_filters = self.mvcnntrainer.get_num_filters(self.model)
     
     def _init_csv(self):
         with open('results.csv', 'w') as f:
@@ -117,6 +118,8 @@ class Search:
         
         model = model.to(self.device)
         self._clear_memory()
+        
+        print(f"Number of Filters {self.old_num_filters} --> {self.mvcnntrainer.get_num_filters(model)} for Pruning Amount {pruning_amount}")
         
         accuracy_pre_fine_tuning, comp_time, model_size = self.getResults.get_results(model)
         if actual_fine_tune:
@@ -219,9 +222,9 @@ class Search:
                 print(f"Early stopping: no improvement in {patience} steps")
                 break
 
-        self._reset()
-        print(f"\n==> Best Pruning Amount: {best_pruning_amount:.4f}, Best Reward: {best_reward:.4f}")
-        return best_pruning_amount, best_reward
+        return self.reset_show_output(
+            best_pruning_amount, best_reward
+        )
     
     def simulated_annealing(self, initial_pruning=5, max_iter=30, delta=1e-3, clip_range=(1.00, 99.00), temperature=1.0, cooling=0.95, patience=5):
         from copy import deepcopy  # if not already imported
@@ -268,9 +271,12 @@ class Search:
                 print(f"Early stopping: no improvement in {patience} iterations")
                 break
 
+        return self.reset_show_output(best_pruning, best_reward)
+    
+    def reset_show_output(self, arg0, best_reward):
         self._reset()
-        print(f"\n==> Best Pruning Amount: {best_pruning:.4f}, Best Reward: {best_reward:.4f}")
-        return best_pruning, best_reward
+        print(f"\n==> Best Pruning Amount: {arg0:.4f}, Best Reward: {best_reward:.4f}")
+        return arg0, best_reward
 
     def __del__(self):
         self._reset()
