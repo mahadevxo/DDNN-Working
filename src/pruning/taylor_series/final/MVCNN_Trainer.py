@@ -90,6 +90,7 @@ class MVCNN_Trainer():
         
         if test_loader is None:
             test_loader = self.get_test_data()
+        
         model = model.to(self.device)
         model.eval()
         
@@ -196,7 +197,7 @@ class MVCNN_Trainer():
             accuracy = self.get_val_accuracy(model, self.get_test_data())[1]
             print(f"Validation Accuracy: {accuracy}")
             prev_accs.append(accuracy)
-            
+            print('*'*50)
             if len(prev_accs) > 5:
                 prev_accs.pop(0)
             
