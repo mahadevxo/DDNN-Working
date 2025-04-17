@@ -15,6 +15,6 @@ def main():
                     acc_imp=0.5, 
                     comp_time_imp=0.0, 
                     size_imp=0.5)
-    search.adam_gradient()
+    search.bayesian_optimization()
 if __name__ == '__main__':
     main()

@@ -10,6 +10,7 @@ from heapq import nsmallest
 from MVCNN_Trainer import MVCNN_Trainer
 import random
 import math
+from bayes_opt import BayesianOptimization
 
 class Search:
     def __init__(self, model, min_acc, min_size, acc_imp=0.33, comp_time_imp=0.33, size_imp=0.33):
@@ -283,6 +284,30 @@ class Search:
         self._reset()
         print(f"\n==> Best Pruning Amount: {arg0:.4f}, Best Reward: {best_reward:.4f}")
         return arg0, best_reward
+
+    def bayesian_optimization(self, init_points=5, n_iter=20, clip_range=(1.0, 99.0)):
+        """
+        Efficiently search for optimal pruning amount via Bayesian Optimization.
+        """
+        def _objective(prune):
+            return self.prune_and_get_rewards(
+                float(prune),
+                deepcopy(self.model).to(self.device),
+                actual_fine_tune=True
+            )
+
+        optimizer = BayesianOptimization(
+            f=_objective,
+            pbounds={'prune': clip_range},
+            random_state=42,
+        )
+        optimizer.maximize(init_points=init_points, n_iter=n_iter)
+
+        best = optimizer.max
+        best_prune = best['params']['prune']
+        best_reward = best['target']
+        print(f"BayesOpt best prune: {best_prune:.4f}, reward: {best_reward:.4f}")
+        return best_prune, best_reward
 
     def __del__(self):
         self._reset()
