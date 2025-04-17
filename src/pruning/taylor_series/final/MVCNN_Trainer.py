@@ -120,9 +120,10 @@ class MVCNN_Trainer():
         all_loss /= len(test_loader)
         
         val_accuracy = float((all_correct_points / all_points)*100)
-        val_class_acc = 1 - (np.nan_to_num(wrong_class) / np.nan_to_num(samples_class))
-        val_class_acc = np.mean(val_class_acc)
-        val_class_acc = np.nan_to_num(val_class_acc)
+        # val_class_acc = 1 - (np.nan_to_num(wrong_class) / np.nan_to_num(samples_class))
+        # val_class_acc = np.mean(val_class_acc)
+        # val_class_acc = np.nan_to_num(val_class_acc)
+        val_class_acc = 0.0
         
         model.train()
         return all_loss, val_accuracy, val_class_acc, time_taken
@@ -180,7 +181,7 @@ class MVCNN_Trainer():
         print("Fine Tuning Model")        
         model = model.to(self.device)
         
-        _, val_accuracy, _ = self.get_val_accuracy(model, self.get_test_data())
+        _, val_accuracy, _, _ = self.get_val_accuracy(model, self.get_test_data())
         print(f"Initial Validation Accuracy: {val_accuracy}")
         model = model.train()
         epoch = 0
