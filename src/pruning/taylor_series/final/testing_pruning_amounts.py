@@ -7,9 +7,10 @@ from MVCNN.models.MVCNN import SVCNN
 
 def init_csv():
     csv_filename = 'pruning_results.csv'
-    with open(csv_filename, 'w', newline='') as csvfile:
-        csvwriter = csv.writer(csvfile)
-        csvwriter.writerow(['pruning_percentage', 'pre_fine_tune_accuracy', 'post_fine_tune_accuracy'])
+    with open(csv_filename, 'w', newline='') as file:
+        file.write("pruning_percentage, pre_acc, post_acc\n")
+    print(f"Results file created: {csv_filename} and initialized")
+    
         
 def write_to_csv(pruning_percentage, pre_acc, post_acc):
     csv_filename = 'pruning_results.csv'
