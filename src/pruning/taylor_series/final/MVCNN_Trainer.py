@@ -176,7 +176,7 @@ class MVCNN_Trainer():
         self._clear_memory()
         return model
             
-    def fine_tune(self, model, rank_filer=False):
+    def fine_tune(self, model, rank_filter=False):
         print("Fine Tuning Model")        
         model = model.to(self.device)
         
@@ -191,7 +191,7 @@ class MVCNN_Trainer():
             model = self.train_model(
                 model, 
                 self.get_train_data(),
-                rank_filter=rank_filer,
+                rank_filter=rank_filter,
             )
             
             accuracy = self.get_val_accuracy(model, self.get_test_data())[1]
