@@ -9,7 +9,7 @@ def main():
     # Load the original model (assumed saved as 'model.pth')
     device = 'mps' if torch.cuda.is_available() else 'mps' if torch.backends.mps.is_available() else 'cpu'
     model_original = SVCNN('svcnn')
-    model_original.load_state_dict(torch.load('model-00030.pth', map_location=device))
+    model_original.load_state_dict(torch.load('model-00030.pth', map_location='cuda'))
     csv_filename = 'pruning_results.csv'
     with open(csv_filename, 'w', newline='') as csvfile:
         csvwriter = csv.writer(csvfile)
