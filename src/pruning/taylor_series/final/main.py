@@ -16,6 +16,6 @@ def main():
                     acc_imp=0.5, 
                     comp_time_imp=0.0, 
                     size_imp=0.5)
-    search.hill_climbing()
+    search.adam_gradient()
 if __name__ == '__main__':
     main()
