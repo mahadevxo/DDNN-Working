@@ -75,6 +75,7 @@ class Search:
     def get_pruning_plan(self, n):
         n = int(n)
         filters_to_prune =  nsmallest(n, self.ranks, key=itemgetter(2))
+        print(f"Pruning {len(filters_to_prune)} for {n} filters")
         
         filters_to_pruner_per_layer = {}
         for (layer_n, f, _) in filters_to_prune:
@@ -119,14 +120,14 @@ class Search:
         
         accuracy_pre_fine_tuning, comp_time, model_size = self.getResults.get_results(model)
         if actual_fine_tune:
-            print("Fine tuning model")
+            print("Not Approximating Accuracy")
             model.train()
             optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
             mvcnntrainer = MVCNN_Trainer(optimizer)
             _, fine_tuned = mvcnntrainer.fine_tune(model)
         
         else:
-            print("Approximating accuracy")
+            print("Approximating Accuracy")
             fine_tuned = self.getResults.get_approx_acc(pruning_amount, accuracy_pre_fine_tuning, self.initial_accuracy).item()
         
         reward = self.rewardfn.getReward(
@@ -146,13 +147,13 @@ class Search:
             
     def adam_gradient(
     self, 
-    initial_pruning=0.01, 
-    learning_rate=0.05, 
+    initial_pruning=30, 
+    learning_rate=0.1, 
     beta1=0.9, 
     beta2=0.999, 
     epsilon=1e-8, 
     max_iter=30, 
-    delta=1e-3, 
+    delta=1e-1, 
     clip_range=(1.0, 99.0), 
     x=0.33, 
     y=0.33, 
@@ -197,7 +198,7 @@ class Search:
 
             # Update pruning amount with Adam
             pruning_amount += lr * m_hat / (np.sqrt(v_hat) + epsilon)
-            pruning_amount = float(torch.clamp(torch.tensor(pruning_amount), *clip_range).item())
+            pruning_amount = float(torch.clamp(torch.tensor(pruning_amount), *clip_range))
 
             # Evaluate reward with updated pruning amount
             model_copy_final = deepcopy(self.model).to(self.device)
@@ -222,7 +223,7 @@ class Search:
         print(f"\n==> Best Pruning Amount: {best_pruning_amount:.4f}, Best Reward: {best_reward:.4f}")
         return best_pruning_amount, best_reward
     
-    def simulated_annealing(self, initial_pruning=5, max_iter=30, delta=1e-3, clip_range=(0.01, 0.99), temperature=1.0, cooling=0.95, patience=5):
+    def simulated_annealing(self, initial_pruning=5, max_iter=30, delta=1e-3, clip_range=(1.00, 99.00), temperature=1.0, cooling=0.95, patience=5):
         from copy import deepcopy  # if not already imported
         current_pruning = initial_pruning
         current_reward = self.prune_and_get_rewards(current_pruning, deepcopy(self.model).to(self.device), actual_fine_tune=False)

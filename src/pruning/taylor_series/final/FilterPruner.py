@@ -94,8 +94,6 @@ class FilterPruner:
     def get_pruning_plan(self, num_filters_to_prune: int, get_filters=False):
         filters_to_prune = self.lowest_ranking_filters(num_filters_to_prune)
         if get_filters:
-            print("Filters to prune:")
-            print(filters_to_prune)
             return [(layer_n, f, float(amt)) for layer_n, f, amt in filters_to_prune]
         
         
