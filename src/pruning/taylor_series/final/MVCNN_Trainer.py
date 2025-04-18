@@ -226,4 +226,8 @@ class MVCNN_Trainer():
         return total_size / (1024 ** 2)
     
     def get_num_filters(self, model):
-        return sum(param.nelement() for param in model.parameters())
+        return sum(
+            layer.out_channels
+            for layer in model.net_1
+            if isinstance(layer, torch.nn.Conv2d)
+        )

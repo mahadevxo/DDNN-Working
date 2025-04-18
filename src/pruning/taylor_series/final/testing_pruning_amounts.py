@@ -42,6 +42,7 @@ def main():
         
         write_to_csv(pruning_percentage, pre_acc, post_acc)
         print(f"Pruning {pruning_percentage}: pre_acc = {pre_acc}, post_acc = {post_acc}")
+        del trainer
     print("We done")
 
 

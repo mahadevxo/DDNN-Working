@@ -78,11 +78,11 @@ class FilterPruner:
         self.filter_ranks[activation_index] += taylor.to(self.device)  # Ensure device consistency
         del taylor, activation, grad
         
-    def lowest_ranking_filters(self, num):
+    def lowest_ranking_filters(self, num, filter_ranks):
         data = []
-        for i in sorted(self.filter_ranks.keys()):
-            for j in range(self.filter_ranks[i].size(0)):
-                data.append((self.activation_to_layer[i], j, self.filter_ranks[i][j]))
+        for i in sorted(filter_ranks.keys()):
+            for j in range(filter_ranks[i].size(0)):
+                data.append((self.activation_to_layer[i], j, filter_ranks[i][j]))
         return nsmallest(num, data, itemgetter(2))
     
     def normalize_ranks_per_layer(self):
@@ -90,13 +90,13 @@ class FilterPruner:
             v = torch.abs(self.filter_ranks[i])
             v = v / torch.sqrt(torch.sum(v * v))  # Added epsilon for numerical stability
             self.filter_ranks[i] = v.cpu()
+        
+        return self.filter_ranks
             
-    def get_pruning_plan(self, num_filters_to_prune: int, get_filters=False):
-        filters_to_prune = self.lowest_ranking_filters(num_filters_to_prune)
-        if get_filters:
-            return [(layer_n, f, float(amt)) for layer_n, f, amt in filters_to_prune]
-        
-        
+    def get_pruning_plan(self, num_filters_to_prune: int, get_filters=False, filter_ranks = None):
+        filters_to_prune = self.lowest_ranking_filters(num_filters_to_prune, filter_ranks=filter_ranks)
+        x = [(layer_n, f, float(amt)) for layer_n, f, amt in filters_to_prune]
+
         filters_to_prune_per_layer = {}
         for (layer_n, f, _) in filters_to_prune:
             if layer_n not in filters_to_prune_per_layer:
@@ -115,12 +115,12 @@ class FilterPruner:
 
         # Clean up after pruning plan is created
         self.reset()
-
-        return filters_to_prune
+        
+        return x, filters_to_prune
     
-    def get_sorted_filters(self):
+    def get_sorted_filters(self, filter_ranks):
         data = []
-        for i in sorted(self.filter_ranks.keys()):
-            for j in range(self.filter_ranks[i].size(0)):
-                data.append((self.activation_to_layer[i], j, self.filter_ranks[i][j]))
+        for i in sorted(filter_ranks.keys()):
+            for j in range(filter_ranks[i].size(0)):
+                data.append((self.activation_to_layer[i], j, filter_ranks[i][j]))
         return sorted(data, key=lambda x: x[2])

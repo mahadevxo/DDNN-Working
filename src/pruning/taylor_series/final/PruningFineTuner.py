@@ -28,9 +28,9 @@ class PruningFineTuner:
     
     def get_candidates_to_prune(self, num_filter_to_prune, get_filters=False, mvcnntrainer=None):
         self.pruner.reset()
-        mvcnntrainer.train_model(self.model, rank_filter=True, pruner_instance=self.pruner)
-        self.pruner.normalize_ranks_per_layer()
-        return self.pruner.get_pruning_plan(num_filter_to_prune, get_filters=get_filters)
+        self.model = mvcnntrainer.train_model(self.model, rank_filter=True, pruner_instance=self.pruner)
+        filter_ranks = self.pruner.normalize_ranks_per_layer()
+        return self.pruner.get_pruning_plan(num_filter_to_prune, get_filters=get_filters, filter_ranks=filter_ranks)
     
     def total_num_filters(self):
         return sum(
@@ -54,7 +54,7 @@ class PruningFineTuner:
         self.pruner.normalize_ranks_per_layer()
         return self.pruner.get_sorted_filters()
     
-    def prune(self, pruning_percentage=0, rank_filters=False):  # sourcery skip: extract-method, low-code-quality
+    def prune(self, pruning_percentage=0, rank_filters=False, prune_targets=None):  # sourcery skip: extract-method, low-code-quality
         self.model.train()
         optimizer = torch.optim.Adam(self.model.parameters(), lr=1e-3, weight_decay=0.0)
         # Enable gradients for pruning
@@ -62,16 +62,19 @@ class PruningFineTuner:
             param.requires_grad = True
             
         original_filters = self.total_num_filters()
+        print(f"Original Num Filter: {original_filters}")
         mvcnntrainer = MVCNN_Trainer(optimizer, train_amt=self.train_amt, test_amt=self.test_amt)
         
         if rank_filters:
             return self.get_candidates_to_prune(num_filter_to_prune=int(original_filters), get_filters=True, mvcnntrainer=mvcnntrainer)
         
-        num_filters_to_prune = int(original_filters * (pruning_percentage / 100.0))
-        print(f"Total Filters to prune: {num_filters_to_prune} For Pruning Percentage: {pruning_percentage}")
+        if prune_targets is None:
+            num_filters_to_prune = int(original_filters * (pruning_percentage / 100.0))
+            print(f"Total Filters to prune: {num_filters_to_prune} For Pruning Percentage: {pruning_percentage}")
 
-        # Rank and get the candidates to prune
-        prune_targets = self.get_candidates_to_prune(num_filter_to_prune=num_filters_to_prune, get_filters=False, mvcnntrainer=mvcnntrainer)
+            # Rank and get the candidates to prune
+            prune_targets = self.get_candidates_to_prune(num_filter_to_prune=num_filters_to_prune, get_filters=False, mvcnntrainer=mvcnntrainer)[1]
+        
         print("Pruning targets", prune_targets)
         # Count the number of filters to prune per layer
         layers_pruned = {}
@@ -102,6 +105,7 @@ class PruningFineTuner:
         # Test and fine tune model
         finetuner = MVCNN_Trainer(optimizer=optimizer)
         model = finetuner.fine_tune(model, rank_filter=False)
+        return model
     def reset(self):
         """Clear memory resources completely"""
         if hasattr(self, 'pruner'):

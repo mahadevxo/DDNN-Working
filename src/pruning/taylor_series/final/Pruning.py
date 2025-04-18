@@ -55,30 +55,20 @@ class Pruning:
         )
         
     def _prune_conv_layer(self, conv, new_conv, filter_index):
-        old_weights = conv.weight.data.cpu().numpy()
-        new_weights = new_conv.weight.data.cpu().numpy()
-        
-        new_weights[:filter_index, :, :, :] = old_weights[:filter_index, :, :, :]
-        new_weights[filter_index:, :, :, :] = old_weights[filter_index+1:, :, :, :]
-        
-        new_conv.weight.data = torch.from_numpy(new_weights).to(self.device)
-        bias_numpy = conv.bias.data.cpu().numpy()
-        
-        bias = np.zeros(shape=(bias_numpy.shape[0] - 1), dtype=np.float32)
-        bias[:filter_index] = bias_numpy[:filter_index]
-        bias[filter_index:] = bias_numpy[filter_index+1:]
-        
-        new_conv.bias.data = torch.from_numpy(bias).to(self.device)
+        # Prune conv weights on GPU without moving to CPU
+        old_weights = conv.weight.data
+        new_weights = torch.cat((old_weights[:filter_index], old_weights[filter_index+1:]), dim=0)
+        new_conv.weight.data.copy_(new_weights)
+        bias = conv.bias.data
+        new_bias = torch.cat((bias[:filter_index], bias[filter_index+1:]), dim=0)
+        new_conv.bias.data.copy_(new_bias)
     
     def _prune_next_conv_layer(self, next_conv, new_next_conv, filter_index):
-        old_weights = next_conv.weight.data.cpu().numpy()
-        new_weights = new_next_conv.weight.data.cpu().numpy()
-        
-        new_weights[:, :filter_index, :, :] = old_weights[:, :filter_index, :, :]
-        new_weights[:, filter_index:, :, :] = old_weights[:, filter_index+1:, :, :]
-        
-        new_next_conv.weight.data = torch.from_numpy(new_weights).to(self.device)
-        new_next_conv.bias.data = next_conv.bias.data.to(self.device)
+        # Prune next conv weights on GPU without moving to CPU
+        old_weights = next_conv.weight.data
+        new_weights = torch.cat((old_weights[:, :filter_index], old_weights[:, filter_index+1:]), dim=1)
+        new_next_conv.weight.data.copy_(new_weights)
+        new_next_conv.bias.data.copy_(next_conv.bias.data)
     
     def _prune_last_conv_layer(self, model, conv, new_conv, layer_index, filter_index):
         """Prune the last convolutional layer and update the first fully connected layer"""
@@ -108,16 +98,13 @@ class Pruning:
             old_linear_layer.out_features
         )
         
-        old_weights = old_linear_layer.weight.data.cpu().numpy()
-        new_weights = new_linear_layer.weight.data.cpu().numpy()
-        
-        new_weights[:, :filter_index * params_per_input_channel] = \
-            old_weights[:, :filter_index * params_per_input_channel]
-        new_weights[:, filter_index * params_per_input_channel:] = \
-            old_weights[:, (filter_index + 1) * params_per_input_channel:]
-            
-        new_linear_layer.weight.data = torch.from_numpy(new_weights).to(self.device)
-        new_linear_layer.bias.data = old_linear_layer.bias.data.to(self.device)
+        # Update the linear layer weights on GPU
+        old_weights = old_linear_layer.weight.data
+        left = old_weights[:, :filter_index * params_per_input_channel]
+        right = old_weights[:, (filter_index + 1) * params_per_input_channel:]
+        new_weights = torch.cat((left, right), dim=1)
+        new_linear_layer.weight.data.copy_(new_weights)
+        new_linear_layer.bias.data.copy_(old_linear_layer.bias.data)
         
         model.net_2 = torch.nn.Sequential(
             *(self._replace_layers(model.net_2, i, [layer_index], \
