@@ -72,3 +72,7 @@ def main():
         del pruner
         torch.cuda.empty_cache() if torch.cuda.is_available() else torch.mps.empty_cache() if torch.backends.mps.is_available() else None
         gc.collect()
+
+if __name__ == '__main__':
+    print("We starting")
+    main()
