@@ -83,3 +83,6 @@ def something():
     optimizer_bo = BayesianOptimization(f=objective, pbounds=pbounds, random_state=1)
     optimizer_bo.maximize(init_points=5, n_iter=10)
     print("Best result:", optimizer_bo.max)
+
+if __name__ == '__main__':
+    something()
