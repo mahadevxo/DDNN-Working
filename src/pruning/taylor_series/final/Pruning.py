@@ -52,64 +52,65 @@ class Pruning:
             dilation=conv.dilation,
             groups=conv.groups,
             bias=(conv.bias is not None),
-        )
+        ).to(self.device)
         
     def _prune_conv_layer(self, conv, new_conv, filter_index):
-        # Prune conv weights on GPU without moving to CPU
-        old_weights = conv.weight.data
-        new_weights = torch.cat((old_weights[:filter_index], old_weights[filter_index+1:]), dim=0)
-        new_conv.weight.data.copy_(new_weights)
-        bias = conv.bias.data
-        new_bias = torch.cat((bias[:filter_index], bias[filter_index+1:]), dim=0)
-        new_conv.bias.data.copy_(new_bias)
+        with torch.no_grad():
+            # Prune conv weights on GPU without moving to CPU
+            old_weights = conv.weight.data
+            new_weights = torch.cat((old_weights[:filter_index], old_weights[filter_index+1:]), dim=0)
+            new_conv.weight.data.copy_(new_weights)
+            bias = conv.bias.data
+            new_bias = torch.cat((bias[:filter_index], bias[filter_index+1:]), dim=0)
+            new_conv.bias.data.copy_(new_bias)
     
     def _prune_next_conv_layer(self, next_conv, new_next_conv, filter_index):
-        # Prune next conv weights on GPU without moving to CPU
-        old_weights = next_conv.weight.data
-        new_weights = torch.cat((old_weights[:, :filter_index], old_weights[:, filter_index+1:]), dim=1)
-        new_next_conv.weight.data.copy_(new_weights)
-        new_next_conv.bias.data.copy_(next_conv.bias.data)
+        with torch.no_grad():
+            # Prune next conv weights on GPU without moving to CPU
+            old_weights = next_conv.weight.data
+            new_weights = torch.cat((old_weights[:, :filter_index], old_weights[:, filter_index+1:]), dim=1)
+            new_next_conv.weight.data.copy_(new_weights)
+            new_next_conv.bias.data.copy_(next_conv.bias.data)
     
     def _prune_last_conv_layer(self, model, conv, new_conv, layer_index, filter_index):
-        """Prune the last convolutional layer and update the first fully connected layer"""
-        # Replace conv layer in model
-        modules = list(model.net_1)
-        modules[layer_index] = new_conv
-        model.net_1 = torch.nn.Sequential(*modules)
-        
-        # Find the first fully connected layer
-        layer_index = 0
-        old_linear_layer = None
-        for _, module in model.net_2._modules.items():
-            if isinstance(module, torch.nn.Linear):
-                old_linear_layer = module
-                break
-            layer_index += 1
-        
-        if old_linear_layer is None:
-            raise ValueError(f"No linear layer found in classifier, Model: {model}")
-        
-        # Calculate parameters per input channel
-        params_per_input_channel = old_linear_layer.in_features // conv.out_channels
-        
-        # Create new linear layer
-        new_linear_layer = torch.nn.Linear(
-            old_linear_layer.in_features - params_per_input_channel,
-            old_linear_layer.out_features
-        )
-        
-        # Update the linear layer weights on GPU
-        old_weights = old_linear_layer.weight.data
-        left = old_weights[:, :filter_index * params_per_input_channel]
-        right = old_weights[:, (filter_index + 1) * params_per_input_channel:]
-        new_weights = torch.cat((left, right), dim=1)
-        new_linear_layer.weight.data.copy_(new_weights)
-        new_linear_layer.bias.data.copy_(old_linear_layer.bias.data)
-        
-        model.net_2 = torch.nn.Sequential(
-            *(self._replace_layers(model.net_2, i, [layer_index], \
-                [new_linear_layer]) for i, _ in enumerate(model.net_2)))
-        
+        with torch.no_grad():
+            # Replace conv layer in model
+            modules = list(model.net_1)
+            modules[layer_index] = new_conv
+            model.net_1 = torch.nn.Sequential(*modules)
+            
+            # Find the first fully connected layer
+            layer_index = 0
+            old_linear_layer = None
+            for _, module in model.net_2._modules.items():
+                if isinstance(module, torch.nn.Linear):
+                    old_linear_layer = module
+                    break
+                layer_index += 1
+            
+            if old_linear_layer is None:
+                raise ValueError(f"No linear layer found in classifier, Model: {model}")
+            
+            # Calculate parameters per input channel
+            params_per_input_channel = old_linear_layer.in_features // conv.out_channels
+            
+            # Create new linear layer
+            new_linear_layer = torch.nn.Linear(
+                old_linear_layer.in_features - params_per_input_channel,
+                old_linear_layer.out_features
+            ).to(self.device)
+            
+            # Update the linear layer weights on GPU
+            old_weights = old_linear_layer.weight.data
+            left = old_weights[:, :filter_index * params_per_input_channel]
+            right = old_weights[:, (filter_index + 1) * params_per_input_channel:]
+            new_weights = torch.cat((left, right), dim=1)
+            new_linear_layer.weight.data.copy_(new_weights)
+            new_linear_layer.bias.data.copy_(old_linear_layer.bias.data)
+            
+            model.net_2 = torch.nn.Sequential(
+                *(self._replace_layers(model.net_2, i, [layer_index], [new_linear_layer]) for i, _ in enumerate(model.net_2))
+            )
         self._clear_memory()
         return model
     

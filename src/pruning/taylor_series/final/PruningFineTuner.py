@@ -19,7 +19,6 @@ class PruningFineTuner:
         self._clear_memory()
         
     def _clear_memory(self):
-        """Helper method to clear memory efficiently"""
         gc.collect()
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
@@ -62,7 +61,7 @@ class PruningFineTuner:
             param.requires_grad = True
             
         original_filters = self.total_num_filters()
-        print(f"Original Num Filter: {original_filters}")
+        # print(f"Original Num Filter: {original_filters}")
         mvcnntrainer = MVCNN_Trainer(optimizer, train_amt=self.train_amt, test_amt=self.test_amt)
         
         if rank_filters:
@@ -70,7 +69,7 @@ class PruningFineTuner:
         
         if prune_targets is None:
             num_filters_to_prune = int(original_filters * (pruning_percentage / 100.0))
-            print(f"Total Filters to prune: {num_filters_to_prune} For Pruning Percentage: {pruning_percentage}")
+            # print(f"Total Filters to prune: {num_filters_to_prune} For Pruning Percentage: {pruning_percentage}")
 
             # Rank and get the candidates to prune
             prune_targets = self.get_candidates_to_prune(num_filter_to_prune=num_filters_to_prune, get_filters=False, mvcnntrainer=mvcnntrainer)[1]
@@ -80,8 +79,8 @@ class PruningFineTuner:
         layers_pruned = {}
         for layer_index, filter_index in prune_targets:
             layers_pruned[layer_index] = layers_pruned.get(layer_index, 0) + 1
-        print("Layers that will be pruned", layers_pruned)
-        print("Pruning Filters")
+        # print("Layers that will be pruned", layers_pruned)
+        # print("Pruning Filters")
         model = self.model
         pruner = Pruning(model)
         
@@ -130,4 +129,4 @@ class PruningFineTuner:
         
     def __del__(self):
         self.reset()
-        print("PruningFineTuner object deleted and memory cleared.")
+        # print("PruningFineTuner object deleted and memory cleared.")

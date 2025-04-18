@@ -178,7 +178,7 @@ class MVCNN_Trainer():
         return model
             
     def fine_tune(self, model, rank_filter=False):
-        print("Fine Tuning Model")        
+        print("Fine Tuning Model")
         model = model.to(self.device)
         
         _, val_accuracy, _, _ = self.get_val_accuracy(model)
@@ -214,7 +214,7 @@ class MVCNN_Trainer():
                 break
             epoch+=1
         
-        print("---"*25, "Final Results", "---"*25)
+        # print("---"*25, "Final Results", "---"*25)
         print(f"Final Validation Accuracy: {accuracy}")
         print(f"Best Validation Accuracy: {best_accuracy}")
         return model, accuracy
