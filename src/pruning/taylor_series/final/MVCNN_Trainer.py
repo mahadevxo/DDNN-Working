@@ -7,7 +7,7 @@ from MVCNN.tools.ImgDataset import SingleImgDataset
 
 
 class MVCNN_Trainer():
-    def __init__(self, optimizer = None, num_views=12, train_amt=0.1, test_amt=0.5):
+    def __init__(self, optimizer = None, num_views=12, train_amt=0.1, test_amt=0.1):
         self.optimizer = optimizer
         self.loss_fn = torch.nn.CrossEntropyLoss()
         self.num_views = num_views
@@ -178,9 +178,8 @@ class MVCNN_Trainer():
         return model
             
     def fine_tune(self, model, rank_filter=False):
-        print("Fine Tuning Model")
+        print(f"Fine Tuning Model, Model has {self.get_num_filters(model)} filters")
         model = model.to(self.device)
-        
         _, val_accuracy, _, _ = self.get_val_accuracy(model)
         print(f"Initial Validation Accuracy: {val_accuracy}")
         model = model.train()
@@ -198,7 +197,6 @@ class MVCNN_Trainer():
             accuracy = self.get_val_accuracy(model)[1]
             print(f"Validation Accuracy: {accuracy}")
             prev_accs.append(accuracy)
-            print('*'*50)
             if len(prev_accs) > 5:
                 prev_accs.pop(0)
             

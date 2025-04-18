@@ -31,7 +31,7 @@ def main():
     init_csv()
     
     pft = PruningFineTuner(get_org_model(device), train_amt=0.01, test_amt=0.01)
-    mvcnntrainer  = MVCNN_Trainer(optimizer=torch.optim.Adam(get_org_model(device).parameters(), lr=0.001), train_amt=0.01, test_amt=0.01)
+    mvcnntrainer  = MVCNN_Trainer(optimizer=torch.optim.Adam(get_org_model(device).parameters(), lr=0.001), train_amt=0.01, test_amt=0.1)
     
     print(f"Original Model Size: {mvcnntrainer.get_size(get_org_model(device))}, Total Number of Filters: {mvcnntrainer.get_num_filters(get_org_model(device))}")
     old_size = mvcnntrainer.get_size(get_org_model(device))
@@ -50,7 +50,7 @@ def main():
         num_filters_to_remove = int((pruning_amount / 100) * pft.total_num_filters())
         prune_targets = ranks[1][:num_filters_to_remove]
         
-        print(f"Prune Targets: {prune_targets} for Pruning Amount {pruning_amount}")
+        print(f"Prune Targets: {len(prune_targets)} for Pruning Amount {pruning_amount}")
         
         pruner = Pruning(model)
         
