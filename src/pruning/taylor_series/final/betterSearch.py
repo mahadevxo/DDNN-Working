@@ -62,10 +62,10 @@ def something():
     device = 'mps' if torch.backends.mps.is_available() else 'cuda' if torch.cuda.is_available() else 'cpu'
     model = get_model_org()
     init_csv()    
-    pft = PruningFineTuner(get_model_org(device), train_amt=0.1, test_amt=0.5)
-    mvcnntrainer = MVCNN_Trainer(optimizer=torch.optim.Adam(get_model_org(device).parameters(), lr=0.001), train_amt=0.1, test_amt=0.5)
+    pft = PruningFineTuner(get_model_org(), train_amt=0.1, test_amt=0.5)
+    mvcnntrainer = MVCNN_Trainer(optimizer=torch.optim.Adam(get_model_org().parameters(), lr=0.001), train_amt=0.1, test_amt=0.5)
     
-    print(f"Original Model Size: {mvcnntrainer.get_size(get_model_org(device))}, Total Number of Filters: {mvcnntrainer.get_num_filters(get_model_org(device))}")
+    print(f"Original Model Size: {mvcnntrainer.get_size(get_model_org())}, Total Number of Filters: {mvcnntrainer.get_num_filters(get_model_org())}")
     comp_time_old = mvcnntrainer.get_val_accuracy(model)[3]
     ranks = pft.prune(rank_filters=True)
     
