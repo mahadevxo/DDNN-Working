@@ -51,6 +51,9 @@ def main():
         prune_targets = ranks[1][:num_filters_to_remove]
         
         print(f"Prune Targets: {len(prune_targets)} for Pruning Amount {pruning_amount}")
+        if not prune_targets:
+            print(f"No extra filter to prune for pruning amount {pruning_amount}. Skipping this iteration.")
+            continue
         
         pruner = Pruning(model)
         
