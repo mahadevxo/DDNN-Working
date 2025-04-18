@@ -33,8 +33,8 @@ def main():
     pft = PruningFineTuner(get_org_model(device), train_amt=0.01, test_amt=0.01)
     mvcnntrainer  = MVCNN_Trainer(optimizer=torch.optim.Adam(get_org_model(device).parameters(), lr=0.001), train_amt=0.01, test_amt=0.01)
     
-    print(f"Original Model Size: {mvcnntrainer.get_model_size(get_org_model(device))}, Total Number of Filters: {mvcnntrainer.get_num_filters(get_org_model(device))}")
-    old_size = mvcnntrainer.get_model_size(get_org_model(device))
+    print(f"Original Model Size: {mvcnntrainer.get_size(get_org_model(device))}, Total Number of Filters: {mvcnntrainer.get_num_filters(get_org_model(device))}")
+    old_size = mvcnntrainer.get_size(get_org_model(device))
     
     ranks = pft.prune(rank_filters=True)
     
@@ -62,7 +62,7 @@ def main():
         pre_acc = mvcnntrainer.get_val_accuracy(model)[1]
         
         model, post_acc = mvcnntrainer.fine_tune(model)
-        new_size = mvcnntrainer.get_model_size(model)
+        new_size = mvcnntrainer.get_size(model)
         
         write_to_csv(pruning_amount, pre_acc, post_acc, old_size, new_size)
         print(f"Pruning {pruning_amount}: pre_acc = {pre_acc}, post_acc = {post_acc}, old_size = {old_size}, new_size = {new_size}")
