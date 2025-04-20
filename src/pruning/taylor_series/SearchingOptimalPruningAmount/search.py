@@ -15,6 +15,13 @@ def _clear_memory() -> None:
     if torch.backends.mps.is_available():
         torch.mps.empty_cache()
 
+def _get_num_filters(model: torch.nn.Module) -> int:
+    return sum(
+        layer.out_channels
+        for layer in model.net_1
+        if isinstance(layer, torch.nn.Conv2d)
+    )
+    
 def get_model() -> torch.nn.Module:
     device = 'mps' if torch.backends.mps.is_available() else 'cuda' if torch.cuda.is_available() else 'cpu'
     model = MVCNN.SVCNN('SVCNN')
@@ -28,6 +35,7 @@ def get_model() -> torch.nn.Module:
 def get_Reward(pruning_amount: float, ranks: tuple, rewardfn: Reward, comp_time_last: float) -> float:
     model = get_model()
     model = get_pruned_model(ranks=ranks, model=model, pruning_amount=pruning_amount)
+    print(f"Filters of Pruned Model: {_get_num_filters(model)}")
     model = model.to(device)
     model, _, = fine_tune(model, rank_filter=False)
     accuracy, time, model_size = validate_model(model)

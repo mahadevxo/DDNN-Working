@@ -16,13 +16,13 @@ def _clear_memory():
 
 def _get_num_filters(model: torch.nn.Module) -> int:
     return sum(
-        param.numel()
-        for name, param in model.named_parameters()
-        if 'weight' in name
+        layer.out_channels
+        for layer in model.net_1
+        if isinstance(layer, torch.nn.Conv2d)
     )
 
 
-def get_train_data(train_path: str='ModelNet40-12View/*/train', train_amt: float=0.3, num_models: int=1000, num_views: int=12) -> torch.utils.data.DataLoader:
+def get_train_data(train_path: str='ModelNet40-12View/*/train', train_amt: float=0.1, num_models: int=1000, num_views: int=12) -> torch.utils.data.DataLoader:
     classes_present = []
     train_dataset = SingleImgDataset(
         train_path, scale_aug=False, rot_aug=False,
@@ -194,9 +194,8 @@ def fine_tune(model: torch.nn.Module, rank_filter: bool=False) -> tuple:
     best_accuracy = 0
     
     while True:
-        break
         print(f"--------Epoch {epoch+1}--------")
-        model = train_model(model, rank_filter=rank_filter)
+        model = train_model(model)
         accuracy = validate_model(model)[0]
         prev_accs.append(accuracy)
         
@@ -210,10 +209,11 @@ def fine_tune(model: torch.nn.Module, rank_filter: bool=False) -> tuple:
             print(f"Stopping fine-tuning at epoch {epoch+1} with accuracy {accuracy:.2f}%")
             break
         
-        if epoch >= 5:
+        if epoch >= 4:
             print(f"Max Epochs Reached-{epoch+1}")
             break
-        
+        if epoch == 0:
+            break
         print(f"Epoch {epoch+1} -> Validation accuracy: {accuracy:.2f}%")
         epoch += 1
         
