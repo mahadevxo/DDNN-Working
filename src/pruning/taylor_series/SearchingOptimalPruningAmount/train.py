@@ -23,6 +23,7 @@ def _get_num_filters(model: torch.nn.Module) -> int:
 
 
 def get_train_data(train_path: str='ModelNet40-12View/*/train', train_amt: float=0.05, num_models: int=1000, num_views: int=12) -> torch.utils.data.DataLoader:
+    classes_present = []
     train_dataset = SingleImgDataset(
         train_path, scale_aug=False, rot_aug=False,
         num_models=num_models, num_views=num_views,
@@ -42,6 +43,14 @@ def get_train_data(train_path: str='ModelNet40-12View/*/train', train_amt: float
 
     # Assign the new filepaths to the dataset
     train_dataset.filepaths = new_filepaths
+    for filepath in train_dataset.filepaths:
+        class_name = filepath.split('/')[3]
+        if class_name not in classes_present:
+            classes_present.append(class_name)
+    
+    if len(classes_present) < 33:
+        print(f"Subset of classes present: {len(classes_present)} out of 33")
+        return False
     _clear_memory()
     return torch.utils.data.DataLoader(
         train_dataset, batch_size=32, shuffle=False, num_workers=4
@@ -118,7 +127,13 @@ def train_model(model: torch.nn.Module, train_loader: torch.utils.data.DataLoade
     criterion = torch.nn.CrossEntropyLoss()
     
     if train_loader is None:
-        train_loader = get_train_data()
+        while True:
+            x = get_train_data()
+            if x is not False:
+                train_loader = x
+                break
+            else:
+                print("Not enough classes in the training set. Retrying...")
     
     running_loss, running_accc, total_steps = 0.0, 0.0, 0.0
     
@@ -179,7 +194,7 @@ def fine_tune(model: torch.nn.Module, rank_filter: bool=False) -> tuple:
     best_accuracy = 0
     
     while True:
-        print(f"Epoch {epoch+1}")
+        print(f"--------Epoch {epoch+1}--------")
         model = train_model(model, rank_filter=rank_filter)
         accuracy = validate_model(model)[0]
         prev_accs.append(accuracy)
@@ -198,7 +213,7 @@ def fine_tune(model: torch.nn.Module, rank_filter: bool=False) -> tuple:
             print(f"Max Epochs Reached-{epoch+1}")
             break
         epoch += 1
-        print(f"Epoch {epoch+1} - Validation accuracy: {accuracy:.2f}%")
+        print(f"Epoch {epoch+1} -> Validation accuracy: {accuracy:.2f}%")
         
     print(f"Final validation accuracy: {accuracy:.2f}%")
     print(f"Final validation time: {times:.6f}s")
