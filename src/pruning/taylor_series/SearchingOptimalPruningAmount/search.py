@@ -56,7 +56,7 @@ def get_Reward(pruning_amount: float, ranks: tuple, rewardfn: Reward) -> tuple:
     _clear_memory()
     return reward, comp_time_last
 
-def search() -> None:
+def main() -> None:
     # res = validate_model(get_model())
     # print(f"Initial Validation Accuracy: {res[0]:.2f}%, Time: {res[1]:.6f}s, Model Size: {res[2]:.2f}MB")
     min_acc: float = 50
@@ -91,8 +91,12 @@ def search() -> None:
         print("Best pruning amount so far:", best_pruning_amount)
         print("Best reward so far:", best_reward)
         print("Sigma Value:", es.sigma)
+        _clear_memory()
     
     print(f"Best pruning amount: {best_pruning_amount}, Best reward: {best_reward}")
 
 if __name__ == '__main__':
-    search()
+    main()
+    _clear_memory()
+    print("Done")
+    
