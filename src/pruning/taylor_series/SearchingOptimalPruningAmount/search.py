@@ -1,4 +1,5 @@
 import gc
+from re import A
 from models import MVCNN
 import torch
 from prune import get_ranks, get_pruned_model
@@ -24,15 +25,17 @@ def get_model() -> torch.nn.Module:
     _clear_memory()
     return model
 
-def get_Reward(pruning_amount: float, ranks: tuple, rewardfn: Reward) -> float:
+def get_Reward(pruning_amount: float, ranks: tuple, rewardfn: Reward, comp_time_last: float) -> float:
     model = get_model()
     model = get_pruned_model(ranks=ranks, model=model, pruning_amount=pruning_amount)
     model = model.to(device)
-    model, _ = fine_tune(model, rank_filter=False)
+    model, _, = fine_tune(model, rank_filter=False)
     accuracy, time, model_size = validate_model(model)
     print(f"Accuracy: {accuracy:.2f}%, Time: {time:.2f}s, Model Size: {model_size:.2f}MB")
     del model
-    reward = rewardfn.getReward(accuracy, time, model_size, )
+    if comp_time_last is None:
+        comp_time_last = time
+    reward = rewardfn.getReward(accuracy=accuracy, comp_time=time, model_size=model_size, comp_time_last=comp_time_last)
     _clear_memory()
     return reward
 
@@ -57,11 +60,12 @@ def search() -> None:
     while not es.stop():
         solutions = es.ask()
         rewards: list = []
-        
+        comp_time_last: float = None
+        print("Evaluating solutions...")
         for x in solutions:
             pruning_amount = x[0]
             print("Evaluating pruning amount:", pruning_amount)
-            reward = get_Reward(pruning_amount, ranks, rewardfn)
+            reward, comp_time_last = get_Reward(pruning_amount, ranks, rewardfn, comp_time_last=None if comp_time_last is None else comp_time_last)
             print(f"Reward for {pruning_amount}: {reward}")
             rewards.append(-reward)
             if reward > best_reward:

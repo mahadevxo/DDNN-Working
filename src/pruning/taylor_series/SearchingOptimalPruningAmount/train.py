@@ -194,6 +194,7 @@ def fine_tune(model: torch.nn.Module, rank_filter: bool=False) -> tuple:
     best_accuracy = 0
     
     while True:
+        break
         print(f"--------Epoch {epoch+1}--------")
         model = train_model(model, rank_filter=rank_filter)
         accuracy = validate_model(model)[0]
