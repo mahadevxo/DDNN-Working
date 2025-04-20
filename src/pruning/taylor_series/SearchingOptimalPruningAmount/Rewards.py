@@ -1,8 +1,11 @@
 class Reward:
-    def __init__(self, min_acc, min_size):
+    def __init__(self, min_acc, min_size, x=0.33, y=0.33, z=0.33):
         self.min_acc = min_acc
         self.min_size = min_size
         self.reward = 0
+        self.x = x
+        self.y = y
+        self.z = z
     def _get_accuracy_reward(self, accuracy_new):
         if accuracy_new > (self.min_acc - 10**-3) and accuracy_new < (self.min_acc + 10**-3):
             return 500.0
@@ -22,11 +25,11 @@ class Reward:
         delta_comp_time = comp_time_new - comp_time_last    
         return 100*delta_comp_time if delta_comp_time < 0 else 300 * delta_comp_time
 
-    def getReward(self, accuracy,  model_size,  comp_time,  comp_time_last,  x=0.33,  y=0.33,  z=0.33):
-        if not (0.99 <= x + y + z <= 1.01):
+    def getReward(self, accuracy,  model_size,  comp_time,  comp_time_last):
+        if not (0.99 <= self.x + self.y + self.z <= 1.01):
             raise ValueError("x, y, and z must sum to 1 or 0")
         
         accuracy_reward = self._get_accuracy_reward(accuracy)
         model_size_reward = self._get_model_size_reward(model_size)
         comp_time_reward = self._get_comp_time_reward(comp_time, comp_time_last)
-        return (x*accuracy_reward) + (y*model_size_reward) + (z*comp_time_reward)
+        return (self.x*accuracy_reward) + (self.y*model_size_reward) + (self.z*comp_time_reward)

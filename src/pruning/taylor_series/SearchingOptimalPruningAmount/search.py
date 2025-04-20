@@ -41,8 +41,11 @@ def search():
     # print(f"Initial Validation Accuracy: {res[0]:.2f}%, Time: {res[1]:.6f}s, Model Size: {res[2]:.2f}MB")
     min_acc = 50
     min_size = 300
+    x=0.7
+    y=0.0
+    z=0.3
     
-    rewardfn = Reward(min_acc=min_acc, min_size=min_size)
+    rewardfn = Reward(min_acc=min_acc, min_size=min_size, x=x, y=y, z=z)
     ranks = get_ranks(get_model())
         
     print(f"Length of ranks: {len(ranks)}")
