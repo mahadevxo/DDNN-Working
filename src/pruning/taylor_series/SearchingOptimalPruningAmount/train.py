@@ -212,8 +212,9 @@ def fine_tune(model: torch.nn.Module, rank_filter: bool=False) -> tuple:
         if epoch > 6:
             print(f"Max Epochs Reached-{epoch+1}")
             break
-        epoch += 1
+        
         print(f"Epoch {epoch+1} -> Validation accuracy: {accuracy:.2f}%")
+        epoch += 1
         
     print(f"Final validation accuracy: {accuracy:.2f}%")
     print(f"Final validation time: {times:.6f}s")

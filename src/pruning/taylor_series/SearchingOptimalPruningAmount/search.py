@@ -6,15 +6,15 @@ from train import validate_model, fine_tune
 from Rewards import Reward
 import cma
 
-device = 'mps' if torch.backends.mps.is_available() else 'cuda' if torch.cuda.is_available() else 'cpu'
-def _clear_memory():
+device: str = 'mps' if torch.backends.mps.is_available() else 'cuda' if torch.cuda.is_available() else 'cpu'
+def _clear_memory() -> None:
     gc.collect()
     if torch.cuda.is_available():
         torch.cuda.empty_cache()
     if torch.backends.mps.is_available():
         torch.mps.empty_cache()
 
-def get_model():
+def get_model() -> torch.nn.Module:
     device = 'mps' if torch.backends.mps.is_available() else 'cuda' if torch.cuda.is_available() else 'cpu'
     model = MVCNN.SVCNN('SVCNN')
     weights = torch.load('./model-00030.pth', map_location=device)
@@ -24,7 +24,7 @@ def get_model():
     _clear_memory()
     return model
 
-def get_Reward(pruning_amount, ranks, rewardfn):
+def get_Reward(pruning_amount: float, ranks: tuple, rewardfn: Reward) -> float:
     model = get_model()
     model = get_pruned_model(ranks=ranks, model=model, pruning_amount=pruning_amount)
     model = model.to(device)
@@ -36,27 +36,27 @@ def get_Reward(pruning_amount, ranks, rewardfn):
     _clear_memory()
     return reward
 
-def search():
+def search() -> None:
     # res = validate_model(get_model())
     # print(f"Initial Validation Accuracy: {res[0]:.2f}%, Time: {res[1]:.6f}s, Model Size: {res[2]:.2f}MB")
-    min_acc = 50
-    min_size = 300
-    x=0.7
-    y=0.0
-    z=0.3
+    min_acc: float = 50
+    min_size: float = 300
+    x: float = 0.7
+    y: float = 0.0
+    z: float = 0.3
     
-    rewardfn = Reward(min_acc=min_acc, min_size=min_size, x=x, y=y, z=z)
-    ranks = get_ranks(get_model())
+    rewardfn: Reward = Reward(min_acc=min_acc, min_size=min_size, x=x, y=y, z=z)
+    ranks: tuple = get_ranks(get_model())
         
     print(f"Length of ranks: {len(ranks)}")
     
-    es = cma.CMAEvolutionStrategy([0.15], 0.05, {'bounds': [0.0, 1.0]})
-    best_reward = float('-inf')
-    best_pruning_amount = None
+    es: cma.EvolutionStrategy = cma.CMAEvolutionStrategy([0.15], 0.05, {'bounds': [0.0, 1.0]})
+    best_reward: float = float('-inf')
+    best_pruning_amount: float = None
     
     while not es.stop():
         solutions = es.ask()
-        rewards = []
+        rewards: list = []
         
         for x in solutions:
             pruning_amount = x[0]
