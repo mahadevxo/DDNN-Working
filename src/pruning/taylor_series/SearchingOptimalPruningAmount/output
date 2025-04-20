@@ -1,0 +1,13 @@
+Initial Validation Accuracy: 65.70%, Time: 0.001644s, Model Size: 491.72MB
+Training loss: 0.714, Training accuracy: 0.783
+{}
+********************
+{}
+prune.py: 34
+{}
+Length of ranks: 0
+Number of filters: 0
+(2_w,4mirr1)-aCMA-ES (mu_w=1.5,w_1=80%) in dimension 1 (seed=302311, Mon Apr 21 00:16:26 2025)
+Evaluating pruning amount: 0.10906847575502138
+Error calculating total filters: 'numpy.float64' object is not iterable
+0.10906847575502138

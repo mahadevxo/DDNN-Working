@@ -25,11 +25,12 @@ def _get_sorted_filters(ranks):
     return sorted(data, key=lambda x: x[2])
 
 def get_ranks(model):
-    pruner = FilterPruner(model)
-    pruner.reset()
     model = model.to(device)
-    model = train_model(model, rank_filter=True) #model with ranks ready for sorting
+    model = model.train()
+    model = train_model(model, rank_filter=True)
+    pruner = FilterPruner(model)
     ranks = pruner.normalize_ranks_per_layer()
+    print(f'prune.py: 34\n{ranks}')
     _clear_memory()
     return _get_sorted_filters(ranks)
 
@@ -85,8 +86,12 @@ def _prune_model(prune_targets, model):
 def get_pruned_model(ranks=None, model=None, pruning_amount=0.0):
     if ranks is None:
         ranks = get_ranks(model)
-
-    total_filters = sum(len(ranks[i]) for i in ranks)
+    try:
+        total_filters = sum(len(ranks[i]) for i in ranks)
+    except Exception as e:
+        print(f"Error calculating total filters: {e}")
+        print(ranks)
+        exit()
     num_filters_to_prune = int(pruning_amount * total_filters)
 
     prune_targets = _get_pruning_plan(num_filters_to_prune, ranks)

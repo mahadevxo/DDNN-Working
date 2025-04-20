@@ -86,11 +86,13 @@ class FilterPruner:
         return nsmallest(num, data, itemgetter(2))
     
     def normalize_ranks_per_layer(self):
+        print(self.filter_ranks)
         for i in self.filter_ranks:
             v = torch.abs(self.filter_ranks[i])
             v = v / torch.sqrt(torch.sum(v * v))  # Added epsilon for numerical stability
             self.filter_ranks[i] = v.cpu()
-        
+        print("*"*20)
+        print(self.filter_ranks)
         return self.filter_ranks
             
     def get_pruning_plan(self, num_filters_to_prune: int, filter_ranks = None):

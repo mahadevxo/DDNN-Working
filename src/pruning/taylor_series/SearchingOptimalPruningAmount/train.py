@@ -14,7 +14,7 @@ def _clear_memory():
     elif torch.backends.mps.is_available():
         torch.mps.empty_cache()
 
-def _get_num_filters(model):
+def _get_num_filters(model: torch.nn.Module) -> int:
     return sum(
         param.numel()
         for name, param in model.named_parameters()
@@ -22,12 +22,12 @@ def _get_num_filters(model):
     )
 
 
-def get_train_data(train_path='ModelNet40-12View/*/train', train_amt=0.05, num_models=1000, num_views=12):
+def get_train_data(train_path: str='ModelNet40-12View/*/train', train_amt: float=0.05, num_models: int=1000, num_views: int=12) -> torch.utils.data.DataLoader:
     train_dataset = SingleImgDataset(
         train_path, scale_aug=False, rot_aug=False,
         num_models=num_models, num_views=num_views,
     )
-    total_models = int(len(train_dataset.filepaths) / num_views)
+    total_models = len(train_dataset.filepaths) // num_views
     # Determine how many models to sample
     subset_size = int(train_amt * total_models)
 
@@ -44,20 +44,20 @@ def get_train_data(train_path='ModelNet40-12View/*/train', train_amt=0.05, num_m
     train_dataset.filepaths = new_filepaths
     _clear_memory()
     return torch.utils.data.DataLoader(
-        train_dataset, batch_size=32, shuffle=True, num_workers=4
+        train_dataset, batch_size=32, shuffle=False, num_workers=4
     )
 
-def get_test_data(test_path='ModelNet40-12View/*/test', num_models=1000, num_views=12):
+def get_test_data(test_path: str='ModelNet40-12View/*/test', num_models: int=1000, num_views: int=12) -> torch.utils.data.DataLoader:
     test_dataset = SingleImgDataset(
         test_path, scale_aug=False, rot_aug=False,
         num_models=num_models, num_views=num_views,
     )
     _clear_memory()
     return torch.utils.data.DataLoader(
-        test_dataset, batch_size=32, shuffle=True, num_workers=4
+        test_dataset, batch_size=32, shuffle=False, num_workers=4
     )
 
-def validate_model(model, test_loader=None):
+def validate_model(model: torch.nn.Module, test_loader: torch.utils.data.DataLoader=None) -> tuple:
     if test_loader is None:
         test_loader = get_test_data()
     
@@ -95,7 +95,7 @@ def validate_model(model, test_loader=None):
     all_loss /= len(test_loader)
     
     validation_accuracy = (all_correct_points / all_point)*100
-    print(f'Validation accuracy: {validation_accuracy:.2f}%')
+    # print(f'Validation accuracy: {validation_accuracy:.2f}%')
     times = np.mean(times)
     
     model_size_in_mb = sum(
@@ -106,9 +106,13 @@ def validate_model(model, test_loader=None):
     _clear_memory()
     return validation_accuracy, times, model_size_in_mb
 
-def train_model(model, train_loader=None, rank_filter=False):
+def train_model(model: torch.nn.Module, train_loader: torch.utils.data.DataLoader=None, rank_filter: bool=False) -> torch.nn.Module:
     model = model.to(device)
     model = model.train()
+    
+    if rank_filter:
+        for param in model.net_1.parameters():
+            param.requires_grad = True
     
     optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
     criterion = torch.nn.CrossEntropyLoss()
@@ -139,7 +143,7 @@ def train_model(model, train_loader=None, rank_filter=False):
                 
                 running_loss += loss.item()
                 
-                pred = torch.mox(output, 1)[1]
+                pred = torch.max(output, 1)[1]
                 results = pred == labels
                 correct_points = torch.sum(results.long())
                 acc = correct_points.float() / results.size()[0]
@@ -156,7 +160,7 @@ def train_model(model, train_loader=None, rank_filter=False):
     del pruner, train_loader, optimizer, criterion
     return model
 
-def fine_tune(model, rank_filter=False):
+def fine_tune(model: torch.nn.Module, rank_filter: bool=False) -> tuple:
     print(f"Fine Tuning Model; Model has {_get_num_filters(model)} filters")
     model = model.to(device)
     model = model.train()
