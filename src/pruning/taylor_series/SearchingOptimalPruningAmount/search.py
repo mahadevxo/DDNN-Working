@@ -32,7 +32,7 @@ def get_Reward(pruning_amount: float, ranks: tuple, rewardfn: Reward) -> float:
     accuracy, time, model_size = validate_model(model)
     print(f"Accuracy: {accuracy:.2f}%, Time: {time:.2f}s, Model Size: {model_size:.2f}MB")
     del model
-    reward = rewardfn.get_reward(accuracy, time, model_size, )
+    reward = rewardfn.getReward(accuracy, time, model_size, )
     _clear_memory()
     return reward
 

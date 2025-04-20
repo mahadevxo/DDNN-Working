@@ -205,11 +205,11 @@ def fine_tune(model: torch.nn.Module, rank_filter: bool=False) -> tuple:
             best_accuracy = accuracy
             print(f"Best accuracy so far: {best_accuracy:.2f}%")
         
-        if epoch > 5 and best_accuracy - 2 <= np.mean(prev_accs).item() <= best_accuracy + 2:
+        if epoch > 3 and best_accuracy - 2 <= np.mean(prev_accs).item() <= best_accuracy + 2:
             print(f"Stopping fine-tuning at epoch {epoch+1} with accuracy {accuracy:.2f}%")
             break
         
-        if epoch > 6:
+        if epoch >= 5:
             print(f"Max Epochs Reached-{epoch+1}")
             break
         
