@@ -37,4 +37,4 @@ class Reward:
         comp_time_reward = self._get_comp_time_reward(comp_time, comp_time_last)
         reward = (self.x*accuracy_reward) + (self.y*model_size_reward) + (self.z*comp_time_reward)
         reward = reward ** 1
-        return reward
+        return reward, comp_time

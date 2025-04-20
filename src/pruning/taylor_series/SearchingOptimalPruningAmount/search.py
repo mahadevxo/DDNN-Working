@@ -1,5 +1,7 @@
 import gc
 from re import A
+
+from sympy import comp
 from models import MVCNN
 import torch
 from prune import get_ranks, get_pruned_model
@@ -32,7 +34,7 @@ def get_model() -> torch.nn.Module:
     _clear_memory()
     return model
 
-def get_Reward(pruning_amount: float, ranks: tuple, rewardfn: Reward, comp_time_last: float) -> float:
+def get_Reward(pruning_amount: float, ranks: tuple, rewardfn: Reward, comp_time_last: float) -> tuple:
     model = get_model()
     model = get_pruned_model(ranks=ranks, model=model, pruning_amount=pruning_amount)
     print(f"Filters of Pruned Model: {_get_num_filters(model)}")
@@ -43,9 +45,9 @@ def get_Reward(pruning_amount: float, ranks: tuple, rewardfn: Reward, comp_time_
     del model
     if comp_time_last is None:
         comp_time_last = time
-    reward = rewardfn.getReward(accuracy=accuracy, comp_time=time, model_size=model_size, comp_time_last=comp_time_last)
+    reward, comp_time_last = rewardfn.getReward(accuracy=accuracy, comp_time=time, model_size=model_size, comp_time_last=comp_time_last)
     _clear_memory()
-    return reward
+    return reward, comp_time_last
 
 def search() -> None:
     # res = validate_model(get_model())
