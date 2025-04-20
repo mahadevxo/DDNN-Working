@@ -50,7 +50,7 @@ def search() -> None:
         
     print(f"Length of ranks: {len(ranks)}")
     
-    es: cma.EvolutionStrategy = cma.CMAEvolutionStrategy([0.15], 0.05, {'bounds': [0.0, 1.0], 'maxiter': 100})
+    es: cma.EvolutionStrategy = cma.CMAEvolutionStrategy([0.15], 0.05, {'bounds': [0.0, 1.0], 'maxiter': 30})
     best_reward: float = float('-inf')
     best_pruning_amount: float = None
     
