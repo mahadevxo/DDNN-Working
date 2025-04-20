@@ -6,6 +6,9 @@ class Reward:
         self.x = x
         self.y = y
         self.z = z
+        
+        print(f"Reward initialized with min_acc: {self.min_acc}, min_size: {self.min_size}, x: {self.x}, y: {self.y}, z: {self.z}")
+        
     def _get_accuracy_reward(self, accuracy_new):
         if accuracy_new > (self.min_acc - 10**-3) and accuracy_new < (self.min_acc + 10**-3):
             return 500.0
