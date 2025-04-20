@@ -29,6 +29,7 @@
     ],
     "git.ignoreLimitWarning": true,
     "python.analysis.extraPaths": [
-        "./src/MVCNN"
+        "./src/MVCNN",
+        "./src/pruning/taylor_series/SearchingOptimalPruningAmount"
     ]
 }

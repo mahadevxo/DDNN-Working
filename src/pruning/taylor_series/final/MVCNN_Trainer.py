@@ -89,8 +89,8 @@ class MVCNN_Trainer():
         all_correct_points = 0
         all_points = 0
         all_loss = 0
-        wrong_class = np.zeros(40)
-        samples_class = np.zeros(40)
+        wrong_class = np.zeros(33)
+        samples_class = np.zeros(33)
         
         model = model.to(self.device)
         model.eval()
