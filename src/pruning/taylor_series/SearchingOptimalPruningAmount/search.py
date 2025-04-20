@@ -87,7 +87,7 @@ def main() -> None:
             if reward > best_reward:
                 best_reward = reward
                 best_pruning_amount = pruning_amount
-            es.tell(solutions, rewards)
+        es.tell(solutions, rewards)
         print("Best pruning amount so far:", best_pruning_amount)
         print("Best reward so far:", best_reward)
         print("Sigma Value:", es.sigma)
