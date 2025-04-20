@@ -7,7 +7,7 @@ from Rewards import Reward
 import cma
 
 device: str = 'mps' if torch.backends.mps.is_available() else 'cuda' if torch.cuda.is_available() else 'cpu'
-comp_time_last = None
+comp_time_last: float = None
 
 def _clear_memory() -> None:
     gc.collect()
@@ -25,20 +25,20 @@ def _get_num_filters(model: torch.nn.Module) -> int:
     
 def get_model() -> torch.nn.Module:
     global device
-    model = MVCNN.SVCNN('SVCNN')
-    weights = torch.load('./model-00030.pth', map_location=device)
+    model: torch.nn.Module = MVCNN.SVCNN('SVCNN')
+    weights: dict = torch.load('./model-00030.pth', map_location=device)
     model.load_state_dict(weights)
-    model = model.to(device)
+    model: torch.nn.Module = model.to(device)
     del weights
     _clear_memory()
     return model
 
 def get_Reward(pruning_amount: float, ranks: tuple, rewardfn: Reward) -> tuple:
     global device
-    model = get_model()
-    model = get_pruned_model(ranks=ranks, model=model, pruning_amount=pruning_amount)
+    model: torch.nn.Module = get_model()
+    model: torch.nn.Module = get_pruned_model(ranks=ranks, model=model, pruning_amount=pruning_amount)
     print(f"Filters of Pruned Model: {_get_num_filters(model)}")
-    model = model.to(device)
+    model: torch.nn.Module = model.to(device)
     model, _, = fine_tune(model, rank_filter=False)
     accuracy, time, model_size = validate_model(model)
     print(f"Accuracy: {accuracy:.2f}%, Time: {time:.2f}s, Model Size: {model_size:.2f}MB")
@@ -54,7 +54,7 @@ def get_Reward(pruning_amount: float, ranks: tuple, rewardfn: Reward) -> tuple:
     comp_time_last = comp_time
     
     _clear_memory()
-    return reward, comp_time_last
+    return reward
 
 def main() -> None:
     # res = validate_model(get_model())
@@ -99,4 +99,3 @@ if __name__ == '__main__':
     main()
     _clear_memory()
     print("Done")
-    
