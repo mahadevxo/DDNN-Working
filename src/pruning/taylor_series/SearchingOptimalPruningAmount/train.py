@@ -22,7 +22,7 @@ def _get_num_filters(model: torch.nn.Module) -> int:
     )
 
 
-def get_train_data(train_path: str='ModelNet40-12View/*/train', train_amt: float=0.05, num_models: int=1000, num_views: int=12) -> torch.utils.data.DataLoader:
+def get_train_data(train_path: str='ModelNet40-12View/*/train', train_amt: float=0.3, num_models: int=1000, num_views: int=12) -> torch.utils.data.DataLoader:
     classes_present = []
     train_dataset = SingleImgDataset(
         train_path, scale_aug=False, rot_aug=False,
