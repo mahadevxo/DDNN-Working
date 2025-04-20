@@ -1,9 +1,62 @@
 train_loader: 29
 Length of ranks: 2752
-(2_w,4mirr1)-aCMA-ES (mu_w=1.5,w_1=80%) in dimension 1 (seed=323110, Mon Apr 21 01:44:24 2025)
-Evaluating pruning amount: 0.048436890758054574
-Pruning 133 filters
+(2_w,4mirr1)-aCMA-ES (mu_w=1.5,w_1=80%) in dimension 1 (seed=280222, Mon Apr 21 01:47:46 2025)
+Evaluating pruning amount: 0.19337941271833875
+Pruning 532 filters
 Pruned 0 filters
 Pruned 10 filters
 Pruned 20 filters
 Pruned 30 filters
+Pruned 40 filters
+Pruned 50 filters
+Pruned 60 filters
+Pruned 70 filters
+Pruned 80 filters
+Pruned 90 filters
+Pruned 100 filters
+Pruned 110 filters
+Pruned 120 filters
+Pruned 130 filters
+Pruned 140 filters
+Pruned 150 filters
+Pruned 160 filters
+Pruned 170 filters
+Pruned 180 filters
+Pruned 190 filters
+Pruned 200 filters
+Pruned 210 filters
+Pruned 220 filters
+Pruned 230 filters
+Pruned 240 filters
+Pruned 250 filters
+Pruned 260 filters
+Pruned 270 filters
+Pruned 280 filters
+Pruned 290 filters
+Pruned 300 filters
+Pruned 310 filters
+Pruned 320 filters
+Pruned 330 filters
+Pruned 340 filters
+Pruned 350 filters
+Pruned 360 filters
+Pruned 370 filters
+Pruned 380 filters
+Pruned 390 filters
+Pruned 400 filters
+Pruned 410 filters
+Pruned 420 filters
+Pruned 430 filters
+Pruned 440 filters
+Pruned 450 filters
+Pruned 460 filters
+Pruned 470 filters
+Pruned 480 filters
+Pruned 490 filters
+Pruned 500 filters
+Pruned 510 filters
+Pruned 520 filters
+Pruned 530 filters
+Pruned 532 filters
+Fine Tuning Model; Model has 126588198 filters
+Initial validation accuracy:

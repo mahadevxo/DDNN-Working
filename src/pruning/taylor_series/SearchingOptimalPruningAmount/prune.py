@@ -5,6 +5,7 @@ import torch
 from train import get_train_data  # add get_train_data
 from FilterPruner import FilterPruner
 from Pruning import Pruning
+import tqdm
 
 device = torch.device("cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu")
 def _clear_memory():
@@ -80,10 +81,8 @@ def _get_pruning_plan(num, ranks):
 
 def _prune_model(prune_targets, model):
     pruner = Pruning(model)
-    for idx, (layer_n, filter_index) in enumerate(prune_targets):
+    for layer_n, filter_index in enumerate(tqdm(prune_targets, desc="Pruning filters")):
         model = pruner.prune_conv_layers(model=model, layer_index=layer_n, filter_index=filter_index)
-        if idx % 10 == 0:
-            print(f"Pruned {idx} filters")
     print(f"Pruned {len(prune_targets)} filters")
     _clear_memory()
     
