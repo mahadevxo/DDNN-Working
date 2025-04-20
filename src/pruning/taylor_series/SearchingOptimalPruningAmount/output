@@ -1,8 +1,26 @@
 train_loader: 143
 Length of ranks: 2752
-(2_w,4mirr1)-aCMA-ES (mu_w=1.5,w_1=80%) in dimension 1 (seed=223958, Mon Apr 21 02:01:00 2025)
-Evaluating pruning amount: 0.12343106290855697
-Pruning 339 filters
-Pruned 339 filters
-Fine Tuning Model; Model has 127609338 filters
-Initial validation accuracy:
+(2_w,4mirr1)-aCMA-ES (mu_w=1.5,w_1=80%) in dimension 1 (seed=214811, Mon Apr 21 02:10:34 2025)
+Evaluating pruning amount: 0.09631712050390812
+Pruning 265 filters
+Pruned 265 filters
+Fine Tuning Model; Model has 128025156 filters
+----Getting Stats----
+Validation time: 0.001529s
+Validation accuracy: 65.63%
+Model size: 488.42MB
+Epoch 1
+Training loss: 1.016, Training accuracy: 0.734
+Best accuracy so far: 74.99%
+Epoch 1
+Training loss: 0.905, Training accuracy: 0.742
+Best accuracy so far: 75.58%
+Epoch 1
+Training loss: 0.860, Training accuracy: 0.766
+Best accuracy so far: 75.85%
+Epoch 1
+Training loss: 0.883, Training accuracy: 0.750
+Best accuracy so far: 76.53%
+Epoch 1
+Training loss: 0.778, Training accuracy: 0.783
+Epoch 1

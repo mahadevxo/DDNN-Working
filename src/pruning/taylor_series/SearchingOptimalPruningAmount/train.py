@@ -157,7 +157,9 @@ def train_model(model: torch.nn.Module, train_loader: torch.utils.data.DataLoade
     print(f"Training loss: {running_loss:.3f}, Training accuracy: {running_accc:.3f}")
     
     _clear_memory()
-    del pruner, train_loader, optimizer, criterion
+    if rank_filter:
+        del pruner
+    del train_loader, optimizer, criterion
     return model
 
 def fine_tune(model: torch.nn.Module, rank_filter: bool=False) -> tuple:
@@ -167,7 +169,7 @@ def fine_tune(model: torch.nn.Module, rank_filter: bool=False) -> tuple:
     
     print('----Getting Stats----')
     val_acc, times, model_size = validate_model(model)
-    print(f'Validation time: {times:.2f}s')
+    print(f'Validation time: {times:.6f}s')
     print(f'Validation accuracy: {val_acc:.2f}%')
     print(f"Model size: {model_size:.2f}MB")
     
@@ -195,9 +197,11 @@ def fine_tune(model: torch.nn.Module, rank_filter: bool=False) -> tuple:
         if epoch > 6:
             print(f"Max Epochs Reached-{epoch+1}")
             break
+        epoch += 1
+        print(f"Epoch {epoch+1} - Validation accuracy: {accuracy:.2f}%")
         
     print(f"Final validation accuracy: {accuracy:.2f}%")
-    print(f"Final validation time: {times:.2f}s")
+    print(f"Final validation time: {times:.6f}s")
     
     _clear_memory()
     return model, accuracy
