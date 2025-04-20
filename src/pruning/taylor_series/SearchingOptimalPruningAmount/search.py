@@ -1,7 +1,4 @@
 import gc
-from re import A
-
-from sympy import comp
 from models import MVCNN
 import torch
 from prune import get_ranks, get_pruned_model
@@ -10,6 +7,8 @@ from Rewards import Reward
 import cma
 
 device: str = 'mps' if torch.backends.mps.is_available() else 'cuda' if torch.cuda.is_available() else 'cpu'
+comp_time_last = None
+
 def _clear_memory() -> None:
     gc.collect()
     if torch.cuda.is_available():
@@ -25,7 +24,7 @@ def _get_num_filters(model: torch.nn.Module) -> int:
     )
     
 def get_model() -> torch.nn.Module:
-    device = 'mps' if torch.backends.mps.is_available() else 'cuda' if torch.cuda.is_available() else 'cpu'
+    global device
     model = MVCNN.SVCNN('SVCNN')
     weights = torch.load('./model-00030.pth', map_location=device)
     model.load_state_dict(weights)
@@ -34,7 +33,8 @@ def get_model() -> torch.nn.Module:
     _clear_memory()
     return model
 
-def get_Reward(pruning_amount: float, ranks: tuple, rewardfn: Reward, comp_time_last: float) -> tuple:
+def get_Reward(pruning_amount: float, ranks: tuple, rewardfn: Reward) -> tuple:
+    global device
     model = get_model()
     model = get_pruned_model(ranks=ranks, model=model, pruning_amount=pruning_amount)
     print(f"Filters of Pruned Model: {_get_num_filters(model)}")
@@ -43,9 +43,16 @@ def get_Reward(pruning_amount: float, ranks: tuple, rewardfn: Reward, comp_time_
     accuracy, time, model_size = validate_model(model)
     print(f"Accuracy: {accuracy:.2f}%, Time: {time:.2f}s, Model Size: {model_size:.2f}MB")
     del model
+    _clear_memory()
+    
+    global comp_time_last
+    
     if comp_time_last is None:
         comp_time_last = time
-    reward, comp_time_last = rewardfn.getReward(accuracy=accuracy, comp_time=time, model_size=model_size, comp_time_last=comp_time_last)
+    
+    reward, comp_time = rewardfn.getReward(accuracy=accuracy, comp_time=time, model_size=model_size, comp_time_last=comp_time_last)
+    comp_time_last = comp_time
+    
     _clear_memory()
     return reward, comp_time_last
 
@@ -70,12 +77,11 @@ def search() -> None:
     while not es.stop():
         solutions = es.ask()
         rewards: list = []
-        comp_time_last: float = None
         print("Evaluating solutions...")
         for x in solutions:
             pruning_amount = x[0]
             print("Evaluating pruning amount:", pruning_amount)
-            reward, comp_time_last = get_Reward(pruning_amount, ranks, rewardfn, comp_time_last=None if comp_time_last is None else comp_time_last)
+            reward = get_Reward(pruning_amount, ranks, rewardfn)
             print(f"Reward for {pruning_amount}: {reward}")
             rewards.append(-reward)
             if reward > best_reward:
