@@ -5,7 +5,7 @@ import torch
 from train import get_train_data  # add get_train_data
 from FilterPruner import FilterPruner
 from Pruning import Pruning
-import tqdm
+from tqdm import tqdm
 
 device = torch.device("cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu")
 def _clear_memory():
@@ -31,7 +31,7 @@ def get_ranks(model):
 
     pruner = FilterPruner(model)
     criterion = torch.nn.CrossEntropyLoss()
-    train_loader = get_train_data(train_amt=0.01)
+    train_loader = get_train_data(train_amt=0.05)
     print(f"train_loader: {len(train_loader)}")
 
     model.eval()
@@ -81,7 +81,7 @@ def _get_pruning_plan(num, ranks):
 
 def _prune_model(prune_targets, model):
     pruner = Pruning(model)
-    for layer_n, filter_index in enumerate(tqdm(prune_targets, desc="Pruning filters")):
+    for layer_n, filter_index in tqdm(prune_targets, desc="Pruning filters"):
         model = pruner.prune_conv_layers(model=model, layer_index=layer_n, filter_index=filter_index)
     print(f"Pruned {len(prune_targets)} filters")
     _clear_memory()

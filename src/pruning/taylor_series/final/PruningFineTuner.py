@@ -4,7 +4,6 @@ from FilterPruner import FilterPruner
 from Pruning import Pruning
 from MVCNN_Trainer import MVCNN_Trainer
 
-
 class PruningFineTuner:
     def __init__(self, model, test_amt=0.1, train_amt=0.1):
         self.train_path = 'ModelNet40-12View/*/train'

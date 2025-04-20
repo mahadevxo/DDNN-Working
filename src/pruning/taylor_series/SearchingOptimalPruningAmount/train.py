@@ -165,7 +165,7 @@ def fine_tune(model: torch.nn.Module, rank_filter: bool=False) -> tuple:
     model = model.to(device)
     model = model.train()
     
-    print('Initial validation accuracy:')
+    print('----Getting Stats----')
     val_acc, times, model_size = validate_model(model)
     print(f'Validation time: {times:.2f}s')
     print(f'Validation accuracy: {val_acc:.2f}%')
