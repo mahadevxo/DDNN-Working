@@ -2,7 +2,7 @@ import gc
 from heapq import nsmallest
 from operator import itemgetter
 import torch
-from train import train_model
+from train import get_train_data  # add get_train_data
 from FilterPruner import FilterPruner
 from Pruning import Pruning
 
@@ -25,14 +25,28 @@ def _get_sorted_filters(ranks):
     return sorted(data, key=lambda x: x[2])
 
 def get_ranks(model):
-    model = model.to(device)
-    model = model.train()
-    model = train_model(model, rank_filter=True)
+    # model = model.to(device).train()
+    # model = train_model(model, rank_filter=True)
+
     pruner = FilterPruner(model)
+    criterion = torch.nn.CrossEntropyLoss()
+    train_loader = get_train_data(train_amt=0.01)
+    print(f"train_loader: {len(train_loader)}")
+
+    model.eval()
+    for data in train_loader:
+        in_data = data[1].to(device)
+        labels = data[0].to(device)
+        output = pruner.forward(in_data)
+        loss = criterion(output, labels)
+        loss.backward()
+    # now normalize
     ranks = pruner.normalize_ranks_per_layer()
-    print(f'prune.py: 34\n{ranks}')
+    ranks  = _get_sorted_filters(ranks)
+    # print(f'prune.py: normalized ranks dict -> {ranks}')
+    # exit()
     _clear_memory()
-    return _get_sorted_filters(ranks)
+    return ranks
 
 def _get_pruning_plan(num, ranks):
     if ranks is None:
@@ -74,10 +88,11 @@ def _prune_model(prune_targets, model):
     _clear_memory()
     
     for layer in model.modules():
-        if isinstance(layer, torch.nn.Conv2d):
-            layer.weight.data = layer.weight.data.to(device)
+        if isinstance(layer, (torch.nn.Conv2d, torch.nn.Linear)):
+            if layer.weight is not None:
+                layer.weight.data = layer.weight.data.float()
             if layer.bias is not None:
-                layer.bias.data = layer.bias.data.to(device)
+                layer.bias.data = layer.bias.data.float()
     
     model = model.to(device)
     _clear_memory()
@@ -87,10 +102,13 @@ def get_pruned_model(ranks=None, model=None, pruning_amount=0.0):
     if ranks is None:
         ranks = get_ranks(model)
     try:
-        total_filters = sum(len(ranks[i]) for i in ranks)
+        total_filters = sum(
+            layer.out_channels
+            for layer in model.net_1
+            if isinstance(layer, torch.nn.Conv2d)
+        )
     except Exception as e:
         print(f"Error calculating total filters: {e}")
-        print(ranks)
         exit()
     num_filters_to_prune = int(pruning_amount * total_filters)
 

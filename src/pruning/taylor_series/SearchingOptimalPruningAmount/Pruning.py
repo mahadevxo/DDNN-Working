@@ -114,24 +114,34 @@ class Pruning:
         return model
     
     def prune_conv_layers(self, model, layer_index, filter_index):
-        _, conv = list(model.net_1._modules.items())[layer_index]
-        next_conv = self._get_next_conv(model, layer_index)
-        new_conv = self._create_new_conv(conv)
+        # Map layer_index (Conv2d count) to actual module index in net_1
+        modules = list(model.net_1)
+        conv_indices = [i for i, m in enumerate(modules) if isinstance(m, torch.nn.Conv2d)]
+        actual_idx = conv_indices[layer_index]
+        conv = modules[actual_idx]
 
+        # Prune this conv
+        next_conv = self._get_next_conv(model, actual_idx)
+        new_conv = self._create_new_conv(conv)
         self._prune_conv_layer(conv, new_conv, filter_index)
 
         if next_conv is not None:
-            # Fix: explicitly pass out_channels to keep the same number of filters
-            next_new_conv = self._create_new_conv(next_conv, in_channels=next_conv.in_channels - 1, out_channels=next_conv.out_channels)
+            # Find the module index of the next Conv2d
+            next_idx = next(i for i, m in enumerate(modules) if m is next_conv)
+            # Build and prune the next conv
+            next_new_conv = self._create_new_conv(
+                next_conv,
+                in_channels=next_conv.in_channels - 1,
+                out_channels=next_conv.out_channels
+            )
             self._prune_next_conv_layer(next_conv, next_new_conv, filter_index)
-            # Replace specific layers in the Sequential rather than building tuples
-            modules = list(model.net_1)
-            modules[layer_index] = new_conv
-            offset = self._get_next_conv_offset(model, layer_index)
-            modules[layer_index + offset] = next_new_conv
+            # Replace modules and rebuild Sequential
+            modules[actual_idx] = new_conv
+            modules[next_idx] = next_new_conv
             model.net_1 = torch.nn.Sequential(*modules)
         else:
-            # Use _prune_last_conv_layer to update classifier layers for the last conv layer
-            model = self._prune_last_conv_layer(model, conv, new_conv, layer_index, filter_index)
+            # Last conv: update classifier accordingly
+            model = self._prune_last_conv_layer(model, conv, new_conv, actual_idx, filter_index)
+
         self._clear_memory()
         return model

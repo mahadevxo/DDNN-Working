@@ -25,7 +25,8 @@ def get_model():
     return model
 
 def get_Reward(pruning_amount, ranks, rewardfn):
-    model = get_pruned_model(pruning_amount, ranks)
+    model = get_model()
+    model = get_pruned_model(ranks=ranks, model=model, pruning_amount=pruning_amount)
     model = model.to(device)
     model, _ = fine_tune(model, rank_filter=False)
     accuracy, time, model_size = validate_model(model)
@@ -34,16 +35,17 @@ def get_Reward(pruning_amount, ranks, rewardfn):
     reward = rewardfn.get_reward(accuracy, time, model_size, )
     _clear_memory()
     return reward
+
 def search():
-    res = validate_model(get_model())
-    print(f"Initial Validation Accuracy: {res[0]:.2f}%, Time: {res[1]:.6f}s, Model Size: {res[2]:.2f}MB")
+    # res = validate_model(get_model())
+    # print(f"Initial Validation Accuracy: {res[0]:.2f}%, Time: {res[1]:.6f}s, Model Size: {res[2]:.2f}MB")
     min_acc = 50
     min_size = 300
     
     rewardfn = Reward(min_acc=min_acc, min_size=min_size)
     ranks = get_ranks(get_model())
+        
     print(f"Length of ranks: {len(ranks)}")
-    print(f"Number of filters: {sum(len(ranks[i]) for i in ranks)}")
     
     es = cma.CMAEvolutionStrategy([0.15], 0.05, {'bounds': [0.0, 1.0]})
     best_reward = float('-inf')
