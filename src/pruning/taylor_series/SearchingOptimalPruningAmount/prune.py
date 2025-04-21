@@ -95,8 +95,9 @@ def _prune_model(prune_targets, model):
     sorted_targets = sorted(prune_targets, key=lambda x: (x[0], -x[1]))
     groups = list(groupby(sorted_targets, key=lambda x: x[0]))
     for layer_n, group in tqdm(groups, desc="Pruning layers", unit="layer", ncols=100):
-        group = list(group)  # ensure group can be iterated multiple times
+        group = sorted(list(group), key=lambda x: -x[1])  # ensure descending filter indices
         for _, filter_index in group:
+            pruner = Pruning(model)  # reinitialize with current model
             model = pruner.prune_conv_layers(model=model, layer_index=layer_n, filter_index=filter_index)
     
     print(f"Pruned {len(prune_targets)} filters")
