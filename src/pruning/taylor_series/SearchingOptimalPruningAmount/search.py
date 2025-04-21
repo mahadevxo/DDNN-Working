@@ -57,7 +57,6 @@ def get_Reward(pruning_amount: float, ranks: tuple, rewardfn: Reward) -> tuple:
     _clear_memory()
     
     print('-'*20)
-    
     return reward
 
 def main() -> None:

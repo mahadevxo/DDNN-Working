@@ -28,7 +28,7 @@ def _get_sorted_filters(ranks):
     return sorted(data, key=lambda x: x[2])
 
 def get_ranks(model):
-    model_copy = copy.deepcopy(model)              # work on a fresh clone
+    model_copy = copy.deepcopy(model) 
     pruner = FilterPruner(model_copy)
     criterion = torch.nn.CrossEntropyLoss()
     train_loader = get_train_data(train_amt=0.05)
@@ -45,6 +45,13 @@ def get_ranks(model):
     ranks_dict = pruner.normalize_ranks_per_layer()
     ranks = pruner.get_sorted_filters(ranks_dict)
     _clear_memory()
+    del model_copy
+    del pruner
+    _clear_memory()
+    # Debug: check if ranks are empty
+    if not ranks:
+        print("Warning: Ranks are empty after computation.")
+        return None
     return ranks
 
 def _get_pruning_plan(num, ranks):
@@ -102,12 +109,14 @@ def _prune_model(prune_targets, model):
             if layer.bias is not None:
                 layer.bias.data = layer.bias.data.float()
     
+    del pruner
+    
     model = model.to(device)
     _clear_memory()
     return model
 
 def get_pruned_model(ranks=None, model=None, pruning_amount=0.0):
-    model_copy = copy.deepcopy(model)              # clone before pruning
+    model_copy = copy.deepcopy(model)
     if ranks is None:
         ranks = get_ranks(model_copy)
     try:
