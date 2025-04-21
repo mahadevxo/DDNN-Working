@@ -26,31 +26,49 @@ def _get_sorted_filters(ranks):
     _clear_memory()
     return sorted(data, key=lambda x: x[2])
 
-def get_ranks(model):
+def get_ranks(model, rank_type='taylor', samples=20):
+    """Compute filter ranks using multiple batches for more reliable estimation"""
     model_copy = copy.deepcopy(model) 
-    pruner = FilterPruner(model_copy)
+    pruner = FilterPruner(model_copy, rank_type=rank_type)
     criterion = torch.nn.CrossEntropyLoss()
-    train_loader = get_train_data(train_amt=0.05)
-    print(f"train_loader: {len(train_loader)}")
+    
+    train_loader = get_train_data(train_amt=0.10)  # Use more data for better estimation
+    print(f"Computing ranks using {rank_type} criterion across {min(samples, len(train_loader))} batches")
 
     model_copy.eval()
+    
+    # Process multiple batches to get better statistics
+    batch_count = 0
     for data in train_loader:
+        if batch_count >= samples:
+            break
+            
         in_data = data[1].to(device)
         labels = data[0].to(device)
         output = pruner.forward(in_data)
         loss = criterion(output, labels)
         loss.backward()
+        batch_count += 1
+        
+        # Provide progress updates
+        if batch_count % 5 == 0:
+            print(f"Processed {batch_count}/{samples} batches")
+    
     # normalize + retrieve the actual dict
+    print("Normalizing ranks and preparing pruning plan...")
     ranks_dict = pruner.normalize_ranks_per_layer()
     ranks = pruner.get_sorted_filters(ranks_dict)
+    
     _clear_memory()
     del model_copy
     del pruner
     _clear_memory()
+    
     # Debug: check if ranks are empty
     if not ranks:
         print("Warning: Ranks are empty after computation.")
         return None
+        
     return ranks
 
 def _get_pruning_plan(num, ranks):
@@ -126,7 +144,8 @@ def _prune_model(prune_targets, model):
     _clear_memory()
     return model
 
-def get_pruned_model(ranks=None, model=None, pruning_amount=0.0, adapt_interface=True, adapter_mode='zero_pad'):
+def get_pruned_model(ranks=None, model=None, pruning_amount=0.0, adapt_interface=True, adapter_mode='zero_pad', rank_type='taylor'):
+    """Get a pruned model using specified ranking criteria and pruning amount"""
     model_copy = copy.deepcopy(model)
     
     # Calculate and log detailed model stats before pruning - focusing on net_1
@@ -134,7 +153,7 @@ def get_pruned_model(ranks=None, model=None, pruning_amount=0.0, adapt_interface
     initial_info = get_detailed_model_info(model_copy)
     
     if ranks is None:
-        ranks = get_ranks(model_copy)
+        ranks = get_ranks(model_copy, rank_type=rank_type)
     try:
         # Count filters before pruning - only in net_1
         total_filters = sum(m.out_channels for m in model_copy.net_1 if isinstance(m, torch.nn.Conv2d))

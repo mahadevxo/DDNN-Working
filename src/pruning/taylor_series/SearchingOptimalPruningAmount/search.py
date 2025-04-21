@@ -56,7 +56,7 @@ def get_model() -> torch.nn.Module:
     
     return model
 
-def get_Reward(pruning_amount: float, ranks: tuple, rewardfn: Reward) -> tuple:
+def get_Reward(pruning_amount: float, ranks: tuple, rewardfn: Reward, rank_type='taylor') -> tuple:
     global device
     
     # Only compute the original size once - focusing on net_1
@@ -86,12 +86,13 @@ def get_Reward(pruning_amount: float, ranks: tuple, rewardfn: Reward) -> tuple:
         print(f"Skipping excessive pruning amount: {pruning_amount}")
         return -1000  # Return a highly negative reward
     
-    # Create pruned model with adapter
+    # Create pruned model with adapter and specified rank type
     base_model = get_model()
     pruned_model = get_pruned_model(ranks=ranks, model=base_model, 
                                     pruning_amount=pruning_amount, 
                                     adapt_interface=True, 
-                                    adapter_mode='zero_pad')
+                                    adapter_mode='zero_pad',
+                                    rank_type=rank_type)
     pruned_model = pruned_model.to(device)
     pruned_size = _get_model_size(pruned_model, only_net_1=True)
     pruned_filters = _get_num_filters(pruned_model)
@@ -143,6 +144,10 @@ def main() -> None:
     y: float = 0.0
     z: float = 0.3
     
+    # Choose ranking method
+    rank_type = 'combined'  # Options: 'taylor', 'l1_norm', 'apoz', 'fisher', 'combined'
+    print(f"Using {rank_type} ranking criterion for pruning")
+    
     print("Initial Model Info:")
     base_model = get_model()
     initial_size = _get_model_size(base_model, only_net_1=True)
@@ -156,7 +161,7 @@ def main() -> None:
     
     # Cache the ranks to avoid recomputing
     print("Computing filter ranks...")
-    ranks: tuple = get_ranks(get_model())
+    ranks: tuple = get_ranks(get_model(), rank_type=rank_type)
     print(f"Length of ranks: {len(ranks)}")
     print('-'*20)
     
@@ -190,8 +195,8 @@ def main() -> None:
             pruning_amount = x[0]
             print(f"Evaluating pruning amount: {pruning_amount:.4f}")
             
-            # Get reward includes validation
-            reward = get_Reward(pruning_amount, ranks, rewardfn)
+            # Get reward includes validation - pass the rank_type
+            reward = get_Reward(pruning_amount, ranks, rewardfn, rank_type=rank_type)
             rewards.append(-reward)  # CMA-ES minimizes, so we negate
             
             # Track the best solution found
