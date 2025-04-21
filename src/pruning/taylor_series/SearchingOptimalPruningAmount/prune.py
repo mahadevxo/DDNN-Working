@@ -6,7 +6,6 @@ import copy
 from train import get_train_data  # add get_train_data
 from FilterPruner import FilterPruner
 from Pruning import Pruning
-from tqdm import tqdm
 from itertools import groupby
 
 device = torch.device("cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu")
@@ -93,8 +92,8 @@ def _prune_model(prune_targets, model):
     
     # group targets by layer, prune highest indices first to avoid shifting
     sorted_targets = sorted(prune_targets, key=lambda x: (x[0], -x[1]))
-    groups = list(groupby(sorted_targets, key=lambda x: x[0]))
-    for layer_n, group in tqdm(groups, desc="Pruning layers", unit="layer", ncols=100):
+    groups = groupby(sorted_targets, key=lambda x: x[0])
+    for layer_n, group in groups:
         group = sorted(list(group), key=lambda x: -x[1])  # ensure descending filter indices
         for _, filter_index in group:
             pruner = Pruning(model)  # reinitialize with current model
