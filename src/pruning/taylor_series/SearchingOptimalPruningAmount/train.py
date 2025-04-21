@@ -193,7 +193,9 @@ def validate_model(model: torch.nn.Module, test_loader: torch.utils.data.DataLoa
     _clear_memory()
     return validation_accuracy, times, model_size_in_mb
 
-def train_model(model: torch.nn.Module, train_loader: torch.utils.data.DataLoader=None, rank_filter: bool=False) -> torch.nn.Module:
+def train_model(model: torch.nn.Module, train_loader: torch.utils.data.DataLoader=None, 
+               rank_filter: bool=False, train_amt: float=0.1) -> torch.nn.Module:
+    # Update to accept train_amt parameter
     model = model.to(device)
     model = model.train()
     
@@ -206,7 +208,7 @@ def train_model(model: torch.nn.Module, train_loader: torch.utils.data.DataLoade
     
     if train_loader is None:
         while True:
-            x = get_train_data()
+            x = get_train_data(train_amt=train_amt)
             if x is not False:
                 train_loader = x
                 break
@@ -255,47 +257,50 @@ def train_model(model: torch.nn.Module, train_loader: torch.utils.data.DataLoade
     del train_loader, optimizer, criterion
     return model
 
-def fine_tune(model: torch.nn.Module, rank_filter: bool=False) -> tuple:
+def fine_tune(model: torch.nn.Module, rank_filter: bool=False, quick_mode: bool=False) -> tuple:
+    """Fine-tune the model with option for quick evaluation mode"""
     print(f"Fine Tuning Model; Model has {_get_num_filters(model)} filters")
     model = model.to(device)
     model = model.train()
     
     print('-----Getting Stats-----')
     val_acc, times, _ = validate_model(model)
-    print(f'Validation time: {times:.6f}s')
-    print(f'Validation accuracy: {val_acc:.2f}%')
-    # print(f'Model size: {model_size:.4f}MB')
+    print(f'Initial validation - Accuracy: {val_acc:.2f}%, Time: {times:.6f}s')
     
     model = model.train()
     epoch = 0
     prev_accs = []
-    best_accuracy = 0
+    best_accuracy = val_acc
+    
+    # In quick mode, do fewer epochs for faster evaluation
+    max_epochs = 2 if quick_mode else 5
+    early_stop_threshold = 1.0 if quick_mode else 2.0
     
     while True:
         print(f"--------Epoch {epoch+1}--------")
-        model = train_model(model)
+        model = train_model(model, train_amt=0.03 if quick_mode else 0.1)
         accuracy = validate_model(model)[0]
         prev_accs.append(accuracy)
         
-        if len(prev_accs) > 5:
+        if len(prev_accs) > 3:
             prev_accs.pop(0)
         if accuracy > best_accuracy:
             best_accuracy = accuracy
             print(f"Best accuracy so far: {best_accuracy:.2f}%")
         
-        if epoch > 3 and best_accuracy - 2 <= np.mean(prev_accs).item() <= best_accuracy + 2:
-            print(f"Stopping fine-tuning at epoch {epoch+1} with accuracy {accuracy:.2f}%")
+        # Early stopping when accuracy stabilizes
+        if epoch > 1 and abs(best_accuracy - np.mean(prev_accs).item()) < early_stop_threshold:
+            print(f"Stopping fine-tuning at epoch {epoch+1} - accuracy stabilized")
             break
         
-        if epoch >= 4:
-            print(f"Max Epochs Reached-{epoch+1}")
+        if epoch >= (max_epochs - 1):
+            print(f"Max epochs reached ({max_epochs})")
             break
         
         print(f"Epoch {epoch+1} -> Validation accuracy: {accuracy:.2f}%")
         epoch += 1
-        
+    
     print(f"Final validation accuracy: {accuracy:.2f}%")
-    print(f"Final validation time: {times:.6f}s")
     
     _clear_memory()
     return model, accuracy

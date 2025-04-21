@@ -19,6 +19,10 @@ class FilterPruner:
         self.filter_ranks = {}          # initialize ranking storage
         
     def forward(self, x):
+        # Release any previous activations to free memory
+        if hasattr(self, 'activations'):
+            del self.activations
+            
         self.activations = []
         self.activation_to_layer = {}
         self.grad_index = 0
