@@ -30,6 +30,12 @@ def _get_num_filters(model: torch.nn.Module) -> int:
 def _get_model_size(model, only_net_1=True):
     """Calculate model size more accurately including only required parameters"""
     from train import get_model_size_by_params
+    
+    # Add safety check for adapter models
+    if only_net_1 and hasattr(model, 'adapter') and not hasattr(model, 'net_1'):
+        # If this is an adapter without net_1, use the inner nets
+        return get_model_size_by_params(model.adapter, only_net_1=only_net_1)
+    
     return get_model_size_by_params(model, only_net_1=only_net_1)
 
 def get_model() -> torch.nn.Module:

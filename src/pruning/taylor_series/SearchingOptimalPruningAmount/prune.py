@@ -200,11 +200,6 @@ def get_pruned_model(ranks=None, model=None, pruning_amount=0.0, adapt_interface
     print(f"  - Total params: {new_net1_params+new_net2_params:,} (removed {(net1_params+net2_params)-(new_net1_params+new_net2_params):,} params, {(1-(new_net1_params+new_net2_params)/(net1_params+net2_params))*100:.1f}% reduction)")
     print(f"  - net_1 size: {initial_size:.2f}MB → {final_size:.2f}MB ({(1-final_size/initial_size)*100:.1f}% reduction)")
     
-    # Handle potential interface issues between net_1 and net_2 if requested
-    if adapt_interface:
-        from network_adapter import NetworkAdapter
-        model_pruned = NetworkAdapter(model_pruned)
-    
     # Clean memory
     del model_copy
     _clear_memory()

@@ -9,6 +9,11 @@ class NetworkAdapter(nn.Module):
     """
     def __init__(self, model, adapter_mode='zero_pad'):
         super(NetworkAdapter, self).__init__()
+        # Store references to the original nets for proper attribute access
+        self.net_1 = model.net_1  # This fixes the attribute access issue
+        self.net_2 = model.net_2
+        
+        # Store as model_1 and model_2 for the forward pass
         self.model_1 = model.net_1
         self.model_2 = model.net_2
         self.device = next(model.parameters()).device
@@ -123,7 +128,7 @@ class AdaptedModel(nn.Module):
         super(AdaptedModel, self).__init__()
         self.adapter = NetworkAdapter(original_model, adapter_mode)
         
-        # Store a reference to net_1 for size calculations
+        # Correctly expose net_1 and net_2 to support size calculation
         self.net_1 = original_model.net_1
         self.net_2 = original_model.net_2
     

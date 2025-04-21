@@ -33,8 +33,18 @@ def get_model_size_by_params(model: torch.nn.Module, only_net_1: bool = False) -
     """More accurate model size calculation that accounts for parameter data types"""
     total_bytes = 0
     
+    # Handle cases where model structure might differ
     if only_net_1:
-        params_iterator = model.net_1.parameters()
+        # Try different ways to access net_1 parameters
+        if hasattr(model, 'net_1'):
+            params_iterator = model.net_1.parameters()
+        elif hasattr(model, 'model_1'):  # For adapter models
+            params_iterator = model.model_1.parameters()
+        elif hasattr(model, 'adapter') and hasattr(model.adapter, 'model_1'):
+            params_iterator = model.adapter.model_1.parameters()
+        else:
+            print("Warning: Could not find net_1, calculating size for entire model")
+            params_iterator = model.parameters()
     else:
         params_iterator = model.parameters()
         
