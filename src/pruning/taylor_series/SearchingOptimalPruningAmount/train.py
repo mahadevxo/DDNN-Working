@@ -3,7 +3,6 @@ import time
 import torch
 import numpy as np
 from FilterPruner import FilterPruner
-from search import get_model
 from tools.ImgDataset import SingleImgDataset
 
 device = 'cuda' if torch.cuda.is_available() else 'mps' if torch.backends.mps.is_available() else 'cpu'
@@ -220,8 +219,7 @@ def fine_tune(model: torch.nn.Module, rank_filter: bool=False) -> tuple:
         if epoch >= 4:
             print(f"Max Epochs Reached-{epoch+1}")
             break
-        if epoch == 0:
-            break
+        
         print(f"Epoch {epoch+1} -> Validation accuracy: {accuracy:.2f}%")
         epoch += 1
         
