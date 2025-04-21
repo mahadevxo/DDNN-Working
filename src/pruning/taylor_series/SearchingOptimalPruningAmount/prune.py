@@ -116,13 +116,13 @@ def get_pruned_model(ranks=None, model=None, pruning_amount=0.0):
     except Exception as e:
         print(f"Error calculating total filters: {e}")
         exit()
-    print(f"Prune.py: total convfilters before = {total_filters}, pruning_amount={pruning_amount}")
+    print(f"Prune.py: total convfilters before -> {total_filters}, pruning_amount -> {pruning_amount*100}%")
     num_filters_to_prune = int(pruning_amount * total_filters)
 
     prune_targets = _get_pruning_plan(num_filters_to_prune, ranks)
     model_pruned = _prune_model(prune_targets, model_copy)
     # Debug: count filters after
     new_total = sum(m.out_channels for m in model_pruned.net_1 if isinstance(m, torch.nn.Conv2d))
-    print(f"Prune.py: total convfilters after  = {new_total}")
+    print(f"Prune.py: total convfilters after -> {new_total}")
     _clear_memory()
     return model_pruned
