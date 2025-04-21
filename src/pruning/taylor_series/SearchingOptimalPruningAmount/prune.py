@@ -26,9 +26,6 @@ def _get_sorted_filters(ranks):
     return sorted(data, key=lambda x: x[2])
 
 def get_ranks(model):
-    # model = model.to(device).train()
-    # model = train_model(model, rank_filter=True)
-
     pruner = FilterPruner(model)
     criterion = torch.nn.CrossEntropyLoss()
     train_loader = get_train_data(train_amt=0.05)
@@ -41,11 +38,9 @@ def get_ranks(model):
         output = pruner.forward(in_data)
         loss = criterion(output, labels)
         loss.backward()
-    # now normalize
-    ranks = pruner.normalize_ranks_per_layer()
-    ranks  = _get_sorted_filters(ranks)
-    # print(f'prune.py: normalized ranks dict -> {ranks}')
-    # exit()
+    # normalize + retrieve (layer_idx,filter_idx,score) using activation→layer map
+    ranks_dict = pruner.normalize_ranks_per_layer()
+    ranks = pruner.get_sorted_filters(ranks_dict)
     _clear_memory()
     return ranks
 
@@ -101,17 +96,18 @@ def get_pruned_model(ranks=None, model=None, pruning_amount=0.0):
     if ranks is None:
         ranks = get_ranks(model)
     try:
-        total_filters = sum(
-            layer.out_channels
-            for layer in model.net_1
-            if isinstance(layer, torch.nn.Conv2d)
-        )
+        # Debug: count filters before
+        total_filters = sum(m.out_channels for m in model.net_1 if isinstance(m, torch.nn.Conv2d))
     except Exception as e:
         print(f"Error calculating total filters: {e}")
         exit()
+    print(f"Prune.py: total conv‐filters before = {total_filters}, pruning_amount={pruning_amount}")
     num_filters_to_prune = int(pruning_amount * total_filters)
 
     prune_targets = _get_pruning_plan(num_filters_to_prune, ranks)
     model = _prune_model(prune_targets, model)
+    # Debug: count filters after
+    new_total = sum(m.out_channels for m in model.net_1 if isinstance(m, torch.nn.Conv2d))
+    print(f"Prune.py: total conv‐filters after  = {new_total}")
     _clear_memory()
     return model
