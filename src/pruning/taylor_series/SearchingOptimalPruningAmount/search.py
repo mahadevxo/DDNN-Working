@@ -49,13 +49,11 @@ def get_Reward(pruning_amount: float, ranks: tuple, rewardfn: Reward) -> tuple:
     _clear_memory()
     
     global comp_time_last
-    
     if comp_time_last is None:
         comp_time_last = time
     
     reward, comp_time = rewardfn.getReward(accuracy=accuracy, comp_time=time, model_size=model_size, comp_time_last=comp_time_last)
     comp_time_last = comp_time
-    
     _clear_memory()
     
     print('-'*20)
@@ -79,7 +77,7 @@ def main() -> None:
     es: cma.EvolutionStrategy = cma.CMAEvolutionStrategy([0.20], 0.05, {'bounds': [0.0, 1.0], 'maxiter': 30})
     best_reward: float = float('-inf')
     best_pruning_amount: float = None
-    
+    _clear_memory()
     while not es.stop():
         solutions = es.ask()
         rewards: list = []
@@ -93,6 +91,7 @@ def main() -> None:
             if reward > best_reward:
                 best_reward = reward
                 best_pruning_amount = pruning_amount
+            _clear_memory()
         es.tell(solutions, rewards)
         print("Best pruning amount so far:", best_pruning_amount)
         print("Best reward so far:", best_reward)
