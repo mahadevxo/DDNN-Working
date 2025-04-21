@@ -38,7 +38,7 @@ def get_ranks(model):
         output = pruner.forward(in_data)
         loss = criterion(output, labels)
         loss.backward()
-    # normalize + retrieve (layer_idx,filter_idx,score) using activation→layer map
+    # normalize + retrieve the actual dict
     ranks_dict = pruner.normalize_ranks_per_layer()
     ranks = pruner.get_sorted_filters(ranks_dict)
     _clear_memory()
@@ -75,7 +75,12 @@ def _get_pruning_plan(num, ranks):
     return filters_to_prune
 
 def _prune_model(prune_targets, model):
+    
+    for param in model.net_1.parameters():
+        param.requires_grad = True
+    
     pruner = Pruning(model)
+    
     for layer_n, filter_index in tqdm(prune_targets, desc="Pruning filters"):
         model = pruner.prune_conv_layers(model=model, layer_index=layer_n, filter_index=filter_index)
     print(f"Pruned {len(prune_targets)} filters")
@@ -101,13 +106,13 @@ def get_pruned_model(ranks=None, model=None, pruning_amount=0.0):
     except Exception as e:
         print(f"Error calculating total filters: {e}")
         exit()
-    print(f"Prune.py: total conv‐filters before = {total_filters}, pruning_amount={pruning_amount}")
+    print(f"Prune.py: total convfilters before = {total_filters}, pruning_amount={pruning_amount}")
     num_filters_to_prune = int(pruning_amount * total_filters)
 
     prune_targets = _get_pruning_plan(num_filters_to_prune, ranks)
     model = _prune_model(prune_targets, model)
     # Debug: count filters after
     new_total = sum(m.out_channels for m in model.net_1 if isinstance(m, torch.nn.Conv2d))
-    print(f"Prune.py: total conv‐filters after  = {new_total}")
+    print(f"Prune.py: total convfilters after  = {new_total}")
     _clear_memory()
     return model

@@ -114,10 +114,14 @@ class Pruning:
         return model
     
     def prune_conv_layers(self, model, layer_index, filter_index):
-        # Map layer_index (Conv2d count) to actual module index in net_1
         modules = list(model.net_1)
         conv_indices = [i for i, m in enumerate(modules) if isinstance(m, torch.nn.Conv2d)]
-        actual_idx = conv_indices[layer_index]
+        # allow layer_index as conv‐layer count or as actual module index
+        if layer_index in conv_indices:
+            actual_idx = layer_index
+        else:
+            print(layer_index)
+            actual_idx = conv_indices[int(layer_index)]
         conv = modules[actual_idx]
 
         # Prune this conv

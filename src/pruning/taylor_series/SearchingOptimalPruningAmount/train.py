@@ -1,5 +1,6 @@
 import gc
 import time
+from warnings import filters
 import torch
 import numpy as np
 import io
@@ -17,9 +18,9 @@ def _clear_memory():
 
 def _get_num_filters(model: torch.nn.Module) -> int:
     return sum(
-        layer.out_channels
-        for layer in model.net_1
-        if isinstance(layer, torch.nn.Conv2d)
+        module.out_channels
+        for name, module in model.net_1._modules.items()
+        if isinstance(module, torch.nn.Conv2d)
     )
     
 def get_model_size(model: torch.nn.Module) -> float:

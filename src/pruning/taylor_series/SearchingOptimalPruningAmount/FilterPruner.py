@@ -2,6 +2,7 @@ from heapq import nsmallest
 from operator import itemgetter
 import torch
 import gc
+import numpy as np
 
 class FilterPruner:
     def __init__(self, model):
@@ -10,52 +11,34 @@ class FilterPruner:
         self.reset()
         
     def reset(self):
-        # Clear previous data structures to prevent memory leaks
-        if hasattr(self, 'filter_ranks'):
-            for key in list(self.filter_ranks.keys()):
-                del self.filter_ranks[key]
-        if hasattr(self, 'activations'):
-            for act in self.activations:
-                del act
-            
-        self.filter_ranks = {}
-        self.activations = []
-        self.gradients = []
-        self.activation_to_layer = {}
-        self.grad_index = 0
         gc.collect()
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
         elif torch.backends.mps.is_available():
             torch.mps.empty_cache()
+        self.filter_ranks = {}          # initialize ranking storage
         
     def forward(self, x):
         self.activations = []
-        self.activation_to_layer = {}  # Ensure this is reset
+        self.activation_to_layer = {}
         self.grad_index = 0
+        
         self.model.eval()
         self.model.zero_grad()
         
-        activation_index = 0
-        for layer_index, layer in enumerate(self.model.net_1):   
-            x = layer(x)
-            if isinstance(layer, torch.nn.modules.conv.Conv2d):
+        conv_count = 0
+        for module in self.model.net_1:
+            x = module(x)
+            if isinstance(module, torch.nn.Conv2d):
+                idx = len(self.activations)
+                x.register_hook(lambda grad, idx=idx: self.compute_rank(grad, idx))
                 self.activations.append(x)
-                self.activation_to_layer[activation_index] = layer_index
-                # Fix: Ensure hooks are registered correctly
-                x.register_hook(lambda grad, idx=activation_index: self.compute_rank(grad, idx))
-                activation_index += 1
-        x = x.view(x.size(0), -1)
-        x = self.model.net_2(x)
-        return x
+                self.activation_to_layer[idx] = conv_count
+                conv_count += 1
+        
+        return self.model.net_2(x.view(x.size(0), -1))
     
     def compute_rank(self, grad, activation_index):
-        """Compute rank of the filters using Taylor expansion.
-        
-        Args:
-            grad: The gradient of the criterion with respect to the output of the layer
-            activation_index: The index of the activation in self.activations
-        """
         # Safety check to ensure activation_index is valid
         if activation_index >= len(self.activations) or activation_index < 0:
             print(f"Warning: Invalid activation_index {activation_index}, max is {len(self.activations)-1}")
@@ -76,7 +59,6 @@ class FilterPruner:
             
         # Update the ranks
         self.filter_ranks[activation_index] += taylor.to(self.device)  # Ensure device consistency
-        del taylor, activation, grad
         
     def lowest_ranking_filters(self, num, filter_ranks):
         data = []
@@ -86,16 +68,11 @@ class FilterPruner:
         return nsmallest(num, data, itemgetter(2))
     
     def normalize_ranks_per_layer(self):
-        print("FilterPruner: normalized ranks per layer:")
-        for i, ranks in self.filter_ranks.items():
-            layer_idx = self.activation_to_layer.get(i, None)
-            v = torch.abs(ranks)
-            denom = torch.sqrt(torch.sum(v * v)) + 1e-12
-            v = v / denom
-            self.filter_ranks[i] = v.cpu()
-            # debug stats
-            print(f"  activation#{i} → layer#{layer_idx}: min={v.min().item():.4f}, max={v.max().item():.4f}")
-        return self.filter_ranks
+        for i in self.filter_ranks:
+            v = torch.abs(self.filter_ranks[i])
+            v = v/(np.sqrt(torch.sum(v**2).cpu().numpy()) + 1e-10)
+            self.filter_ranks[i] = v
+        return self.filter_ranks      # return normalized scores
             
     def get_pruning_plan(self, num_filters_to_prune: int, filter_ranks = None):
         filters_to_prune = self.lowest_ranking_filters(num_filters_to_prune, filter_ranks=filter_ranks)
@@ -116,9 +93,6 @@ class FilterPruner:
         for layer_n in filters_to_prune_per_layer:
             for i in filters_to_prune_per_layer[layer_n]:
                 filters_to_prune.append((layer_n, i))
-
-        # Clean up after pruning plan is created
-        self.reset()
         
         return x, filters_to_prune
     
