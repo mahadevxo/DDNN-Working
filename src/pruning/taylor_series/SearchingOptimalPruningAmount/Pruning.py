@@ -133,6 +133,11 @@ class Pruning:
             actual_idx = conv_indices[int(layer_index)]
         conv = modules[actual_idx]
 
+        # guard against pruning the last remaining filter
+        if conv.out_channels <= 1:
+            print(f"Skipping pruning on layer {layer_index}: only {conv.out_channels} filters remain")
+            return model
+
         # Prune this conv
         next_conv = self._get_next_conv(model, actual_idx)
         new_conv = self._create_new_conv(conv)
