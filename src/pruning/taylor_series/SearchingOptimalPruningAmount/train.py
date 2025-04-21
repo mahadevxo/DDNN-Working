@@ -21,10 +21,13 @@ def _get_num_filters(model: torch.nn.Module) -> int:
         if isinstance(module, torch.nn.Conv2d)
     )
 
-def get_effective_model_size(model: torch.nn.Module) -> float:
-    # Computes size based on nonzero parameters (effective size after pruning)
-    effective_params = sum(torch.count_nonzero(p).item() for p in model.parameters())
-    return effective_params * 4 / (1024 ** 2)
+def get_model_size(model: torch.nn.Module) -> float:
+    total_params = sum(p.numel() for p in model.parameters())
+    return total_params * 4 / (1024 ** 2)
+
+def get_model_size_by_params(model: torch.nn.Module) -> float:
+    total_bytes = sum(p.numel() * p.element_size() for p in model.parameters())
+    return total_bytes / 1024**2
 
 def get_train_data(train_path: str='ModelNet40-12View/*/train', train_amt: float=0.1, num_models: int=1000, num_views: int=12) -> torch.utils.data.DataLoader:
     classes_present = []
@@ -110,9 +113,8 @@ def validate_model(model: torch.nn.Module, test_loader: torch.utils.data.DataLoa
     validation_accuracy = (all_correct_points / all_point) * 100
     times = np.mean(times)
     
-    # Previously, model_size_in_mb was computed from total parameter count.
-    # Switch to the effective size so that pruning (which zeroes out weights) influences the result.
-    model_size_in_mb = get_effective_model_size(model)
+    # Use total parameter count to reflect the architecture changes
+    model_size_in_mb = get_model_size_by_params(model)
     
     del model, test_loader
     _clear_memory()
