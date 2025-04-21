@@ -1,0 +1,96 @@
+{
+  "total_params": 386704611,
+  "conv_params": 9220480,
+  "linear_params": 119681057,
+  "bn_params": 0,
+  "other_params": 257803074,
+  "other_module_types": {
+    "SVCNN": 128901537,
+    "Sequential": 128901537
+  },
+  "untracked_params": 0,
+  "model_size_mb": 1475.1610221862793,
+  "layer_info": [
+    {
+      "name": "",
+      "type": "SVCNN",
+      "params": 128901537
+    },
+    {
+      "name": "net_1",
+      "type": "Sequential",
+      "params": 9220480
+    },
+    {
+      "name": "net_1.0",
+      "type": "Conv2d",
+      "params": 1792,
+      "shape": "(3, 64, 3, 3)"
+    },
+    {
+      "name": "net_1.3",
+      "type": "Conv2d",
+      "params": 73856,
+      "shape": "(64, 128, 3, 3)"
+    },
+    {
+      "name": "net_1.6",
+      "type": "Conv2d",
+      "params": 295168,
+      "shape": "(128, 256, 3, 3)"
+    },
+    {
+      "name": "net_1.8",
+      "type": "Conv2d",
+      "params": 590080,
+      "shape": "(256, 256, 3, 3)"
+    },
+    {
+      "name": "net_1.11",
+      "type": "Conv2d",
+      "params": 1180160,
+      "shape": "(256, 512, 3, 3)"
+    },
+    {
+      "name": "net_1.13",
+      "type": "Conv2d",
+      "params": 2359808,
+      "shape": "(512, 512, 3, 3)"
+    },
+    {
+      "name": "net_1.16",
+      "type": "Conv2d",
+      "params": 2359808,
+      "shape": "(512, 512, 3, 3)"
+    },
+    {
+      "name": "net_1.18",
+      "type": "Conv2d",
+      "params": 2359808,
+      "shape": "(512, 512, 3, 3)"
+    },
+    {
+      "name": "net_2",
+      "type": "Sequential",
+      "params": 119681057
+    },
+    {
+      "name": "net_2.0",
+      "type": "Linear",
+      "params": 102764544,
+      "shape": "(25088, 4096)"
+    },
+    {
+      "name": "net_2.3",
+      "type": "Linear",
+      "params": 16781312,
+      "shape": "(4096, 4096)"
+    },
+    {
+      "name": "net_2.6",
+      "type": "Linear",
+      "params": 135201,
+      "shape": "(4096, 33)"
+    }
+  ]
+}

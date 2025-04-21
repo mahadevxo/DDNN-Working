@@ -1,5 +1,6 @@
 import torch
 import gc
+import copy
 
 class Pruning:
     def __init__(self, model):
@@ -81,66 +82,37 @@ class Pruning:
             if next_conv.bias is not None:
                 new_next_conv.bias.data = next_conv.bias.data.clone().to(self.device)
     
-    def _prune_last_conv_layer(self, model, conv, new_conv, layer_index, filter_index):
+    def _handle_last_conv_layer(self, model, new_conv, layer_index):
+        """Handle the case of pruning the last conv layer without modifying net_2"""
         with torch.no_grad():
-            # Replace conv layer in model
+            # Simply replace the conv layer in net_1
             modules = list(model.net_1)
             modules[layer_index] = new_conv
             model.net_1 = torch.nn.Sequential(*modules)
             
-            # Find the first fully connected layer
-            layer_index = 0
-            old_linear_layer = None
-            for _, module in model.net_2._modules.items():
-                if isinstance(module, torch.nn.Linear):
-                    old_linear_layer = module
-                    break
-                layer_index += 1
+            # We don't modify net_2 at all, it will receive input with fewer channels
+            # but we'll address this compatibility issue during forward pass
             
-            if old_linear_layer is None:
-                raise ValueError(f"No linear layer found in classifier, Model: {model}")
-            
-            # Calculate parameters per input channel
-            params_per_input_channel = old_linear_layer.in_features // conv.out_channels
-            
-            # Create new linear layer
-            new_linear_layer = torch.nn.Linear(
-                old_linear_layer.in_features - params_per_input_channel,
-                old_linear_layer.out_features
-            ).to(self.device)
-            
-            # Update the linear layer weights on GPU
-            old_weights = old_linear_layer.weight.data
-            left = old_weights[:, :filter_index * params_per_input_channel]
-            right = old_weights[:, (filter_index + 1) * params_per_input_channel:]
-            new_weights = torch.cat((left, right), dim=1)
-            
-            # Ensure proper memory layout
-            new_weights = new_weights.contiguous()
-            new_linear_layer.weight.data.copy_(new_weights)
-            new_linear_layer.bias.data.copy_(old_linear_layer.bias.data)
-            
-            # Replace in the model's net_2 part
-            modules = list(model.net_2)
-            modules[layer_index] = new_linear_layer
-            model.net_2 = torch.nn.Sequential(*modules)
-        
         self._clear_memory()
         return model
     
     def prune_conv_layers(self, model, layer_index, filter_index):
+        # Create a copy of the model to work with
+        model = copy.deepcopy(model)
+        
         modules = list(model.net_1)
         conv_indices = [i for i, m in enumerate(modules) if isinstance(m, torch.nn.Conv2d)]
-        # allow layer_index as conv‐layer count or as actual module index
+        
+        # Allow layer_index as conv‐layer count or as actual module index
         if layer_index in conv_indices:
             actual_idx = layer_index
         else:
             actual_idx = conv_indices[int(layer_index)]
+        
         conv = modules[actual_idx]
 
-        # guard against pruning the last remaining filter
+        # Guard against pruning the last remaining filter
         if conv.out_channels <= 1:
-            # print(f"Skipping pruning on layer {layer_index}: only {conv.out_channels} filters remain")
             return model
 
         # Prune this conv
@@ -149,7 +121,7 @@ class Pruning:
         self._prune_conv_layer(conv, new_conv, filter_index)
 
         if next_conv is not None:
-            # Find the module index of the next Conv2d
+            # This is not the last conv layer
             next_idx = next(i for i, m in enumerate(modules) if m is next_conv)
             # Build and prune the next conv
             next_new_conv = self._create_new_conv(
@@ -163,8 +135,9 @@ class Pruning:
             modules[next_idx] = next_new_conv
             model.net_1 = torch.nn.Sequential(*modules)
         else:
-            # Last conv: update classifier accordingly
-            model = self._prune_last_conv_layer(model, conv, new_conv, actual_idx, filter_index)
+            # This is the last conv layer in net_1, don't modify net_2
+            model = self._handle_last_conv_layer(model, new_conv, actual_idx)
 
+        # Clean up memory
         self._clear_memory()
         return model

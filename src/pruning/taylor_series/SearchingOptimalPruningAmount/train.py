@@ -21,15 +21,24 @@ def _get_num_filters(model: torch.nn.Module) -> int:
         if isinstance(module, torch.nn.Conv2d)
     )
 
-def get_model_size(model: torch.nn.Module) -> float:
+def get_model_size(model: torch.nn.Module, only_net_1: bool = False) -> float:
     """Calculate model size based on parameter count"""
-    total_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+    if only_net_1:
+        total_params = sum(p.numel() for p in model.net_1.parameters() if p.requires_grad)
+    else:
+        total_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
     return total_params * 4 / (1024 ** 2)  # Convert to MB (assuming float32)
 
-def get_model_size_by_params(model: torch.nn.Module) -> float:
+def get_model_size_by_params(model: torch.nn.Module, only_net_1: bool = False) -> float:
     """More accurate model size calculation that accounts for parameter data types"""
     total_bytes = 0
-    for p in model.parameters():
+    
+    if only_net_1:
+        params_iterator = model.net_1.parameters()
+    else:
+        params_iterator = model.parameters()
+        
+    for p in params_iterator:
         if p.requires_grad:
             # Account for actual parameter size based on data type
             if p.dtype == torch.float32 or p.dtype not in [
@@ -51,14 +60,20 @@ def get_detailed_model_info(model: torch.nn.Module) -> dict:
     """Get detailed information about model parameters and size by layer"""
     conv_params = 0
     linear_params = 0
+    bn_params = 0  # Batch normalization parameters
     other_params = 0
+    other_module_types = {}  # Track what other module types exist
     
     layer_info = []
+    
+    # Counter for parameters not captured in named_modules
+    untracked_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
     
     for name, module in model.named_modules():
         if isinstance(module, torch.nn.Conv2d):
             params = sum(p.numel() for p in module.parameters() if p.requires_grad)
             conv_params += params
+            untracked_params -= params
             layer_info.append({
                 'name': name, 
                 'type': 'Conv2d',
@@ -68,30 +83,63 @@ def get_detailed_model_info(model: torch.nn.Module) -> dict:
         elif isinstance(module, torch.nn.Linear):
             params = sum(p.numel() for p in module.parameters() if p.requires_grad)
             linear_params += params
+            untracked_params -= params
             layer_info.append({
                 'name': name, 
                 'type': 'Linear',
                 'params': params,
                 'shape': f"({module.in_features}, {module.out_features})"
             })
+        elif isinstance(module, torch.nn.BatchNorm2d):
+            params = sum(p.numel() for p in module.parameters() if p.requires_grad)
+            bn_params += params
+            untracked_params -= params
+            layer_info.append({
+                'name': name,
+                'type': 'BatchNorm2d',
+                'params': params,
+                'shape': f"(channels: {module.num_features})"
+            })
         elif any(p.requires_grad for p in module.parameters()):
             params = sum(p.numel() for p in module.parameters() if p.requires_grad)
             if params > 0:
                 other_params += params
+                module_type = type(module).__name__
+                if module_type not in other_module_types:
+                    other_module_types[module_type] = 0
+                other_module_types[module_type] += params
                 layer_info.append({
                     'name': name,
-                    'type': type(module).__name__,
+                    'type': module_type,
                     'params': params
                 })
+                # Don't subtract from untracked_params here as we might double count
+
+    # Analyze model hierarchy to find any loose parameters
+    model_hierarchy = {}
+    for name, param in model.named_parameters():
+        if param.requires_grad:
+            parts = name.split('.')
+            current = model_hierarchy
+            for i, part in enumerate(parts[:-1]):
+                if part not in current:
+                    current[part] = {}
+                current = current[part]
+            if parts[-1] not in current:
+                current[parts[-1]] = param.numel()
     
-    total_params = conv_params + linear_params + other_params
+    total_params = conv_params + linear_params + bn_params + other_params
     model_size_mb = total_params * 4 / (1024 ** 2)  # Assuming float32
     
     return {
         'total_params': total_params,
         'conv_params': conv_params,
         'linear_params': linear_params,
+        'bn_params': bn_params,
         'other_params': other_params,
+        'other_module_types': other_module_types,
+        'untracked_params': untracked_params,
+        'model_hierarchy': model_hierarchy,
         'model_size_mb': model_size_mb,
         'layer_info': layer_info
     }
@@ -140,9 +188,117 @@ def get_test_data(test_path: str='ModelNet40-12View/*/test', num_models: int=100
         test_dataset, batch_size=32, shuffle=False, num_workers=4
     )
 
-def validate_model(model: torch.nn.Module, test_loader: torch.utils.data.DataLoader=None) -> tuple:
+def analyze_network_compatibility(model):
+    """Check if the dimensions between net_1 output and net_2 input are compatible"""
+    # Find the output size of the last conv layer in net_1
+    net_1_output_channels = 0
+    for module in reversed(list(model.net_1)):
+        if isinstance(module, torch.nn.Conv2d):
+            net_1_output_channels = module.out_channels
+            break
+    
+    # Find the first linear layer in net_2 to check input dimensions
+    net_2_input_size = None
+    for module in model.net_2:
+        if isinstance(module, torch.nn.Linear):
+            net_2_input_size = module.in_features
+            break
+    
+    # Detect spatial dimensions through a dummy forward pass
+    spatial_size = None
+    try:
+        dummy_input = torch.zeros(1, 3, 224, 224).to(device)
+        with torch.no_grad():
+            net_1_output = model.net_1(dummy_input)
+            _, _, h, w = net_1_output.shape
+            spatial_size = (h, w)
+            print(f"Network interface - net_1 output shape: {net_1_output.shape}")
+    except Exception as e:
+        print(f"Could not detect spatial dimensions: {e}")
+        # Use default spatial size as fallback
+        spatial_size = (7, 7)
+    
+    print(f"Network interface - net_1 output channels: {net_1_output_channels}")
+    print(f"Network interface - detected spatial size: {spatial_size}")
+    
+    if net_2_input_size:
+        print(f"Network interface - net_2 input features: {net_2_input_size}")
+    else:
+        print("Could not determine net_2 input size - no Linear layer found")
+    
+    # Calculate the expected interface size
+    calculated_interface = net_1_output_channels * spatial_size[0] * spatial_size[1]
+    
+    if net_2_input_size:
+        if calculated_interface != net_2_input_size:
+            print(f"Warning: Dimension mismatch at network interface!")
+            print(f"  - Calculated size: {calculated_interface}")
+            print(f"  - Expected input size for net_2: {net_2_input_size}")
+            print(f"  - Difference: {abs(calculated_interface - net_2_input_size)} features")
+        else:
+            print(f"Network interface dimensions are compatible")
+    
+    return {
+        "net_1_output_channels": net_1_output_channels,
+        "net_2_input_size": net_2_input_size,
+        "spatial_size": spatial_size,
+        "calculated_interface": calculated_interface,
+        "is_compatible": calculated_interface == net_2_input_size
+    }
+
+def get_model_structure_info(model):
+    """Get detailed information about model parts: net_1 and net_2"""
+    # Analyze net_1 (feature extractor)
+    net_1_info = {
+        'conv_layers': 0,
+        'bn_layers': 0,
+        'parameters': 0,
+        'last_conv_output_channels': 0
+    }
+    
+    for module in model.net_1:
+        if isinstance(module, torch.nn.Conv2d):
+            net_1_info['conv_layers'] += 1
+            net_1_info['last_conv_output_channels'] = module.out_channels
+            net_1_info['parameters'] += sum(p.numel() for p in module.parameters() if p.requires_grad)
+        elif isinstance(module, torch.nn.BatchNorm2d):
+            net_1_info['bn_layers'] += 1
+            net_1_info['parameters'] += sum(p.numel() for p in module.parameters() if p.requires_grad)
+    
+    # Analyze net_2 (classifier)
+    net_2_info = {
+        'linear_layers': 0,
+        'parameters': 0,
+        'first_linear_input_features': 0
+    }
+    
+    for module in model.net_2:
+        if isinstance(module, torch.nn.Linear):
+            if net_2_info['linear_layers'] == 0:
+                net_2_info['first_linear_input_features'] = module.in_features
+            net_2_info['linear_layers'] += 1
+            net_2_info['parameters'] += sum(p.numel() for p in module.parameters() if p.requires_grad)
+    
+    return {
+        'net_1': net_1_info,
+        'net_2': net_2_info
+    }
+
+def validate_model(model: torch.nn.Module, test_loader: torch.utils.data.DataLoader=None, only_net_1_size: bool = False) -> tuple:
     if test_loader is None:
         test_loader = get_test_data()
+    
+    # Check model structure and compatibility between parts
+    structure_info = get_model_structure_info(model)
+    compatibility = analyze_network_compatibility(model)
+    
+    print(f"\nModel Structure:")
+    print(f"  - net_1: {structure_info['net_1']['conv_layers']} conv layers, "
+          f"{structure_info['net_1']['bn_layers']} bn layers, "
+          f"{structure_info['net_1']['parameters']:,} parameters")
+    print(f"  - net_2: {structure_info['net_2']['linear_layers']} linear layers, "
+          f"{structure_info['net_2']['parameters']:,} parameters")
+    print("")
     
     all_correct_points = 0
     all_point = 0
@@ -181,13 +337,29 @@ def validate_model(model: torch.nn.Module, test_loader: torch.utils.data.DataLoa
     times = np.mean(times)
     
     # Enhanced model size calculation
-    model_size_in_mb = get_model_size_by_params(model)
+    model_size_in_mb = get_model_size_by_params(model, only_net_1=only_net_1_size)
     
-    # Print detailed model information
+    # Print detailed model information with improved formatting
     model_info = get_detailed_model_info(model)
+    net1_params = sum(p.numel() for p in model.net_1.parameters() if p.requires_grad)
+    net1_size_mb = net1_params * 4 / (1024 ** 2)  # Assuming float32
+    
     print(f"Model parameters: {model_info['total_params']:,} ({model_info['model_size_mb']:.2f} MB)")
-    print(f"  - Conv layers: {model_info['conv_params']:,} params")
-    print(f"  - Linear layers: {model_info['linear_params']:,} params")
+    print(f"  - net_1 parameters: {net1_params:,} ({net1_size_mb:.2f} MB, {net1_params/model_info['total_params']*100:.1f}%)")
+    print(f"  - Conv layers: {model_info['conv_params']:,} params ({model_info['conv_params']/model_info['total_params']*100:.1f}%)")
+    print(f"  - Linear layers: {model_info['linear_params']:,} params ({model_info['linear_params']/model_info['total_params']*100:.1f}%)")
+    print(f"  - BatchNorm layers: {model_info['bn_params']:,} params ({model_info['bn_params']/model_info['total_params']*100:.1f}%)")
+    print(f"  - Other layers: {model_info['other_params']:,} params ({model_info['other_params']/model_info['total_params']*100:.1f}%)")
+    
+    # Print any untracked parameters
+    if model_info['untracked_params'] > 0:
+        print(f"  - Untracked parameters: {model_info['untracked_params']:,}")
+    
+    # Print breakdown of other module types if any exist
+    if model_info['other_module_types']:
+        print("  Other module types breakdown:")
+        for module_type, count in sorted(model_info['other_module_types'].items(), key=lambda x: x[1], reverse=True):
+            print(f"    - {module_type}: {count:,} params ({count/model_info['total_params']*100:.1f}%)")
     
     del model, test_loader
     _clear_memory()

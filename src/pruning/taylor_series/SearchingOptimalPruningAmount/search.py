@@ -27,10 +27,10 @@ def _get_num_filters(model: torch.nn.Module) -> int:
         if isinstance(layer, torch.nn.Conv2d)
     )
 
-def _get_model_size(model):
+def _get_model_size(model, only_net_1=True):
     """Calculate model size more accurately including only required parameters"""
     from train import get_model_size_by_params
-    return get_model_size_by_params(model)
+    return get_model_size_by_params(model, only_net_1=only_net_1)
 
 def get_model() -> torch.nn.Module:
     """Cache the model to avoid repeated loading from disk"""
@@ -53,13 +53,14 @@ def get_model() -> torch.nn.Module:
 def get_Reward(pruning_amount: float, ranks: tuple, rewardfn: Reward) -> tuple:
     global device
     
-    # Only compute the original size once
+    # Only compute the original size once - focusing on net_1
     if not hasattr(get_Reward, 'original_size'):
         base_model = get_model()
-        get_Reward.original_size = _get_model_size(base_model)
+        get_Reward.original_size = _get_model_size(base_model, only_net_1=True)
         get_Reward.original_filters = _get_num_filters(base_model)
         # Calculate parameter distribution to understand the model better
         total_params = sum(p.numel() for p in base_model.parameters() if p.requires_grad)
+        net1_params = sum(p.numel() for p in base_model.net_1.parameters() if p.requires_grad)
         conv_params = sum(p.numel() for name, m in base_model.named_modules() 
                       if isinstance(m, torch.nn.Conv2d) 
                       for p in m.parameters() if p.requires_grad)
@@ -68,6 +69,7 @@ def get_Reward(pruning_amount: float, ranks: tuple, rewardfn: Reward) -> tuple:
                         for p in m.parameters() if p.requires_grad)
         print(f"Model parameter distribution:")
         print(f"  - Total parameters: {total_params:,}")
+        print(f"  - net_1 parameters: {net1_params:,} ({net1_params/total_params*100:.1f}%)")
         print(f"  - Conv parameters: {conv_params:,} ({conv_params/total_params*100:.1f}%)")
         print(f"  - Linear parameters: {linear_params:,} ({linear_params/total_params*100:.1f}%)")
         del base_model
@@ -78,21 +80,24 @@ def get_Reward(pruning_amount: float, ranks: tuple, rewardfn: Reward) -> tuple:
         print(f"Skipping excessive pruning amount: {pruning_amount}")
         return -1000  # Return a highly negative reward
     
-    # Create pruned model
+    # Create pruned model with adapter
     base_model = get_model()
-    pruned_model = get_pruned_model(ranks=ranks, model=base_model, pruning_amount=pruning_amount)
+    pruned_model = get_pruned_model(ranks=ranks, model=base_model, 
+                                    pruning_amount=pruning_amount, 
+                                    adapt_interface=True, 
+                                    adapter_mode='zero_pad')
     pruned_model = pruned_model.to(device)
-    pruned_size = _get_model_size(pruned_model)
+    pruned_size = _get_model_size(pruned_model, only_net_1=True)
     pruned_filters = _get_num_filters(pruned_model)
     
-    # Calculate parameter reduction
-    base_params = sum(p.numel() for p in base_model.parameters() if p.requires_grad)
-    pruned_params = sum(p.numel() for p in pruned_model.parameters() if p.requires_grad)
-    param_reduction = (1 - pruned_params/base_params) * 100
+    # Calculate parameter reduction - focusing on net_1
+    base_net1_params = sum(p.numel() for p in base_model.net_1.parameters() if p.requires_grad)
+    pruned_net1_params = sum(p.numel() for p in pruned_model.net_1.parameters() if p.requires_grad)
+    param_reduction = (1 - pruned_net1_params/base_net1_params) * 100
     
     print(f"Filters: {get_Reward.original_filters} → {pruned_filters} ({pruned_filters/get_Reward.original_filters*100:.1f}%)")
-    print(f"Parameters: {base_params:,} → {pruned_params:,} ({param_reduction:.1f}% reduction)")
-    print(f"Size: {get_Reward.original_size:.2f}MB → {pruned_size:.2f}MB ({(1 - pruned_size/get_Reward.original_size)*100:.1f}% reduction)")
+    print(f"net_1 Parameters: {base_net1_params:,} → {pruned_net1_params:,} ({param_reduction:.1f}% reduction)")
+    print(f"net_1 Size: {get_Reward.original_size:.2f}MB → {pruned_size:.2f}MB ({(1 - pruned_size/get_Reward.original_size)*100:.1f}% reduction)")
     
     # Only fine-tune models that have a reasonable chance of success
     if pruned_filters < get_Reward.original_filters * 0.1:
@@ -103,7 +108,7 @@ def get_Reward(pruning_amount: float, ranks: tuple, rewardfn: Reward) -> tuple:
     
     # Fine-tune with limited epochs for quick evaluation
     finetuned_model, accuracy = fine_tune(pruned_model, quick_mode=True)
-    _, time, model_size = validate_model(finetuned_model)
+    _, time, model_size = validate_model(finetuned_model, only_net_1_size=True)
     
     print(f"Accuracy: {accuracy:.2f}%, Time: {time:.2f}s, Model Size: {model_size:.4f}MB")
     
@@ -134,10 +139,10 @@ def main() -> None:
     
     print("Initial Model Info:")
     base_model = get_model()
-    initial_size = _get_model_size(base_model)
+    initial_size = _get_model_size(base_model, only_net_1=True)
     initial_filters = _get_num_filters(base_model)
     initial_accuracy = validate_model(base_model)[0]
-    print(f"Size: {initial_size:.2f}MB, Filters: {initial_filters}, Accuracy: {initial_accuracy:.2f}%")
+    print(f"net_1 Size: {initial_size:.2f}MB, Filters: {initial_filters}, Accuracy: {initial_accuracy:.2f}%")
     del base_model
     _clear_memory()
     
