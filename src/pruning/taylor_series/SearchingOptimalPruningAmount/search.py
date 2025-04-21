@@ -177,17 +177,27 @@ def main() -> None:
     print('-'*20)
     
     # More efficient CMA-ES parameters
-    es: cma.EvolutionStrategy = cma.CMAEvolutionStrategy(
-        [0.25],  # Start with 25% pruning as initial guess
-        0.1,     # Increased initial step size for better exploration
-        {
-            'bounds': [0.0, 0.8],  # Limit maximum pruning to 80%
-            'maxiter': 10,         # Reduce max iterations
-            'tolx': 2e-2,          # More relaxed convergence criteria
-            'popsize': 4,          # Smaller population
-            'verbose': 1,          # Reduce verbosity
-        }
-    )
+    try:
+        es: cma.EvolutionStrategy = cma.CMAEvolutionStrategy(
+            [0.25],  # Start with 25% pruning as initial guess
+            0.1,     # Increased initial step size for better exploration
+            {
+                'bounds': [0.0, 0.8],  # Limit maximum pruning to 80%
+                'maxiter': 10,         # Reduce max iterations
+                'tolx': 2e-2,          # More relaxed convergence criteria
+                'popsize': 4,          # Smaller population
+                'verbose': 1,          # Reduce verbosity
+            }
+        )
+    except Exception as e:
+        print(f"Error initializing CMA-ES: {e}")
+        print("Falling back to simpler initialization")
+        # Fallback to a simpler initialization if the advanced one fails
+        es = cma.CMAEvolutionStrategy(
+            [0.25],
+            0.1,
+            {'bounds': [0.0, 0.8], 'verbose': 1}
+        )
     
     best_reward: float = float('-inf')
     best_pruning_amount: float = None
@@ -198,31 +208,69 @@ def main() -> None:
     
     while not es.stop():
         print(f"\n===== Iteration {iteration} =====")
-        solutions = es.ask()
-        rewards: list = []
-        
-        print("Evaluating solutions...")
-        for x in solutions:
-            pruning_amount = x[0]
-            print(f"Evaluating pruning amount: {pruning_amount:.4f}")
+        try:
+            solutions = es.ask()
+            rewards: list = []
             
-            # Get reward includes validation - pass the rank_type
-            reward = get_Reward(pruning_amount, ranks, rewardfn, rank_type=rank_type)
-            rewards.append(-reward)  # CMA-ES minimizes, so we negate
+            print("Evaluating solutions...")
+            for x in solutions:
+                pruning_amount = x[0]
+                print(f"Evaluating pruning amount: {pruning_amount:.4f}")
+                
+                # Get reward includes validation - pass the rank_type
+                reward = get_Reward(pruning_amount, ranks, rewardfn, rank_type=rank_type)
+                rewards.append(-reward)  # CMA-ES minimizes, so we negate
+                
+                # Track the best solution found
+                if reward > best_reward:
+                    best_reward = reward
+                    best_pruning_amount = pruning_amount
+                    print(f"New best pruning amount: {best_pruning_amount:.4f} (reward: {best_reward:.2f})")
+                
+                # Store history
+                history['pruning'].append(pruning_amount)
+                history['rewards'].append(reward)
+                
+                _clear_memory()
             
-            # Track the best solution found
-            if reward > best_reward:
-                best_reward = reward
-                best_pruning_amount = pruning_amount
-                print(f"New best pruning amount: {best_pruning_amount:.4f} (reward: {best_reward:.2f})")
-            
-            # Store history
-            history['pruning'].append(pruning_amount)
-            history['rewards'].append(reward)
-            
-            _clear_memory()
-            
-        es.tell(solutions, rewards)
+            # Handle empty solutions list or other edge cases
+            if not solutions or not rewards:
+                print("Warning: No valid solutions or rewards in this iteration")
+                break
+                
+            try:
+                es.tell(solutions, rewards)
+            except ValueError as e:
+                print(f"Error in CMA-ES tell method: {e}")
+                print("Trying an alternative approach...")
+                
+                # If we encounter dimension issues, try a manual grid search instead
+                if iteration == 1:  # Only do this if we fail on first iteration
+                    print("Falling back to grid search")
+                    grid_pruning_amounts = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7]
+                    grid_rewards = []
+                    
+                    for amount in grid_pruning_amounts:
+                        print(f"Grid search - evaluating pruning amount: {amount:.2f}")
+                        reward = get_Reward(amount, ranks, rewardfn, rank_type=rank_type)
+                        grid_rewards.append(reward)
+                        
+                        if reward > best_reward:
+                            best_reward = reward
+                            best_pruning_amount = amount
+                    
+                    # We're done with grid search, exit the loop
+                    print("Grid search complete")
+                    break
+                else:
+                    # Just continue with what we have
+                    print("Continuing with best results so far")
+                    break
+                    
+        except Exception as e:
+            print(f"Error in iteration {iteration}: {e}")
+            print("Continuing with best results so far")
+            break
         
         print(f"Iteration {iteration} summary:")
         print(f"- Mean pruning amount: {np.mean([s[0] for s in solutions]):.4f}")
@@ -237,6 +285,10 @@ def main() -> None:
     
     # Final evaluation with the best solution (with full fine-tuning)
     print("\n===== Final Evaluation =====")
+    if best_pruning_amount is None:
+        best_pruning_amount = 0.25  # Fallback to a reasonable default
+        print(f"Using default pruning amount of {best_pruning_amount} as no valid solution was found")
+    
     final_model = get_pruned_model(ranks=ranks, model=get_model(), pruning_amount=best_pruning_amount)
     final_model, final_accuracy = fine_tune(final_model, quick_mode=False)
     final_time, final_size = validate_model(final_model)[1:]
