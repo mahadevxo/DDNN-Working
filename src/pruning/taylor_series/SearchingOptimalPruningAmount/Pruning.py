@@ -135,7 +135,7 @@ class Pruning:
 
         # guard against pruning the last remaining filter
         if conv.out_channels <= 1:
-            print(f"Skipping pruning on layer {layer_index}: only {conv.out_channels} filters remain")
+            # print(f"Skipping pruning on layer {layer_index}: only {conv.out_channels} filters remain")
             return model
 
         # Prune this conv
