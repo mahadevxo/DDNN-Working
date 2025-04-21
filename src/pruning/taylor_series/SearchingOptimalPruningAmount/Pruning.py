@@ -55,21 +55,31 @@ class Pruning:
         
     def _prune_conv_layer(self, conv, new_conv, filter_index):
         with torch.no_grad():
-            # Prune conv weights on GPU without moving to CPU
             old_weights = conv.weight.data
-            new_weights = torch.cat((old_weights[:filter_index], old_weights[filter_index+1:]), dim=0)
-            new_conv.weight.data.copy_(new_weights)
-            bias = conv.bias.data
-            new_bias = torch.cat((bias[:filter_index], bias[filter_index+1:]), dim=0)
-            new_conv.bias.data.copy_(new_bias)
+            new_weights = torch.cat((
+                old_weights[:filter_index],
+                old_weights[filter_index+1:]
+            ), dim=0)
+            # replace the weight tensor in one go
+            new_conv.weight.data = new_weights.clone().to(self.device)
+            if conv.bias is not None:
+                old_bias = conv.bias.data
+                new_bias = torch.cat((
+                    old_bias[:filter_index],
+                    old_bias[filter_index+1:]
+                ), dim=0)
+                new_conv.bias.data = new_bias.clone().to(self.device)
     
     def _prune_next_conv_layer(self, next_conv, new_next_conv, filter_index):
         with torch.no_grad():
-            # Prune next conv weights on GPU without moving to CPU
             old_weights = next_conv.weight.data
-            new_weights = torch.cat((old_weights[:, :filter_index], old_weights[:, filter_index+1:]), dim=1)
-            new_next_conv.weight.data.copy_(new_weights)
-            new_next_conv.bias.data.copy_(next_conv.bias.data)
+            new_weights = torch.cat((
+                old_weights[:, :filter_index],
+                old_weights[:, filter_index+1:]
+            ), dim=1)
+            new_next_conv.weight.data = new_weights.clone().to(self.device)
+            if next_conv.bias is not None:
+                new_next_conv.bias.data = next_conv.bias.data.clone().to(self.device)
     
     def _prune_last_conv_layer(self, model, conv, new_conv, layer_index, filter_index):
         with torch.no_grad():
