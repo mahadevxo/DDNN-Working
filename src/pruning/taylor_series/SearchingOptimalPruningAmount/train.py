@@ -3,6 +3,7 @@ import time
 import torch
 import numpy as np
 from FilterPruner import FilterPruner
+from search import get_model
 from tools.ImgDataset import SingleImgDataset
 
 device = 'cuda' if torch.cuda.is_available() else 'mps' if torch.backends.mps.is_available() else 'cpu'
@@ -20,6 +21,15 @@ def _get_num_filters(model: torch.nn.Module) -> int:
         for layer in model.net_1
         if isinstance(layer, torch.nn.Conv2d)
     )
+    
+def get_model_size(model: torch.nn.Module) -> float:
+    param_size = sum(
+        param.nelement() * param.element_size() for param in model.parameters()
+    )
+    buffer_size = sum(
+        buffer.nelement() * buffer.element_size() for buffer in model.buffers()
+    )
+    return (param_size + buffer_size) / 1024**2
 
 
 def get_train_data(train_path: str='ModelNet40-12View/*/train', train_amt: float=0.1, num_models: int=1000, num_views: int=12) -> torch.utils.data.DataLoader:
@@ -107,9 +117,7 @@ def validate_model(model: torch.nn.Module, test_loader: torch.utils.data.DataLoa
     # print(f'Validation accuracy: {validation_accuracy:.2f}%')
     times = np.mean(times)
     
-    model_size_in_mb = sum(
-        param.numel() * param.element_size() for param in model.parameters()
-    ) / (1024 ** 2)
+    model_size_in_mb = get_model_size(model)
     
     del model, test_loader
     _clear_memory()
