@@ -22,7 +22,11 @@ def _get_num_filters(model: torch.nn.Module) -> int:
         for layer in model.net_1
         if isinstance(layer, torch.nn.Conv2d)
     )
-    
+
+def _get_model_size(model):
+    total_params = sum(p.numel() for p in model.parameters())
+    return total_params * 4 / (1024 * 1024)
+
 def get_model() -> torch.nn.Module:
     global device
     model: torch.nn.Module = MVCNN.SVCNN('SVCNN')
@@ -72,6 +76,7 @@ def main() -> None:
     ranks: tuple = get_ranks(get_model())
         
     print(f"Length of ranks: {len(ranks)}")
+    print(f"Initial Model Size: {_get_model_size(get_model())}MB")
     
     es: cma.EvolutionStrategy = cma.CMAEvolutionStrategy([0.20], 0.05, {'bounds': [0.0, 1.0], 'maxiter': 30})
     best_reward: float = float('-inf')
