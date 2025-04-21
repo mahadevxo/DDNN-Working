@@ -41,20 +41,24 @@ def _get_model_size(model, only_net_1=True):
 def get_model() -> torch.nn.Module:
     """Cache the model to avoid repeated loading from disk"""
     global device, _cached_model
-    if '_cached_model' not in globals():
-        print("Loading model from disk...")
-        model: torch.nn.Module = MVCNN.SVCNN('SVCNN')
-        weights: dict = torch.load('./model-00030.pth', map_location=device)
-        model.load_state_dict(weights)
-        model: torch.nn.Module = model.to(device)
-        _cached_model = model
-        del weights
-        _clear_memory()
-    else:
-        # Return a copy of the cached model
-        model = copy.deepcopy(_cached_model)
-    
-    return model
+    return (
+        _extracted_from_get_model_5(device)
+        if '_cached_model' not in globals()
+        else copy.deepcopy(_cached_model)
+    )
+
+
+# TODO Rename this here and in `get_model`
+def _extracted_from_get_model_5(device):
+    print("Loading model from disk...")
+    result: torch.nn.Module = MVCNN.SVCNN('SVCNN')
+    weights: dict = torch.load('./model-00030.pth', map_location=device)
+    result.load_state_dict(weights)
+    result: torch.nn.Module = result.to(device)
+    _cached_model = result
+    del weights
+    _clear_memory()
+    return result
 
 def get_Reward(pruning_amount: float, ranks: tuple, rewardfn: Reward, rank_type='taylor') -> tuple:
     global device
@@ -73,7 +77,7 @@ def get_Reward(pruning_amount: float, ranks: tuple, rewardfn: Reward, rank_type=
         linear_params = sum(p.numel() for name, m in base_model.named_modules() 
                         if isinstance(m, torch.nn.Linear) 
                         for p in m.parameters() if p.requires_grad)
-        print(f"Model parameter distribution:")
+        print("Model parameter distribution:")
         print(f"  - Total parameters: {total_params:,}")
         print(f"  - net_1 parameters: {net1_params:,} ({net1_params/total_params*100:.1f}%)")
         print(f"  - Conv parameters: {conv_params:,} ({conv_params/total_params*100:.1f}%)")
@@ -136,18 +140,18 @@ def get_Reward(pruning_amount: float, ranks: tuple, rewardfn: Reward, rank_type=
     
     return reward
 
-def main() -> None:
+def main() -> None:  # sourcery skip: low-code-quality
     # Use fewer iterations and smarter exploration
-    min_acc: float = 50
-    min_size: float = 300
+    min_acc: float = 50.0
+    min_size: float = 25.0
     x: float = 0.7  # Higher weight on accuracy
     y: float = 0.0
     z: float = 0.3
-    
+
     # Choose ranking method
     rank_type = 'taylor'  # Fall back to taylor since combined is causing issues
     print(f"Using {rank_type} ranking criterion for pruning")
-    
+
     print("Initial Model Info:")
     base_model = get_model()
     initial_size = _get_model_size(base_model, only_net_1=True)
@@ -156,14 +160,14 @@ def main() -> None:
     print(f"net_1 Size: {initial_size:.2f}MB, Filters: {initial_filters}, Accuracy: {initial_accuracy:.2f}%")
     del base_model
     _clear_memory()
-    
+
     rewardfn: Reward = Reward(min_acc=min_acc, min_size=min_size, x=x, y=y, z=z)
-    
+
     # Cache the ranks to avoid recomputing
     print("Computing filter ranks...")
     try:
         ranks: tuple = get_ranks(get_model(), rank_type=rank_type)
-        if ranks is None or len(ranks) == 0:
+        if ranks is None or not ranks:
             print("Warning: Failed to compute ranks, falling back to taylor criterion")
             rank_type = 'taylor'
             ranks = get_ranks(get_model(), rank_type=rank_type)
@@ -172,10 +176,10 @@ def main() -> None:
         print("Falling back to taylor criterion")
         rank_type = 'taylor'
         ranks = get_ranks(get_model(), rank_type=rank_type)
-    
+
     print(f"Length of ranks: {len(ranks)}")
     print('-'*20)
-    
+
     # More efficient CMA-ES parameters
     try:
         es: cma.EvolutionStrategy = cma.CMAEvolutionStrategy(
@@ -198,107 +202,105 @@ def main() -> None:
             0.1,
             {'bounds': [0.0, 0.8], 'verbose': 1}
         )
-    
+
     best_reward: float = float('-inf')
     best_pruning_amount: float = None
     history = {'pruning': [], 'rewards': [], 'accuracy': []}
-    
+
     _clear_memory()
     iteration = 1
-    
+
     while not es.stop():
         print(f"\n===== Iteration {iteration} =====")
         try:
             solutions = es.ask()
             rewards: list = []
-            
+
             print("Evaluating solutions...")
             for x in solutions:
                 pruning_amount = x[0]
                 print(f"Evaluating pruning amount: {pruning_amount:.4f}")
-                
+
                 # Get reward includes validation - pass the rank_type
                 reward = get_Reward(pruning_amount, ranks, rewardfn, rank_type=rank_type)
                 rewards.append(-reward)  # CMA-ES minimizes, so we negate
-                
+
                 # Track the best solution found
                 if reward > best_reward:
                     best_reward = reward
                     best_pruning_amount = pruning_amount
                     print(f"New best pruning amount: {best_pruning_amount:.4f} (reward: {best_reward:.2f})")
-                
+
                 # Store history
                 history['pruning'].append(pruning_amount)
                 history['rewards'].append(reward)
-                
+
                 _clear_memory()
-            
+
             # Handle empty solutions list or other edge cases
             if not solutions or not rewards:
                 print("Warning: No valid solutions or rewards in this iteration")
                 break
-                
+
             try:
                 es.tell(solutions, rewards)
             except ValueError as e:
                 print(f"Error in CMA-ES tell method: {e}")
                 print("Trying an alternative approach...")
-                
+
                 # If we encounter dimension issues, try a manual grid search instead
                 if iteration == 1:  # Only do this if we fail on first iteration
                     print("Falling back to grid search")
                     grid_pruning_amounts = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7]
                     grid_rewards = []
-                    
+
                     for amount in grid_pruning_amounts:
                         print(f"Grid search - evaluating pruning amount: {amount:.2f}")
                         reward = get_Reward(amount, ranks, rewardfn, rank_type=rank_type)
                         grid_rewards.append(reward)
-                        
+
                         if reward > best_reward:
                             best_reward = reward
                             best_pruning_amount = amount
-                    
+
                     # We're done with grid search, exit the loop
                     print("Grid search complete")
-                    break
                 else:
                     # Just continue with what we have
                     print("Continuing with best results so far")
-                    break
-                    
+                break
         except Exception as e:
             print(f"Error in iteration {iteration}: {e}")
             print("Continuing with best results so far")
             break
-        
+
         print(f"Iteration {iteration} summary:")
         print(f"- Mean pruning amount: {np.mean([s[0] for s in solutions]):.4f}")
         print(f"- Best pruning amount so far: {best_pruning_amount:.4f}")
         print(f"- Best reward so far: {best_reward:.2f}")
         print(f"- CMA-ES sigma: {es.sigma:.4f}")
-        
+
         iteration += 1
         _clear_memory()
-    
+
     print(f"Search complete! Best pruning amount: {best_pruning_amount:.4f}, Best reward: {best_reward:.2f}")
-    
+
     # Final evaluation with the best solution (with full fine-tuning)
     print("\n===== Final Evaluation =====")
     if best_pruning_amount is None:
         best_pruning_amount = 0.25  # Fallback to a reasonable default
         print(f"Using default pruning amount of {best_pruning_amount} as no valid solution was found")
-    
+
     final_model = get_pruned_model(ranks=ranks, model=get_model(), pruning_amount=best_pruning_amount)
     final_model, final_accuracy = fine_tune(final_model, quick_mode=False)
     final_time, final_size = validate_model(final_model)[1:]
-    
+
     print(f"Final model - Accuracy: {final_accuracy:.2f}%, Time: {final_time:.4f}s, Size: {final_size:.2f}MB")
-    
+
     # Save the final model
     timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
     torch.save(final_model.state_dict(), f'pruned_model_{timestamp}.pth')
-    
+
     # Plot results
     plt.figure(figsize=(12, 8))
     plt.scatter(history['pruning'], history['rewards'])

@@ -17,7 +17,7 @@ def _clear_memory():
 def _get_num_filters(model: torch.nn.Module) -> int:
     return sum(
         module.out_channels
-        for name, module in model.net_1._modules.items()
+        for _, module in model.net_1._modules.items()
         if isinstance(module, torch.nn.Conv2d)
     )
 
@@ -67,6 +67,7 @@ def get_model_size_by_params(model: torch.nn.Module, only_net_1: bool = False) -
     return total_bytes / (1024 ** 2)  # Convert to MB
 
 def get_detailed_model_info(model: torch.nn.Module) -> dict:
+    # sourcery skip: low-code-quality
     """Get detailed information about model parameters and size by layer"""
     conv_params = 0
     linear_params = 0
@@ -200,20 +201,22 @@ def get_test_data(test_path: str='ModelNet40-12View/*/test', num_models: int=100
 
 def analyze_network_compatibility(model):
     """Check if the dimensions between net_1 output and net_2 input are compatible"""
-    # Find the output size of the last conv layer in net_1
-    net_1_output_channels = 0
-    for module in reversed(list(model.net_1)):
-        if isinstance(module, torch.nn.Conv2d):
-            net_1_output_channels = module.out_channels
-            break
-    
-    # Find the first linear layer in net_2 to check input dimensions
-    net_2_input_size = None
-    for module in model.net_2:
-        if isinstance(module, torch.nn.Linear):
-            net_2_input_size = module.in_features
-            break
-    
+    net_1_output_channels = next(
+        (
+            module.out_channels
+            for module in reversed(list(model.net_1))
+            if isinstance(module, torch.nn.Conv2d)
+        ),
+        0,
+    )
+    net_2_input_size = next(
+        (
+            module.in_features
+            for module in model.net_2
+            if isinstance(module, torch.nn.Linear)
+        ),
+        None,
+    )
     # Detect spatial dimensions through a dummy forward pass
     spatial_size = None
     try:
@@ -227,27 +230,27 @@ def analyze_network_compatibility(model):
         print(f"Could not detect spatial dimensions: {e}")
         # Use default spatial size as fallback
         spatial_size = (7, 7)
-    
+
     print(f"Network interface - net_1 output channels: {net_1_output_channels}")
     print(f"Network interface - detected spatial size: {spatial_size}")
-    
+
     if net_2_input_size:
         print(f"Network interface - net_2 input features: {net_2_input_size}")
     else:
         print("Could not determine net_2 input size - no Linear layer found")
-    
+
     # Calculate the expected interface size
     calculated_interface = net_1_output_channels * spatial_size[0] * spatial_size[1]
-    
+
     if net_2_input_size:
         if calculated_interface != net_2_input_size:
-            print(f"Warning: Dimension mismatch at network interface!")
+            print("Warning: Dimension mismatch at network interface!")
             print(f"  - Calculated size: {calculated_interface}")
             print(f"  - Expected input size for net_2: {net_2_input_size}")
             print(f"  - Difference: {abs(calculated_interface - net_2_input_size)} features")
         else:
-            print(f"Network interface dimensions are compatible")
-    
+            print("Network interface dimensions are compatible")
+
     return {
         "net_1_output_channels": net_1_output_channels,
         "net_2_input_size": net_2_input_size,
@@ -300,9 +303,9 @@ def validate_model(model: torch.nn.Module, test_loader: torch.utils.data.DataLoa
     
     # Check model structure and compatibility between parts
     structure_info = get_model_structure_info(model)
-    compatibility = analyze_network_compatibility(model)
+    _ = analyze_network_compatibility(model)
     
-    print(f"\nModel Structure:")
+    print("\nModel Structure:")
     print(f"  - net_1: {structure_info['net_1']['conv_layers']} conv layers, "
           f"{structure_info['net_1']['bn_layers']} bn layers, "
           f"{structure_info['net_1']['parameters']:,} parameters")

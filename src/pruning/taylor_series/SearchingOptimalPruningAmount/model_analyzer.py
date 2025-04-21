@@ -56,7 +56,7 @@ def _print_large_param_blocks(hierarchy, prefix="", depth=0, threshold=1000, max
     """Recursively print the hierarchy of parameter blocks exceeding the threshold"""
     if depth > max_depth:
         return
-    
+
     for name, content in hierarchy.items():
         if isinstance(content, dict):
             # This is a sub-module
@@ -64,40 +64,38 @@ def _print_large_param_blocks(hierarchy, prefix="", depth=0, threshold=1000, max
             if params > threshold:
                 print(f"{'  ' * depth}- {prefix + ('.' if prefix else '')}{name}: {params:,} parameters")
                 _print_large_param_blocks(content, f"{prefix + ('.' if prefix else '')}{name}", depth+1, threshold, max_depth)
-        else:
-            # This is a parameter
-            if content > threshold:
-                print(f"{'  ' * depth}- {prefix + ('.' if prefix else '')}{name}: {content:,} elements")
+        elif content > threshold:
+            print(f"{'  ' * depth}- {prefix + ('.' if prefix else '')}{name}: {content:,} elements")
 
 def _count_params_in_hierarchy(hierarchy):
     """Count total parameters in a hierarchy dictionary"""
-    count = 0
-    for name, content in hierarchy.items():
-        if isinstance(content, dict):
-            count += _count_params_in_hierarchy(content)
-        else:
-            count += content
-    return count
+    return sum(
+        (
+            _count_params_in_hierarchy(content)
+            if isinstance(content, dict)
+            else content
+        )
+        for name, content in hierarchy.items()
+    )
 
 def _check_for_inefficiencies(model, info):
     """Check for common inefficiencies in the model architecture"""
-    # Check for duplicate sequential layers
-    seq_layers = []
-    for name, module in model.named_modules():
-        if isinstance(module, torch.nn.Sequential):
-            seq_layers.append((name, len(list(module.children()))))
-    
+    seq_layers = [
+        (name, len(list(module.children())))
+        for name, module in model.named_modules()
+        if isinstance(module, torch.nn.Sequential)
+    ]
     if any(count > 10 for _, count in seq_layers):
         print("  - Found large Sequential blocks which might be inefficient")
         for name, count in seq_layers:
             if count > 10:
                 print(f"    - {name}: {count} sub-modules")
-    
+
     # Check for high parameter redundancy in linear layers
     total_linear = info['linear_params']
     if total_linear > info['total_params'] * 0.8:
         print("  - Linear layers consume >80% of parameters, consider reducing their size")
-    
+
     # Check for unused parameters
     if info['untracked_params'] > info['total_params'] * 0.01:
         print(f"  - {info['untracked_params']:,} parameters aren't tracked in modules (could be unused)")
@@ -105,30 +103,26 @@ def _check_for_inefficiencies(model, info):
 if __name__ == "__main__":
     device = 'cuda' if torch.cuda.is_available() else 'mps' if torch.backends.mps.is_available() else 'cpu'
     print(f"Using device: {device}")
-    
-    # Load the model
-    model_path = './model-00030.pth'  # Default path
-    if len(sys.argv) > 1:
-        model_path = sys.argv[1]
-        
+
+    model_path = sys.argv[1] if len(sys.argv) > 1 else './model-00030.pth'
     if not os.path.exists(model_path):
         print(f"Error: Model file not found at {model_path}")
         sys.exit(1)
-        
+
     print(f"Loading model from: {model_path}")
     model = MVCNN.SVCNN('SVCNN')
     weights = torch.load(model_path, map_location=device)
     model.load_state_dict(weights)
     model = model.to(device)
-    
+
     # Analyze the model
     analyze_model_structure(model)
-    
+
     # Save a detailed report to a JSON file
     info = get_detailed_model_info(model)
     with open('model_analysis_report.json', 'w') as f:
         # Convert any non-serializable parts
         serializable_info = {k: v for k, v in info.items() if k != 'model_hierarchy'}
         json.dump(serializable_info, f, indent=2)
-    
-    print(f"Detailed analysis saved to model_analysis_report.json")
+
+    print("Detailed analysis saved to model_analysis_report.json")

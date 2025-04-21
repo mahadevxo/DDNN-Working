@@ -31,16 +31,15 @@ class Reward:
             # Scaled reward based on percentage of parameters reduced
             reduction_reward = param_reduction * 10  # Each percent reduction = 10 points
             return min(reduction_reward, 800)  # Cap at 800 points (80% reduction)
-        
+
         # Fall back to the previous approach if param_reduction not provided
         delta_model_size = model_size_new - self.min_size
-        if delta_model_size < 0:
-            # Reward for smaller models
-            reduction_factor = abs(delta_model_size) / self.min_size
-            return 400 * min(reduction_factor * 2, 1.0) + 200
-        else:
+        if delta_model_size >= 0:
             # Penalty for exceeding target size
             return -300 * delta_model_size
+        # Reward for smaller models
+        reduction_factor = abs(delta_model_size) / self.min_size
+        return 400 * min(reduction_factor * 2, 1.0) + 200
 
     def _get_comp_time_reward(self, comp_time_new, comp_time_last):
         # Calculate relative change rather than absolute

@@ -1,6 +1,5 @@
 import torch
 import torch.nn as nn
-import copy
 
 class NetworkAdapter(nn.Module):
     """
@@ -32,7 +31,7 @@ class NetworkAdapter(nn.Module):
         self.adapter_mode = adapter_mode
         
         if self.needs_adaptation:
-            print(f"NetworkAdapter: Dimension mismatch detected:")
+            print("NetworkAdapter: Dimension mismatch detected:")
             print(f"  - net_1 output: {self.expected_features} features")
             print(f"  - net_2 expects: {self.net_2_input_size} features")
             print(f"  - Using adapter mode: {adapter_mode}")
@@ -56,18 +55,19 @@ class NetworkAdapter(nn.Module):
     
     def _detect_spatial_dims(self, model):
         """Detect the spatial dimensions of net_1 output by running a dummy forward pass"""
-        # Find the last conv layer's output channels
-        last_conv_channels = 0
-        for module in reversed(list(model.net_1)):
-            if isinstance(module, nn.Conv2d):
-                last_conv_channels = module.out_channels
-                break
-        
+        last_conv_channels = next(
+            (
+                module.out_channels
+                for module in reversed(list(model.net_1))
+                if isinstance(module, nn.Conv2d)
+            ),
+            0,
+        )
         # Run a dummy forward pass to get spatial dimensions
         dummy_input = torch.zeros(1, 3, 224, 224).to(self.device)  # Assume standard ImageNet size
         with torch.no_grad():
             x = model.net_1(dummy_input)
-        
+
         # Extract spatial dimensions
         _, _, h, w = x.shape
         return last_conv_channels, (h, w)
@@ -86,14 +86,14 @@ class NetworkAdapter(nn.Module):
     def forward(self, x):
         # Pass through net_1
         x = self.model_1(x)
-        
+
         # Apply adaptation if needed
         if self.needs_adaptation:
             if self.adapter_mode == 'zero_pad':
                 # Flatten features
                 batch_size = x.size(0)
                 x_flat = x.view(batch_size, -1)
-                
+
                 # Zero padding or truncation
                 if x_flat.size(1) < self.net_2_input_size:
                     padding = torch.zeros(
@@ -104,12 +104,12 @@ class NetworkAdapter(nn.Module):
                 else:
                     # Truncate if too large
                     x_flat = x_flat[:, :self.net_2_input_size]
-                
+
             elif self.adapter_mode == 'projection':
                 # Flatten and project
                 x_flat = x.view(x.size(0), -1)
                 x_flat = self.projection(x_flat)
-                
+
             elif self.adapter_mode == 'adaptive':
                 # Adaptive pooling to get the right spatial dimensions
                 x = self.adaptive_pool(x)
@@ -117,10 +117,8 @@ class NetworkAdapter(nn.Module):
         else:
             # No adaptation needed, just flatten
             x_flat = x.view(x.size(0), -1)
-        
-        # Pass through net_2
-        output = self.model_2(x_flat)
-        return output
+
+        return self.model_2(x_flat)
 
 class AdaptedModel(nn.Module):
     """Wrapper model that includes the adapter"""

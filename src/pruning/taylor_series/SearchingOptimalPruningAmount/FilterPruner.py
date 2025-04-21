@@ -2,7 +2,6 @@ from heapq import nsmallest
 from operator import itemgetter
 import torch
 import gc
-import numpy as np
 
 class FilterPruner:
     def __init__(self, model, rank_type='taylor'):
@@ -88,64 +87,64 @@ class FilterPruner:
         self.activation_stats[idx]['apoz'] = (1 - momentum) * self.activation_stats[idx]['apoz'] + momentum * batch_apoz
     
     def compute_rank(self, grad, activation_index):
+        # sourcery skip: low-code-quality
         # Safety check to ensure activation_index is valid
         if activation_index >= len(self.activations) or activation_index < 0:
             print(f"Warning: Invalid activation_index {activation_index}, max is {len(self.activations)-1}")
             return
-            
+
         activation = self.activations[activation_index]
-        
+
         # Additional safety check for gradient shape matching activation
         if grad.shape != activation.shape:
             print(f"Warning: Gradient shape {grad.shape} does not match activation shape {activation.shape}")
             return
-        
+
         # Initialize filter_ranks for this activation if not already done
         if activation_index not in self.filter_ranks:
             self.filter_ranks[activation_index] = torch.FloatTensor(activation.size(1)).zero_()
             self.filter_ranks[activation_index] = self.filter_ranks[activation_index].to(self.device)
-        
+
         # Compute different ranking criteria based on rank_type
-        if self.rank_type == 'taylor' or self.rank_type == 'combined':
+        if self.rank_type in ['taylor', 'combined']:
             # Taylor criterion (1st order approximation of output change)
             taylor = activation * grad
             taylor = torch.abs(taylor.mean(dim=(0, 2, 3)).data)
             self.filter_ranks[activation_index] += taylor
-            
-        if self.rank_type == 'fisher' or self.rank_type == 'combined':
+
+        if self.rank_type in ['fisher', 'combined']:
             # Fisher information (approximated by squared gradient)
             fisher = grad ** 2
             fisher = fisher.mean(dim=(0, 2, 3)).data
-            
+
             # Initialize or update Fisher information
             if activation_index not in self.fisher_info:
                 self.fisher_info[activation_index] = torch.zeros_like(fisher)
             self.fisher_info[activation_index] += fisher
-        
-        if self.rank_type == 'l1_norm' or self.rank_type == 'combined':
+
+        if self.rank_type in ['l1_norm', 'combined']:
             # L1-norm of the filter weights
             found_module = False
-            
+
             # First try to find the exact module by activation index
             for idx, module in enumerate(self.model.net_1):
-                if isinstance(module, torch.nn.Conv2d):
-                    if idx == self.activation_to_layer[activation_index]:
-                        found_module = True
-                        l1_norm = torch.norm(module.weight.data, p=1, dim=(1, 2, 3))
-                        
-                        # Check if dimensions match
-                        if l1_norm.size(0) != self.filter_ranks[activation_index].size(0):
-                            print(f"Warning: L1 norm size ({l1_norm.size(0)}) doesn't match filter_ranks size ({self.filter_ranks[activation_index].size(0)})")
-                            print(f"Skipping L1 norm for activation_index {activation_index}")
-                        else:
-                            # Normalize by filter size
-                            filter_size = module.weight.size(1) * module.weight.size(2) * module.weight.size(3)
-                            l1_norm = l1_norm / filter_size
-                            
-                            # Update the ranks with L1 norm (lower is better for pruning)
-                            self.filter_ranks[activation_index] += l1_norm
-                        break
-            
+                if idx == self.activation_to_layer[activation_index] and isinstance(module, torch.nn.Conv2d):
+                    found_module = True
+                    l1_norm = torch.norm(module.weight.data, p=1, dim=(1, 2, 3))
+                
+                    # Check if dimensions match
+                    if l1_norm.size(0) != self.filter_ranks[activation_index].size(0):
+                        print(f"Warning: L1 norm size ({l1_norm.size(0)}) doesn't match filter_ranks size ({self.filter_ranks[activation_index].size(0)})")
+                        print(f"Skipping L1 norm for activation_index {activation_index}")
+                    else:
+                        # Normalize by filter size
+                        filter_size = module.weight.size(1) * module.weight.size(2) * module.weight.size(3)
+                        l1_norm = l1_norm / filter_size
+                
+                        # Update the ranks with L1 norm (lower is better for pruning)
+                        self.filter_ranks[activation_index] += l1_norm
+                    break
+
             if not found_module:
                 print(f"Warning: Could not find corresponding module for activation_index {activation_index}")
     

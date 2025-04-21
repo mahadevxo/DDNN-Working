@@ -7,6 +7,7 @@ from train import get_train_data, get_model_size_by_params, get_detailed_model_i
 from FilterPruner import FilterPruner
 from Pruning import Pruning
 from itertools import groupby
+from train import analyze_network_compatibility
 
 device = torch.device("cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu")
 def _clear_memory():
@@ -27,16 +28,17 @@ def _get_sorted_filters(ranks):
     return sorted(data, key=lambda x: x[2])
 
 def get_ranks(model, rank_type='taylor', samples=20):
+    # sourcery skip: low-code-quality
     """Compute filter ranks using multiple batches for more reliable estimation"""
     model_copy = copy.deepcopy(model) 
-    
+
     # Fall back to taylor criterion if there's an issue with the specified type
     original_rank_type = rank_type
-    
+
     try:
         pruner = FilterPruner(model_copy, rank_type=rank_type)
         criterion = torch.nn.CrossEntropyLoss()
-        
+
         train_loader = get_train_data(train_amt=0.10)  # Use more data for better estimation
         if train_loader is False or len(train_loader) == 0:
             print("Warning: No training data available. Using a dummy dataset.")
@@ -45,21 +47,21 @@ def get_ranks(model, rank_type='taylor', samples=20):
             dummy_labels = torch.randint(0, 33, (4,))
             dummy_dataset = torch.utils.data.TensorDataset(dummy_labels, dummy_input)
             train_loader = torch.utils.data.DataLoader(dummy_dataset, batch_size=2)
-            
+
         print(f"Computing ranks using {rank_type} criterion across {min(samples, len(train_loader))} batches")
 
         model_copy.eval()
-        
+
         # Process multiple batches to get better statistics
         batch_count = 0
         try:
             for data in train_loader:
                 if batch_count >= samples:
                     break
-                    
+
                 in_data = data[1].to(device)
                 labels = data[0].to(device)
-                
+
                 try:
                     output = pruner.forward(in_data)
                     loss = criterion(output, labels)
@@ -69,7 +71,7 @@ def get_ranks(model, rank_type='taylor', samples=20):
                     print(f"Error processing batch {batch_count}: {e}")
                     # If we hit errors with combined metrics, fall back to taylor
                     if rank_type != 'taylor' and "size" in str(e):
-                        print(f"Falling back to taylor criterion due to size mismatch errors")
+                        print("Falling back to taylor criterion due to size mismatch errors")
                         # Clean up and restart with taylor
                         del pruner
                         _clear_memory()
@@ -77,42 +79,38 @@ def get_ranks(model, rank_type='taylor', samples=20):
                         rank_type = 'taylor'
                         batch_count = 0
                         break
-                
+
                 # Provide progress updates
                 if batch_count % 5 == 0:
                     print(f"Processed {batch_count}/{samples} batches")
-            
+
             # normalize + retrieve the actual dict
             print("Normalizing ranks and preparing pruning plan...")
             ranks_dict = pruner.normalize_ranks_per_layer()
             ranks = pruner.get_sorted_filters(ranks_dict)
-            
+
         except Exception as e:
             print(f"Error during rank computation: {e}")
-            # If combined method fails, fall back to taylor
-            if rank_type != 'taylor':
-                print(f"Falling back to taylor criterion")
-                del pruner
-                _clear_memory()
-                return get_ranks(model, rank_type='taylor', samples=samples)
-            else:
+            if rank_type == 'taylor':
                 # If taylor also fails, raise the exception
                 raise e
+            print("Falling back to taylor criterion")
+            del pruner
+            _clear_memory()
+            return get_ranks(model, rank_type='taylor', samples=samples)
     except Exception as e:
         print(f"Error initializing pruner with {rank_type}: {e}")
-        if rank_type != 'taylor':
-            print(f"Falling back to taylor criterion")
-            return get_ranks(model, rank_type='taylor', samples=samples)
-        else:
+        if rank_type == 'taylor':
             # If taylor also fails, raise the exception
             raise e
-    
+
+        print("Falling back to taylor criterion")
+        return get_ranks(model, rank_type='taylor', samples=samples)
     # Clean up
     _clear_memory()
     del model_copy
-    del pruner
     _clear_memory()
-    
+
     # Debug: check if ranks are empty
     if not ranks:
         print("Warning: Ranks are empty after computation.")
@@ -120,7 +118,7 @@ def get_ranks(model, rank_type='taylor', samples=20):
             print("Falling back to taylor criterion")
             return get_ranks(model, rank_type='taylor', samples=samples)
         return None
-        
+
     return ranks
 
 def _get_pruning_plan(num, ranks):
@@ -202,7 +200,7 @@ def get_pruned_model(ranks=None, model=None, pruning_amount=0.0, adapt_interface
     
     # Calculate and log detailed model stats before pruning - focusing on net_1
     initial_size = get_model_size_by_params(model_copy, only_net_1=True)
-    initial_info = get_detailed_model_info(model_copy)
+    _ = get_detailed_model_info(model_copy)
     
     if ranks is None:
         ranks = get_ranks(model_copy, rank_type=rank_type)
@@ -222,7 +220,7 @@ def get_pruned_model(ranks=None, model=None, pruning_amount=0.0, adapt_interface
         print(f"Error calculating model stats: {e}")
         exit()
         
-    print(f"Before pruning:")
+    print("Before pruning:")
     print(f"  - net_1 size: {initial_size:.2f} MB")
     print(f"  - Total parameters: {net1_params + net2_params:,}")
     print(f"  - net_1 parameters: {net1_params:,} ({net1_params/(net1_params+net2_params)*100:.1f}%)")
@@ -240,8 +238,8 @@ def get_pruned_model(ranks=None, model=None, pruning_amount=0.0, adapt_interface
     model_pruned = _optimize_model_after_pruning(model_pruned)
     
     # Check network interface compatibility
-    from train import analyze_network_compatibility
-    compatibility = analyze_network_compatibility(model_pruned)
+    
+    _ = analyze_network_compatibility(model_pruned)
     
     # Handle potential interface issues between net_1 and net_2 if requested
     if adapt_interface:
@@ -256,15 +254,15 @@ def get_pruned_model(ranks=None, model=None, pruning_amount=0.0, adapt_interface
     new_total_filters = sum(m.out_channels for m in model_pruned.net_1 if isinstance(m, torch.nn.Conv2d))
     new_net1_params = sum(p.numel() for p in model_pruned.net_1.parameters() if p.requires_grad)
     new_net2_params = sum(p.numel() for p in model_pruned.net_2.parameters() if p.requires_grad)
-    new_conv_params = sum(p.numel() for name, m in model_pruned.named_modules() 
+    _ = sum(p.numel() for name, m in model_pruned.named_modules() 
                       if isinstance(m, torch.nn.Conv2d) 
                       for p in m.parameters() if p.requires_grad)
-    new_linear_params = sum(p.numel() for name, m in model_pruned.named_modules() 
+    _ = sum(p.numel() for name, m in model_pruned.named_modules() 
                         if isinstance(m, torch.nn.Linear) 
                         for p in m.parameters() if p.requires_grad)
     final_size = get_model_size_by_params(model_pruned, only_net_1=True)
     
-    print(f"After pruning:")
+    print("After pruning:")
     print(f"  - Conv filters in net_1: {new_total_filters} (removed {total_filters-new_total_filters} filters, {(1-new_total_filters/total_filters)*100:.1f}% reduction)")
     print(f"  - net_1 parameters: {new_net1_params:,} (removed {net1_params-new_net1_params:,} params, {(1-new_net1_params/net1_params)*100:.1f}% reduction)")
     print(f"  - net_2 parameters: {new_net2_params:,} (should be unchanged)")
@@ -284,13 +282,10 @@ def _optimize_model_after_pruning(model):
     
     # Force proper memory layout and data types for net_1
     for module in optimized_model.net_1.modules():
-        if hasattr(module, 'weight') and module.weight is not None:
-            if module.weight.dtype == torch.float32:
-                # Use contiguous memory layout for better efficiency
-                module.weight.data = module.weight.data.contiguous()
-        if hasattr(module, 'bias') and module.bias is not None:
-            if module.bias.dtype == torch.float32:
-                module.bias.data = module.bias.data.contiguous()
+        if hasattr(module, 'weight') and module.weight is not None and module.weight.dtype == torch.float32:
+            module.weight.data = module.weight.data.contiguous()
+        if hasattr(module, 'bias') and module.bias is not None and module.bias.dtype == torch.float32:
+            module.bias.data = module.bias.data.contiguous()
     
     # Test forward pass with a dummy input to verify network integrity
     try:
