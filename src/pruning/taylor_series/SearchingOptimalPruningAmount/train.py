@@ -32,16 +32,17 @@ def get_model_size_by_params(model: torch.nn.Module) -> float:
     for p in model.parameters():
         if p.requires_grad:
             # Account for actual parameter size based on data type
-            if p.dtype == torch.float32:
+            if p.dtype == torch.float32 or p.dtype not in [
+                torch.float16,
+                torch.int8,
+            ]:
                 bytes_per_param = 4
             elif p.dtype == torch.float16:
                 bytes_per_param = 2
-            elif p.dtype == torch.int8:
-                bytes_per_param = 1
             else:
-                bytes_per_param = 4  # Default to float32 size
+                bytes_per_param = 1
             total_bytes += p.numel() * bytes_per_param
-    
+
     # Add estimated overhead for model structure (typically ~10%)
     total_bytes *= 1.1
     return total_bytes / (1024 ** 2)  # Convert to MB
@@ -95,7 +96,7 @@ def get_detailed_model_info(model: torch.nn.Module) -> dict:
         'layer_info': layer_info
     }
 
-def get_train_data(train_path: str='ModelNet40-12View/*/train', train_amt: float=0.1, num_models: int=1000, num_views: int=12) -> torch.utils.data.DataLoader:
+def get_train_data(train_path: str='ModelNet40-12View/*/train', train_amt: float=0.05, num_models: int=1000, num_views: int=12) -> torch.utils.data.DataLoader:
     classes_present = []
     train_dataset = SingleImgDataset(
         train_path, scale_aug=False, rot_aug=False,
