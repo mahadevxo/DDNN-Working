@@ -44,7 +44,10 @@ def get_Reward(pruning_amount: float, ranks: tuple, rewardfn: Reward) -> tuple:
     pruned_model = pruned_model.to(device)
     print(f"Filters of Pruned Model: {_get_num_filters(pruned_model)}")
     finetuned_model, _ = fine_tune(pruned_model, rank_filter=False)
-    accuracy, time, model_size = validate_model(finetuned_model)
+    accuracy, time, _ = validate_model(finetuned_model)
+    model_size = _get_model_size(finetuned_model)
+    print(f"Filters of Fine-tuned Model: {_get_num_filters(finetuned_model)}")
+    print(f"Filters of Base Model: {_get_num_filters(base_model)}")
     
     print('-'*20)
     
