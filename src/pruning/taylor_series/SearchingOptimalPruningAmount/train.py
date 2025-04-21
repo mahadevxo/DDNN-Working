@@ -26,8 +26,13 @@ def get_model_size(model: torch.nn.Module) -> float:
     # serialize only the state_dict and measure its byte‐size
     buffer = io.BytesIO()
     torch.save(model.state_dict(), buffer)
-    return buffer.getbuffer().nbytes / 1024**2
+    # buffer.tell() gives the exact number of bytes written
+    return buffer.tell() / 1024**2
 
+# Optional alternative: compute size by summing parameter element sizes
+def get_model_size_by_params(model: torch.nn.Module) -> float:
+    total_bytes = sum(p.numel() * p.element_size() for p in model.parameters())
+    return total_bytes / 1024**2
 
 def get_train_data(train_path: str='ModelNet40-12View/*/train', train_amt: float=0.1, num_models: int=1000, num_views: int=12) -> torch.utils.data.DataLoader:
     classes_present = []
@@ -114,7 +119,7 @@ def validate_model(model: torch.nn.Module, test_loader: torch.utils.data.DataLoa
     # print(f'Validation accuracy: {validation_accuracy:.2f}%')
     times = np.mean(times)
     
-    model_size_in_mb = get_model_size(model)
+    model_size_in_mb = get_model_size(model) if get_model_size(model) < get_model_size_by_params(model) else get_model_size_by_params(model)
     
     del model, test_loader
     _clear_memory()
