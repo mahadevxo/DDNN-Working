@@ -41,6 +41,9 @@ def get_Reward(pruning_amount: float, ranks: tuple, rewardfn: Reward) -> tuple:
     model: torch.nn.Module = model.to(device)
     model, _, = fine_tune(model, rank_filter=False)
     accuracy, time, model_size = validate_model(model)
+    
+    print('-'*20)
+    
     print(f"Accuracy: {accuracy:.2f}%, Time: {time:.2f}s, Model Size: {model_size:.2f}MB")
     del model
     _clear_memory()
@@ -54,6 +57,9 @@ def get_Reward(pruning_amount: float, ranks: tuple, rewardfn: Reward) -> tuple:
     comp_time_last = comp_time
     
     _clear_memory()
+    
+    print('-'*20)
+    
     return reward
 
 def main() -> None:
