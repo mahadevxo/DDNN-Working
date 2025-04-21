@@ -22,12 +22,78 @@ def _get_num_filters(model: torch.nn.Module) -> int:
     )
 
 def get_model_size(model: torch.nn.Module) -> float:
-    total_params = sum(p.numel() for p in model.parameters())
-    return total_params * 4 / (1024 ** 2)
+    """Calculate model size based on parameter count"""
+    total_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+    return total_params * 4 / (1024 ** 2)  # Convert to MB (assuming float32)
 
 def get_model_size_by_params(model: torch.nn.Module) -> float:
-    total_bytes = sum(p.numel() * p.element_size() for p in model.parameters())
-    return total_bytes / 1024**2
+    """More accurate model size calculation that accounts for parameter data types"""
+    total_bytes = 0
+    for p in model.parameters():
+        if p.requires_grad:
+            # Account for actual parameter size based on data type
+            if p.dtype == torch.float32:
+                bytes_per_param = 4
+            elif p.dtype == torch.float16:
+                bytes_per_param = 2
+            elif p.dtype == torch.int8:
+                bytes_per_param = 1
+            else:
+                bytes_per_param = 4  # Default to float32 size
+            total_bytes += p.numel() * bytes_per_param
+    
+    # Add estimated overhead for model structure (typically ~10%)
+    total_bytes *= 1.1
+    return total_bytes / (1024 ** 2)  # Convert to MB
+
+def get_detailed_model_info(model: torch.nn.Module) -> dict:
+    """Get detailed information about model parameters and size by layer"""
+    conv_params = 0
+    linear_params = 0
+    other_params = 0
+    
+    layer_info = []
+    
+    for name, module in model.named_modules():
+        if isinstance(module, torch.nn.Conv2d):
+            params = sum(p.numel() for p in module.parameters() if p.requires_grad)
+            conv_params += params
+            layer_info.append({
+                'name': name, 
+                'type': 'Conv2d',
+                'params': params,
+                'shape': f"({module.in_channels}, {module.out_channels}, {module.kernel_size[0]}, {module.kernel_size[1]})"
+            })
+        elif isinstance(module, torch.nn.Linear):
+            params = sum(p.numel() for p in module.parameters() if p.requires_grad)
+            linear_params += params
+            layer_info.append({
+                'name': name, 
+                'type': 'Linear',
+                'params': params,
+                'shape': f"({module.in_features}, {module.out_features})"
+            })
+        elif any(p.requires_grad for p in module.parameters()):
+            params = sum(p.numel() for p in module.parameters() if p.requires_grad)
+            if params > 0:
+                other_params += params
+                layer_info.append({
+                    'name': name,
+                    'type': type(module).__name__,
+                    'params': params
+                })
+    
+    total_params = conv_params + linear_params + other_params
+    model_size_mb = total_params * 4 / (1024 ** 2)  # Assuming float32
+    
+    return {
+        'total_params': total_params,
+        'conv_params': conv_params,
+        'linear_params': linear_params,
+        'other_params': other_params,
+        'model_size_mb': model_size_mb,
+        'layer_info': layer_info
+    }
 
 def get_train_data(train_path: str='ModelNet40-12View/*/train', train_amt: float=0.1, num_models: int=1000, num_views: int=12) -> torch.utils.data.DataLoader:
     classes_present = []
@@ -113,8 +179,14 @@ def validate_model(model: torch.nn.Module, test_loader: torch.utils.data.DataLoa
     validation_accuracy = (all_correct_points / all_point) * 100
     times = np.mean(times)
     
-    # Use total parameter count to reflect the architecture changes
+    # Enhanced model size calculation
     model_size_in_mb = get_model_size_by_params(model)
+    
+    # Print detailed model information
+    model_info = get_detailed_model_info(model)
+    print(f"Model parameters: {model_info['total_params']:,} ({model_info['model_size_mb']:.2f} MB)")
+    print(f"  - Conv layers: {model_info['conv_params']:,} params")
+    print(f"  - Linear layers: {model_info['linear_params']:,} params")
     
     del model, test_loader
     _clear_memory()

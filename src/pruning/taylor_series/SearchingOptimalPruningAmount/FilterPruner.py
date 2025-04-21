@@ -46,6 +46,11 @@ class FilterPruner:
             
         activation = self.activations[activation_index]
         
+        # Additional safety check for gradient shape matching activation
+        if grad.shape != activation.shape:
+            print(f"Warning: Gradient shape {grad.shape} does not match activation shape {activation.shape}")
+            return
+        
         # Compute Taylor criterion
         taylor = activation * grad
         
