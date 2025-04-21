@@ -80,6 +80,9 @@ def main() -> None:
         
     print(f"Length of ranks: {len(ranks)}")
     print(f"Initial Model Size: {_get_model_size(get_model())}MB")
+    print('-'*20)
+    print(f'Initial Validation Accuracy: {validate_model(get_model())[0]:.2f}%')
+    print('-'*20)
     
     es: cma.EvolutionStrategy = cma.CMAEvolutionStrategy([0.20], 0.05, {'bounds': [0.0, 1.0], 'maxiter': 30})
     best_reward: float = float('-inf')
