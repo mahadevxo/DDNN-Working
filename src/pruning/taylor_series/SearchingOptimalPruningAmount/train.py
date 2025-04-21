@@ -2,7 +2,6 @@ import gc
 import time
 import torch
 import numpy as np
-import io
 from FilterPruner import FilterPruner
 from tools.ImgDataset import SingleImgDataset
 
@@ -23,11 +22,16 @@ def _get_num_filters(model: torch.nn.Module) -> int:
     )
     
 def get_model_size(model: torch.nn.Module) -> float:
-    # serialize only the state_dict and measure its byte‐size
-    buffer = io.BytesIO()
-    torch.save(model.state_dict(), buffer)
-    # buffer.tell() gives the exact number of bytes written
-    return buffer.tell() / 1024**2
+    total_params = 0
+    for layer in model.net_1:
+        if isinstance(layer, torch.nn.Conv2d):
+            # Formula: out_channels × in_channels × kernel_height × kernel_width
+            params = layer.out_channels * layer.in_channels * layer.kernel_size[0] * layer.kernel_size[1]
+            total_params += params
+            if layer.bias is not None:
+                total_params += layer.out_channels  # each bias per out_channel
+
+    return total_params * 4 / (1024 ** 2)
 
 # Optional alternative: compute size by summing parameter element sizes
 def get_model_size_by_params(model: torch.nn.Module) -> float:
