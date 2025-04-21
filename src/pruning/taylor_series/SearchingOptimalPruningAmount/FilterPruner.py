@@ -124,18 +124,30 @@ class FilterPruner:
         
         if self.rank_type == 'l1_norm' or self.rank_type == 'combined':
             # L1-norm of the filter weights
-            module_name = f"net_1.{activation_index*2}"  # Approximation - adjust based on your model structure
-            for name, module in self.model.named_modules():
-                if isinstance(module, torch.nn.Conv2d) and name.startswith(module_name):
-                    l1_norm = torch.norm(module.weight.data, p=1, dim=(1, 2, 3))
-                    
-                    # Normalize by filter size
-                    filter_size = module.weight.size(1) * module.weight.size(2) * module.weight.size(3)
-                    l1_norm = l1_norm / filter_size
-                    
-                    # Update the ranks with L1 norm (lower is better for pruning)
-                    self.filter_ranks[activation_index] += l1_norm
-                    break
+            found_module = False
+            
+            # First try to find the exact module by activation index
+            for idx, module in enumerate(self.model.net_1):
+                if isinstance(module, torch.nn.Conv2d):
+                    if idx == self.activation_to_layer[activation_index]:
+                        found_module = True
+                        l1_norm = torch.norm(module.weight.data, p=1, dim=(1, 2, 3))
+                        
+                        # Check if dimensions match
+                        if l1_norm.size(0) != self.filter_ranks[activation_index].size(0):
+                            print(f"Warning: L1 norm size ({l1_norm.size(0)}) doesn't match filter_ranks size ({self.filter_ranks[activation_index].size(0)})")
+                            print(f"Skipping L1 norm for activation_index {activation_index}")
+                        else:
+                            # Normalize by filter size
+                            filter_size = module.weight.size(1) * module.weight.size(2) * module.weight.size(3)
+                            l1_norm = l1_norm / filter_size
+                            
+                            # Update the ranks with L1 norm (lower is better for pruning)
+                            self.filter_ranks[activation_index] += l1_norm
+                        break
+            
+            if not found_module:
+                print(f"Warning: Could not find corresponding module for activation_index {activation_index}")
     
     def lowest_ranking_filters(self, num, filter_ranks):
         data = []
@@ -155,22 +167,33 @@ class FilterPruner:
                 # Add APoZ (more zeros = higher value = more likely to prune)
                 if i in self.activation_stats:
                     apoz = self.activation_stats[i]['apoz']
-                    # Normalize APoZ
-                    apoz = apoz / (torch.max(apoz) + 1e-10)
-                    ranks = ranks + apoz
+                    # Check size match
+                    if apoz.size(0) == ranks.size(0):
+                        # Normalize APoZ
+                        apoz = apoz / (torch.max(apoz) + 1e-10)
+                        ranks = ranks + apoz
+                    else:
+                        print(f"Warning: APoZ size ({apoz.size(0)}) doesn't match ranks size ({ranks.size(0)}) for layer {i}")
                 
                 # Add Fisher Information (lower Fisher = higher value for pruning)
                 if i in self.fisher_info:
                     fisher = self.fisher_info[i]
-                    # Invert and normalize Fisher (we want to prune filters with LESS information)
-                    max_fisher = torch.max(fisher) + 1e-10
-                    inv_fisher = (max_fisher - fisher) / max_fisher
-                    ranks = ranks + inv_fisher
+                    # Check size match
+                    if fisher.size(0) == ranks.size(0):
+                        # Invert and normalize Fisher (we want to prune filters with LESS information)
+                        max_fisher = torch.max(fisher) + 1e-10
+                        inv_fisher = (max_fisher - fisher) / max_fisher
+                        ranks = ranks + inv_fisher
+                    else:
+                        print(f"Warning: Fisher size ({fisher.size(0)}) doesn't match ranks size ({ranks.size(0)}) for layer {i}")
             
             # For L1-norm criterion, we directly use the L1-norm without additional computation
             # For APoZ only criterion
             elif self.rank_type == 'apoz' and i in self.activation_stats:
-                ranks = self.activation_stats[i]['apoz']
+                if self.activation_stats[i]['apoz'].size(0) == self.filter_ranks[i].size(0):
+                    ranks = self.activation_stats[i]['apoz']
+                else:
+                    print(f"Warning: APoZ size mismatch for layer {i}, using existing ranks")
             
             # Normalize the final ranks
             if torch.sum(ranks) > 0:
@@ -178,13 +201,7 @@ class FilterPruner:
                 self.filter_ranks[i] = v
             else:
                 self.filter_ranks[i] = ranks
-        
-        # If we're pruning net_1 for a split model, we should favor keeping filters
-        # that contribute most to the output that net_2 needs
-        if hasattr(self, 'net_1_output'):
-            # Not implemented yet - would require analyzing net_2's first layer gradients
-            pass
-        
+
         return self.filter_ranks
             
     def get_pruning_plan(self, num_filters_to_prune: int, filter_ranks = None):

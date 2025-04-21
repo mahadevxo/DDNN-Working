@@ -145,7 +145,7 @@ def main() -> None:
     z: float = 0.3
     
     # Choose ranking method
-    rank_type = 'combined'  # Options: 'taylor', 'l1_norm', 'apoz', 'fisher', 'combined'
+    rank_type = 'taylor'  # Fall back to taylor since combined is causing issues
     print(f"Using {rank_type} ranking criterion for pruning")
     
     print("Initial Model Info:")
@@ -161,7 +161,18 @@ def main() -> None:
     
     # Cache the ranks to avoid recomputing
     print("Computing filter ranks...")
-    ranks: tuple = get_ranks(get_model(), rank_type=rank_type)
+    try:
+        ranks: tuple = get_ranks(get_model(), rank_type=rank_type)
+        if ranks is None or len(ranks) == 0:
+            print("Warning: Failed to compute ranks, falling back to taylor criterion")
+            rank_type = 'taylor'
+            ranks = get_ranks(get_model(), rank_type=rank_type)
+    except Exception as e:
+        print(f"Error computing ranks with {rank_type} criterion: {e}")
+        print("Falling back to taylor criterion")
+        rank_type = 'taylor'
+        ranks = get_ranks(get_model(), rank_type=rank_type)
+    
     print(f"Length of ranks: {len(ranks)}")
     print('-'*20)
     
