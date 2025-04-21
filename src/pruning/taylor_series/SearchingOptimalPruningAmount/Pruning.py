@@ -120,7 +120,6 @@ class Pruning:
         if layer_index in conv_indices:
             actual_idx = layer_index
         else:
-            print(layer_index)
             actual_idx = conv_indices[int(layer_index)]
         conv = modules[actual_idx]
 

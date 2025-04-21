@@ -1,6 +1,5 @@
 import gc
 import time
-from warnings import filters
 import torch
 import numpy as np
 import io
