@@ -2,6 +2,7 @@ import gc
 from heapq import nsmallest
 from operator import itemgetter
 import torch
+import copy
 from train import get_train_data  # add get_train_data
 from FilterPruner import FilterPruner
 from Pruning import Pruning
@@ -26,12 +27,13 @@ def _get_sorted_filters(ranks):
     return sorted(data, key=lambda x: x[2])
 
 def get_ranks(model):
-    pruner = FilterPruner(model)
+    model_copy = copy.deepcopy(model)              # work on a fresh clone
+    pruner = FilterPruner(model_copy)
     criterion = torch.nn.CrossEntropyLoss()
     train_loader = get_train_data(train_amt=0.05)
     print(f"train_loader: {len(train_loader)}")
 
-    model.eval()
+    model_copy.eval()
     for data in train_loader:
         in_data = data[1].to(device)
         labels = data[0].to(device)
@@ -81,8 +83,13 @@ def _prune_model(prune_targets, model):
     
     pruner = Pruning(model)
     
-    for layer_n, filter_index in tqdm(prune_targets, desc="Pruning filters"):
-        model = pruner.prune_conv_layers(model=model, layer_index=layer_n, filter_index=filter_index)
+    # group targets by layer, prune highest indices first to avoid shifting
+    from itertools import groupby
+    sorted_targets = sorted(prune_targets, key=lambda x: (x[0], -x[1]))
+    for layer_n, group in groupby(sorted_targets, key=lambda x: x[0]):
+        for _, filter_index in group:
+            model = pruner.prune_conv_layers(model=model, layer_index=layer_n, filter_index=filter_index)
+    
     print(f"Pruned {len(prune_targets)} filters")
     _clear_memory()
     
@@ -98,11 +105,12 @@ def _prune_model(prune_targets, model):
     return model
 
 def get_pruned_model(ranks=None, model=None, pruning_amount=0.0):
+    model_copy = copy.deepcopy(model)              # clone before pruning
     if ranks is None:
-        ranks = get_ranks(model)
+        ranks = get_ranks(model_copy)
     try:
         # Debug: count filters before
-        total_filters = sum(m.out_channels for m in model.net_1 if isinstance(m, torch.nn.Conv2d))
+        total_filters = sum(m.out_channels for m in model_copy.net_1 if isinstance(m, torch.nn.Conv2d))
     except Exception as e:
         print(f"Error calculating total filters: {e}")
         exit()
@@ -110,9 +118,9 @@ def get_pruned_model(ranks=None, model=None, pruning_amount=0.0):
     num_filters_to_prune = int(pruning_amount * total_filters)
 
     prune_targets = _get_pruning_plan(num_filters_to_prune, ranks)
-    model = _prune_model(prune_targets, model)
+    model_pruned = _prune_model(prune_targets, model_copy)
     # Debug: count filters after
-    new_total = sum(m.out_channels for m in model.net_1 if isinstance(m, torch.nn.Conv2d))
+    new_total = sum(m.out_channels for m in model_pruned.net_1 if isinstance(m, torch.nn.Conv2d))
     print(f"Prune.py: total convfilters after  = {new_total}")
     _clear_memory()
-    return model
+    return model_pruned

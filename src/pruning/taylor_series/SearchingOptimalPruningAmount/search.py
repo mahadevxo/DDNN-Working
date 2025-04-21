@@ -35,17 +35,17 @@ def get_model() -> torch.nn.Module:
 
 def get_Reward(pruning_amount: float, ranks: tuple, rewardfn: Reward) -> tuple:
     global device
-    model: torch.nn.Module = get_model()
-    model: torch.nn.Module = get_pruned_model(ranks=ranks, model=model, pruning_amount=pruning_amount)
-    print(f"Filters of Pruned Model: {_get_num_filters(model)}")
-    model: torch.nn.Module = model.to(device)
-    model, _, = fine_tune(model, rank_filter=False)
-    accuracy, time, model_size = validate_model(model)
+    base_model   = get_model()                                                        # original
+    pruned_model = get_pruned_model(ranks=ranks, model=base_model, pruning_amount=pruning_amount)
+    pruned_model = pruned_model.to(device)
+    print(f"Filters of Pruned Model: {_get_num_filters(pruned_model)}")
+    finetuned_model, _ = fine_tune(pruned_model, rank_filter=False)
+    accuracy, time, model_size = validate_model(finetuned_model)
     
     print('-'*20)
     
-    print(f"Accuracy: {accuracy:.2f}%, Time: {time:.2f}s, Model Size: {model_size:.2f}MB")
-    del model
+    print(f"Accuracy: {accuracy:.2f}%, Time: {time:.2f}s, Model Size: {model_size:.4f}MB")
+    del base_model, pruned_model, finetuned_model
     _clear_memory()
     
     global comp_time_last
@@ -92,15 +92,14 @@ def main() -> None:
                 best_reward = reward
                 best_pruning_amount = pruning_amount
             _clear_memory()
+            del(solutions, rewards)
         es.tell(solutions, rewards)
         print("Best pruning amount so far:", best_pruning_amount)
         print("Best reward so far:", best_reward)
         print("Sigma Value:", es.sigma)
         _clear_memory()
-    
     print(f"Best pruning amount: {best_pruning_amount}, Best reward: {best_reward}")
-
 if __name__ == '__main__':
     main()
-    _clear_memory()
+    _clear_memory()    
     print("Done")
