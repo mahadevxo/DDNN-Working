@@ -114,12 +114,17 @@ class Pruning:
             left = old_weights[:, :filter_index * params_per_input_channel]
             right = old_weights[:, (filter_index + 1) * params_per_input_channel:]
             new_weights = torch.cat((left, right), dim=1)
+            
+            # Ensure proper memory layout
+            new_weights = new_weights.contiguous()
             new_linear_layer.weight.data.copy_(new_weights)
             new_linear_layer.bias.data.copy_(old_linear_layer.bias.data)
             
-            model.net_2 = torch.nn.Sequential(
-                *(self._replace_layers(model.net_2, i, [layer_index], [new_linear_layer]) for i, _ in enumerate(model.net_2))
-            )
+            # Replace in the model's net_2 part
+            modules = list(model.net_2)
+            modules[layer_index] = new_linear_layer
+            model.net_2 = torch.nn.Sequential(*modules)
+        
         self._clear_memory()
         return model
     

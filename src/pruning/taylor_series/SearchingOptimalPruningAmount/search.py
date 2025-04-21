@@ -35,7 +35,6 @@ def _get_model_size(model):
 def get_model() -> torch.nn.Module:
     """Cache the model to avoid repeated loading from disk"""
     global device, _cached_model
-    
     if '_cached_model' not in globals():
         print("Loading model from disk...")
         model: torch.nn.Module = MVCNN.SVCNN('SVCNN')
@@ -59,6 +58,18 @@ def get_Reward(pruning_amount: float, ranks: tuple, rewardfn: Reward) -> tuple:
         base_model = get_model()
         get_Reward.original_size = _get_model_size(base_model)
         get_Reward.original_filters = _get_num_filters(base_model)
+        # Calculate parameter distribution to understand the model better
+        total_params = sum(p.numel() for p in base_model.parameters() if p.requires_grad)
+        conv_params = sum(p.numel() for name, m in base_model.named_modules() 
+                      if isinstance(m, torch.nn.Conv2d) 
+                      for p in m.parameters() if p.requires_grad)
+        linear_params = sum(p.numel() for name, m in base_model.named_modules() 
+                        if isinstance(m, torch.nn.Linear) 
+                        for p in m.parameters() if p.requires_grad)
+        print(f"Model parameter distribution:")
+        print(f"  - Total parameters: {total_params:,}")
+        print(f"  - Conv parameters: {conv_params:,} ({conv_params/total_params*100:.1f}%)")
+        print(f"  - Linear parameters: {linear_params:,} ({linear_params/total_params*100:.1f}%)")
         del base_model
         _clear_memory()
     
@@ -74,7 +85,13 @@ def get_Reward(pruning_amount: float, ranks: tuple, rewardfn: Reward) -> tuple:
     pruned_size = _get_model_size(pruned_model)
     pruned_filters = _get_num_filters(pruned_model)
     
+    # Calculate parameter reduction
+    base_params = sum(p.numel() for p in base_model.parameters() if p.requires_grad)
+    pruned_params = sum(p.numel() for p in pruned_model.parameters() if p.requires_grad)
+    param_reduction = (1 - pruned_params/base_params) * 100
+    
     print(f"Filters: {get_Reward.original_filters} → {pruned_filters} ({pruned_filters/get_Reward.original_filters*100:.1f}%)")
+    print(f"Parameters: {base_params:,} → {pruned_params:,} ({param_reduction:.1f}% reduction)")
     print(f"Size: {get_Reward.original_size:.2f}MB → {pruned_size:.2f}MB ({(1 - pruned_size/get_Reward.original_size)*100:.1f}% reduction)")
     
     # Only fine-tune models that have a reasonable chance of success
@@ -98,7 +115,8 @@ def get_Reward(pruning_amount: float, ranks: tuple, rewardfn: Reward) -> tuple:
     if comp_time_last is None:
         comp_time_last = time
     
-    reward, comp_time = rewardfn.getReward(accuracy=accuracy, comp_time=time, model_size=model_size, comp_time_last=comp_time_last)
+    # Adjust reward calculation to better account for parameter reduction
+    reward, comp_time = rewardfn.getReward(accuracy=accuracy, comp_time=time, model_size=model_size, comp_time_last=comp_time_last, param_reduction=param_reduction)
     comp_time_last = comp_time
     
     print(f"Reward: {reward}")
