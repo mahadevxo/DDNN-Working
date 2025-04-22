@@ -140,11 +140,28 @@ def get_Reward(pruning_amount: float, ranks: tuple, rewardfn: Reward, rank_type=
                                            param_reduction=param_reduction)
     comp_time_last = comp_time
     
-    # Add aggressive bonus for high pruning rates with good accuracy
-    if accuracy >= min_acc and pruning_amount >= 0.4:
-        bonus = pruning_amount * 200  # More aggressive bonus for high pruning rates
-        reward += bonus
-        print(f"Added high pruning bonus: +{bonus:.2f}")
+    # Special "sweet spot" bonus for solutions very close to minimum accuracy
+    # This prioritizes solutions that achieve just enough accuracy but not more
+    accuracy_margin = 1.0  # 1% margin
+    if min_acc <= accuracy < min_acc + accuracy_margin:
+        # Maximum bonus for solutions right at the minimum accuracy threshold
+        closeness_factor = 1.0 - (accuracy - min_acc) / accuracy_margin
+        sweet_spot_bonus = pruning_amount * 350 * (0.5 + 0.5 * closeness_factor)
+        reward += sweet_spot_bonus
+        print(f"Added 'accuracy sweet spot' bonus: +{sweet_spot_bonus:.2f}")
+    
+    # General bonus for high pruning rates with acceptable accuracy
+    elif accuracy >= min_acc and pruning_amount >= 0.4:
+        pruning_bonus = pruning_amount * 200
+        reward += pruning_bonus
+        print(f"Added high pruning bonus: +{pruning_bonus:.2f}")
+    
+    # Slight penalty for wasted capacity (accuracy much higher than needed)
+    elif accuracy > min_acc + 3.0:
+        excess = accuracy - (min_acc + 3.0)
+        wasted_capacity_penalty = min(200.0, excess * 40.0)
+        reward -= wasted_capacity_penalty
+        print(f"Applied wasted capacity penalty: -{wasted_capacity_penalty:.2f}")
     
     print(f"Reward: {reward}")
     print('-'*20)

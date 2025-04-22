@@ -10,23 +10,31 @@ class Reward:
         print(f"Reward initialized with min_acc: {self.min_acc}, min_size: {self.min_size}, x: {self.x}, y: {self.y}, z: {self.z}")
         
     def _get_accuracy_reward(self, accuracy_new):
-        # More aggressive accuracy reward with steeper penalties and rewards
-        threshold_margin = 1.0  # Use a 1% margin
+        # Define a narrow acceptable range just above the minimum accuracy
+        optimal_margin = 0.5  # Optimal range is min_acc to min_acc + 0.5%
+        penalty_threshold = 2.0  # Start penalizing more aggressively if accuracy > min_acc + 2%
         
-        if abs(accuracy_new - self.min_acc) <= threshold_margin:
-            # Reward for being close to the minimum accuracy
-            # Higher reward when closer to the exact threshold
-            closeness = 1.0 - (abs(accuracy_new - self.min_acc) / threshold_margin)
-            return 800.0 * (0.5 + 0.5 * closeness)  # Increased base reward
-        elif accuracy_new > (self.min_acc + threshold_margin):
-            # Smaller reward for exceeding minimum by too much (we want to maximize pruning)
-            excess = accuracy_new - self.min_acc - threshold_margin
-            # Non-linear reward for excess accuracy
-            return 400.0 + (excess * 25) * (1.0 + excess/10.0)
-        else:
-            # More severe penalty for being below minimum accuracy - exponential penalty
+        if accuracy_new < self.min_acc:
+            # Severe penalty for being below minimum - exponential penalty (keep as is)
             shortfall = self.min_acc - accuracy_new
             return -1500.0 * (1.0 + shortfall * 0.5) ** 2
+        elif accuracy_new <= self.min_acc + optimal_margin:
+            # Maximum reward for being just above minimum threshold (sweet spot)
+            # The closer to min_acc, the higher the reward
+            closeness = 1.0 - ((accuracy_new - self.min_acc) / optimal_margin)
+            return 1200.0 * (0.8 + 0.2 * closeness)
+        elif accuracy_new <= self.min_acc + penalty_threshold:
+            # Linear decrease in reward as we move away from optimal margin
+            excess = accuracy_new - (self.min_acc + optimal_margin)
+            normalized_excess = excess / (penalty_threshold - optimal_margin)
+            return 1000.0 * (1.0 - normalized_excess * 0.7)
+        else:
+            # Active penalty for accuracy much higher than needed - wastes capacity
+            excess = accuracy_new - (self.min_acc + penalty_threshold)
+            # Quadratically increasing penalty for excessive accuracy
+            penalty_factor = min(1.0, (excess / 5.0) ** 1.5)
+            base_reward = 300.0  # Still somewhat positive, but much lower
+            return base_reward - (500.0 * penalty_factor)
 
     def _get_model_size_reward(self, model_size_new, param_reduction=None):
         # More aggressive reward for parameter reduction
