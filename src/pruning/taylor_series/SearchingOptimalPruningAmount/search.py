@@ -198,19 +198,66 @@ def main() -> None:  # sourcery skip: low-code-quality
         print("Falling back to simpler initialization")
         # Fallback to a simpler initialization if the advanced one fails
         es = cma.CMAEvolutionStrategy(
-            [0.25],
-            0.1,
-            {'bounds': [0.0, 0.8], 'verbose': 1}
+            [0.03],
+            0.2,  # Increased step size for more aggressive exploration
+            {'bounds': [0.0, 0.8], 'verbose': 1}  # More conservative upper bound
         )
 
     best_reward: float = float('-inf')
     best_pruning_amount: float = None
     history = {'pruning': [], 'rewards': [], 'accuracy': []}
-
+    
+    # Initialize known good regions to explore more deeply
+    promising_regions = []
+    stagnation_counter = 0
+    prev_best_reward = float('-inf')
+    
+    # For early exploration of fixed points
+    initial_points = [0.01, 0.05, 0.1, 0.15, 0.2, 0.3]
+    print("\n===== Initial Exploration =====")
+    for point in initial_points:
+        print(f"Evaluating initial point: {point:.4f}")
+        reward = get_Reward(point, ranks, rewardfn, rank_type=rank_type)
+        
+        history['pruning'].append(point)
+        history['rewards'].append(reward)
+        
+        if reward > best_reward:
+            best_reward = reward
+            best_pruning_amount = point
+            print(f"New best pruning amount: {best_pruning_amount:.4f} (reward: {best_reward:.2f})")
+            
+            # If we find a good region, mark it for fine-grained search later
+            promising_regions.append((max(0.0, point - 0.1), min(0.8, point + 0.1)))
+    
     _clear_memory()
     iteration = 1
+    max_iterations = 15  # Cap on iterations to prevent wasting time on unproductive search
 
-    while not es.stop():
+    # Helper function for focused search in promising regions
+    def explore_region(center, width=0.1, steps=5):
+        nonlocal best_reward, best_pruning_amount
+        print(f"Exploring promising region around {center:.4f}...")
+        
+        min_bound = max(0.0, center - width/2)
+        max_bound = min(0.8, center + width/2)
+        
+        for step in range(steps):
+            point = min_bound + (max_bound - min_bound) * step / (steps-1)
+            print(f"  Trying fine-grained point: {point:.4f}")
+            reward = get_Reward(point, ranks, rewardfn, rank_type=rank_type)
+            
+            history['pruning'].append(point)
+            history['rewards'].append(reward)
+            
+            if reward > best_reward:
+                best_reward = reward
+                best_pruning_amount = point
+                print(f"New best pruning amount: {best_pruning_amount:.4f} (reward: {best_reward:.2f})")
+        
+        _clear_memory()
+
+    while not es.stop() and iteration <= max_iterations:
         print(f"\n===== Iteration {iteration} =====")
         try:
             solutions = es.ask()
@@ -230,6 +277,13 @@ def main() -> None:  # sourcery skip: low-code-quality
                     best_reward = reward
                     best_pruning_amount = pruning_amount
                     print(f"New best pruning amount: {best_pruning_amount:.4f} (reward: {best_reward:.2f})")
+                    
+                    # If we find a significantly better solution, explore around it immediately
+                    if reward > prev_best_reward + 5:  # Only if significant improvement
+                        explore_region(pruning_amount, width=0.08, steps=3)
+                    
+                    # Mark this region for further exploration
+                    promising_regions.append((max(0.0, pruning_amount - 0.1), min(0.8, pruning_amount + 0.1)))
 
                 # Store history
                 history['pruning'].append(pruning_amount)
@@ -244,6 +298,37 @@ def main() -> None:  # sourcery skip: low-code-quality
 
             try:
                 es.tell(solutions, rewards)
+                
+                # Check for stagnation
+                if abs(prev_best_reward - best_reward) < 1e-3:
+                    stagnation_counter += 1
+                else:
+                    stagnation_counter = 0
+                
+                prev_best_reward = best_reward
+                
+                # If stagnating, either explore promising regions or restart with new parameters
+                if stagnation_counter >= 2:
+                    print("Search stagnating, trying alternative approaches...")
+                    
+                    # First, explore any promising regions we've found
+                    if promising_regions:
+                        region = promising_regions.pop(0)
+                        center = (region[0] + region[1]) / 2
+                        width = region[1] - region[0]
+                        explore_region(center, width, steps=5)
+                        stagnation_counter = 0  # Reset counter after exploration
+                    else:
+                        # If no promising regions or already explored, restart with larger step size
+                        print("Restarting search with more aggressive parameters...")
+                        if best_pruning_amount is not None:
+                            es = cma.CMAEvolutionStrategy(
+                                [best_pruning_amount],  # Start from best known
+                                0.15,  # Large step size
+                                {'bounds': [0.0, 0.8], 'verbose': 1}
+                            )
+                        stagnation_counter = 0
+                
             except ValueError as e:
                 print(f"Error in CMA-ES tell method: {e}")
                 print("Trying an alternative approach...")
@@ -308,6 +393,11 @@ def main() -> None:  # sourcery skip: low-code-quality
     plt.ylabel('Reward')
     plt.title('Pruning Amount vs Reward')
     plt.tight_layout()
+    # show best pruning amount and reward
+    plt.axvline(x=best_pruning_amount, color='r', linestyle='--', label=f'Best Pruning Amount: {best_pruning_amount:.4f}')
+    plt.axhline(y=best_reward, color='g', linestyle='--', label=f'Best Reward: {best_reward:.2f}')
+    plt.legend()
+    plt.grid()
     plt.savefig(f'pruning_search_results_{timestamp}.png')
     plt.close()
     
