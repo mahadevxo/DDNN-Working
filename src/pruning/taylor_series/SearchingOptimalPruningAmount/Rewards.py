@@ -10,42 +10,54 @@ class Reward:
         print(f"Reward initialized with min_acc: {self.min_acc}, min_size: {self.min_size}, x: {self.x}, y: {self.y}, z: {self.z}")
         
     def _get_accuracy_reward(self, accuracy_new):
-        # Increase the margin around min_acc to be considered "at threshold"
+        # More aggressive accuracy reward with steeper penalties and rewards
         threshold_margin = 1.0  # Use a 1% margin
         
         if abs(accuracy_new - self.min_acc) <= threshold_margin:
             # Reward for being close to the minimum accuracy
             # Higher reward when closer to the exact threshold
             closeness = 1.0 - (abs(accuracy_new - self.min_acc) / threshold_margin)
-            return 500.0 * (0.5 + 0.5 * closeness)
+            return 800.0 * (0.5 + 0.5 * closeness)  # Increased base reward
         elif accuracy_new > (self.min_acc + threshold_margin):
             # Smaller reward for exceeding minimum by too much (we want to maximize pruning)
-            return 250.0 + (accuracy_new - self.min_acc - threshold_margin) * 50
+            excess = accuracy_new - self.min_acc - threshold_margin
+            # Non-linear reward for excess accuracy
+            return 400.0 + (excess * 25) * (1.0 + excess/10.0)
         else:
-            # Severe penalty for being below minimum accuracy
-            return (self.min_acc - accuracy_new) * -1000.0
+            # More severe penalty for being below minimum accuracy - exponential penalty
+            shortfall = self.min_acc - accuracy_new
+            return -1500.0 * (1.0 + shortfall * 0.5) ** 2
 
     def _get_model_size_reward(self, model_size_new, param_reduction=None):
-        # If param_reduction is provided, use it for a more accurate assessment
+        # More aggressive reward for parameter reduction
         if param_reduction is not None:
-            # Scaled reward based on percentage of parameters reduced
-            reduction_reward = param_reduction * 10  # Each percent reduction = 10 points
-            return min(reduction_reward, 800)  # Cap at 800 points (80% reduction)
-
-        # Fall back to the previous approach if param_reduction not provided
+            # Exponential reward based on percentage of parameters reduced
+            # Strongly favor higher pruning rates
+            reduction_reward = 15.0 * (param_reduction ** 1.5)  # Non-linear scaling
+            return min(reduction_reward, 1200)  # Higher cap
+        
+        # Fall back to the previous approach with more aggressive scaling
         delta_model_size = model_size_new - self.min_size
         if delta_model_size >= 0:
-            # Penalty for exceeding target size
-            return -300 * delta_model_size
-        # Reward for smaller models
+            # Steeper penalty for exceeding target size
+            return -500 * delta_model_size * (1.0 + delta_model_size/10.0)
+        
+        # More aggressive reward for smaller models
         reduction_factor = abs(delta_model_size) / self.min_size
-        return 400 * min(reduction_factor * 2, 1.0) + 200
+        # Exponential reward for high reduction
+        return 600 * min(reduction_factor ** 1.3 * 2, 1.5) + 300
 
     def _get_comp_time_reward(self, comp_time_new, comp_time_last):
-        # Calculate relative change rather than absolute
+        # More aggressive reward for computation time improvements
         if comp_time_last > 0:
             relative_change = (comp_time_last - comp_time_new) / comp_time_last
-            return 200 * relative_change  # positive for speedups, negative for slowdowns
+            
+            if relative_change > 0:  # Speedup
+                # Reward speedups more aggressively
+                return 350 * (relative_change ** 1.2)  # Non-linear reward for speedups
+            else:  # Slowdown
+                # Penalize slowdowns more severely
+                return 250 * relative_change  # Linear penalty for slowdowns
         return 0
 
     def getReward(self, accuracy, model_size, comp_time, comp_time_last, param_reduction=None):
@@ -59,5 +71,13 @@ class Reward:
         # For debugging
         print(f"Rewards - Accuracy: {accuracy_reward:.2f}, Size/Param: {model_size_reward:.2f}, Time: {comp_time_reward:.2f}")
         
-        reward = (self.x*accuracy_reward) + (self.y*model_size_reward) + (self.z*comp_time_reward)
+        # Apply a scaling factor to amplify differences in total reward
+        raw_reward = (self.x*accuracy_reward) + (self.y*model_size_reward) + (self.z*comp_time_reward)
+        
+        # Apply sigmoid-like scaling to maintain values in reasonable range while amplifying differences
+        if raw_reward > 0:
+            reward = raw_reward * (1.0 + min(raw_reward/500.0, 1.0))
+        else:
+            reward = raw_reward * (1.0 + min(abs(raw_reward)/500.0, 1.0))
+            
         return reward, comp_time

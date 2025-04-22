@@ -88,7 +88,7 @@ def get_Reward(pruning_amount: float, ranks: tuple, rewardfn: Reward, rank_type=
     # Skip extreme pruning amounts that are likely to fail
     if pruning_amount > 0.85:
         print(f"Skipping excessive pruning amount: {pruning_amount}")
-        return -1000  # Return a highly negative reward
+        return -10000  # Return a highly negative reward
     
     # Create pruned model with adapter and specified rank type
     base_model = get_model()
@@ -143,7 +143,7 @@ def get_Reward(pruning_amount: float, ranks: tuple, rewardfn: Reward, rank_type=
 def main() -> None:  # sourcery skip: low-code-quality
     # Use fewer iterations and smarter exploration
     min_acc: float = 50.0
-    min_size: float = 25.0
+    min_size: float = 30.0
     x: float = 0.7  # Higher weight on accuracy
     y: float = 0.0
     z: float = 0.3
