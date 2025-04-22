@@ -42,14 +42,13 @@ def get_model() -> torch.nn.Module:
     """Cache the model to avoid repeated loading from disk"""
     global device, _cached_model
     return (
-        _extracted_from_get_model_5(device)
+        load_model(device)
         if '_cached_model' not in globals()
         else copy.deepcopy(_cached_model)
     )
 
 
-# TODO Rename this here and in `get_model`
-def _extracted_from_get_model_5(device):
+def load_model(device):
     print("Loading model from disk...")
     result: torch.nn.Module = MVCNN.SVCNN('SVCNN')
     weights: dict = torch.load('./model-00030.pth', map_location=device)
@@ -60,8 +59,12 @@ def _extracted_from_get_model_5(device):
     _clear_memory()
     return result
 
-def get_Reward(pruning_amount: float, min_acc: float, ranks: tuple, rewardfn: Reward, rank_type='taylor') -> tuple:
+def get_Reward(pruning_amount: float, ranks: tuple, rewardfn: Reward, rank_type='taylor', min_acc=None) -> tuple:
     global device
+    
+    # If min_acc is not provided, use a default value
+    if min_acc is None:
+        min_acc = 50.0
     
     # Only compute the original size once - focusing on net_1
     if not hasattr(get_Reward, 'original_size'):
@@ -132,7 +135,9 @@ def get_Reward(pruning_amount: float, min_acc: float, ranks: tuple, rewardfn: Re
         comp_time_last = time
     
     # Adjust reward calculation to better account for parameter reduction
-    reward, comp_time = rewardfn.getReward(accuracy=accuracy, comp_time=time, model_size=model_size, comp_time_last=comp_time_last, param_reduction=param_reduction)
+    reward, comp_time = rewardfn.getReward(accuracy=accuracy, comp_time=time, 
+                                           model_size=model_size, comp_time_last=comp_time_last, 
+                                           param_reduction=param_reduction)
     comp_time_last = comp_time
     
     # Add aggressive bonus for high pruning rates with good accuracy
@@ -189,10 +194,10 @@ def main() -> None:  # sourcery skip: low-code-quality
     # More aggressive CMA-ES parameters
     try:
         es: cma.EvolutionStrategy = cma.CMAEvolutionStrategy(
-            [0.35],  # Start with higher pruning rate
+            [0.05],  # Start with higher pruning rate
             0.25,    # Much larger step size for aggressive exploration
             {
-                'bounds': [0.05, 0.85],  # Allow more extreme pruning (excluding 0)
+                'bounds': [0.0005, 0.85],  # Allow more extreme pruning (excluding 0)
                 'maxiter': 12,           # Slightly more iterations to find optimum
                 'tolx': 1e-2,            # Tighter convergence for precision
                 'popsize': 6,            # Larger population for better exploration
@@ -204,7 +209,7 @@ def main() -> None:  # sourcery skip: low-code-quality
         print("Falling back to simpler initialization")
         # Fallback to a simpler but still aggressive initialization
         es = cma.CMAEvolutionStrategy(
-            [0.35],
+            [0.05],
             0.25,  
             {'bounds': [0.05, 0.85], 'verbose': 1}
         )
