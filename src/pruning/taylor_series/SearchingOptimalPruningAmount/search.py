@@ -60,7 +60,7 @@ def _extracted_from_get_model_5(device):
     _clear_memory()
     return result
 
-def get_Reward(pruning_amount: float, ranks: tuple, rewardfn: Reward, rank_type='taylor') -> tuple:
+def get_Reward(pruning_amount: float, min_acc: float, ranks: tuple, rewardfn: Reward, rank_type='taylor') -> tuple:
     global device
     
     # Only compute the original size once - focusing on net_1
@@ -135,6 +135,12 @@ def get_Reward(pruning_amount: float, ranks: tuple, rewardfn: Reward, rank_type=
     reward, comp_time = rewardfn.getReward(accuracy=accuracy, comp_time=time, model_size=model_size, comp_time_last=comp_time_last, param_reduction=param_reduction)
     comp_time_last = comp_time
     
+    # Add aggressive bonus for high pruning rates with good accuracy
+    if accuracy >= min_acc and pruning_amount >= 0.4:
+        bonus = pruning_amount * 200  # More aggressive bonus for high pruning rates
+        reward += bonus
+        print(f"Added high pruning bonus: +{bonus:.2f}")
+    
     print(f"Reward: {reward}")
     print('-'*20)
     
@@ -144,8 +150,8 @@ def main() -> None:  # sourcery skip: low-code-quality
     # Use fewer iterations and smarter exploration
     min_acc: float = 50.0
     min_size: float = 30.0
-    x: float = 0.7  # Higher weight on accuracy
-    y: float = 0.0
+    x: float = 0.6  # Slightly lower weight on accuracy to encourage more pruning
+    y: float = 0.1  # Add some weight to size
     z: float = 0.3
 
     # Choose ranking method
@@ -180,44 +186,86 @@ def main() -> None:  # sourcery skip: low-code-quality
     print(f"Length of ranks: {len(ranks)}")
     print('-'*20)
 
-    # More efficient CMA-ES parameters
+    # More aggressive CMA-ES parameters
     try:
         es: cma.EvolutionStrategy = cma.CMAEvolutionStrategy(
-            [0.25],  # Start with 25% pruning as initial guess
-            0.1,     # Increased initial step size for better exploration
+            [0.35],  # Start with higher pruning rate
+            0.25,    # Much larger step size for aggressive exploration
             {
-                'bounds': [0.0, 0.8],  # Limit maximum pruning to 80%
-                'maxiter': 10,         # Reduce max iterations
-                'tolx': 2e-2,          # More relaxed convergence criteria
-                'popsize': 4,          # Smaller population
-                'verbose': 1,          # Reduce verbosity
+                'bounds': [0.05, 0.85],  # Allow more extreme pruning (excluding 0)
+                'maxiter': 12,           # Slightly more iterations to find optimum
+                'tolx': 1e-2,            # Tighter convergence for precision
+                'popsize': 6,            # Larger population for better exploration
+                'verbose': 1,            # Reduce verbosity
             }
         )
     except Exception as e:
         print(f"Error initializing CMA-ES: {e}")
         print("Falling back to simpler initialization")
-        # Fallback to a simpler initialization if the advanced one fails
+        # Fallback to a simpler but still aggressive initialization
         es = cma.CMAEvolutionStrategy(
-            [0.03],
-            0.2,  # Increased step size for more aggressive exploration
-            {'bounds': [0.0, 0.8], 'verbose': 1}  # More conservative upper bound
+            [0.35],
+            0.25,  
+            {'bounds': [0.05, 0.85], 'verbose': 1}
         )
 
     best_reward: float = float('-inf')
     best_pruning_amount: float = None
     history = {'pruning': [], 'rewards': [], 'accuracy': []}
     
-    # Initialize known good regions to explore more deeply
+    # Track multiple promising regions with their rewards for better search
     promising_regions = []
     stagnation_counter = 0
     prev_best_reward = float('-inf')
     
-    # For early exploration of fixed points
-    initial_points = [0.01, 0.05, 0.1, 0.15, 0.2, 0.3]
-    print("\n===== Initial Exploration =====")
+    # First perform aggressive binary search across the entire range
+    print("\n===== Binary Search Exploration =====")
+    binary_search_points = [0.1, 0.25, 0.4, 0.55, 0.7]
+    binary_rewards = []
+    
+    for point in binary_search_points:
+        print(f"Binary search point: {point:.4f}")
+        reward = get_Reward(point, ranks, rewardfn, rank_type=rank_type, min_acc=min_acc)
+        binary_rewards.append((point, reward))
+        
+        history['pruning'].append(point)
+        history['rewards'].append(reward)
+        
+        if reward > best_reward:
+            best_reward = reward
+            best_pruning_amount = point
+            print(f"New best pruning amount: {best_pruning_amount:.4f} (reward: {best_reward:.2f})")
+    
+    # Sort by reward and select top regions for further exploration
+    binary_rewards.sort(key=lambda x: x[1], reverse=True)
+    
+    # Add more focused exploration points around the best regions
+    for i, (point, reward) in enumerate(binary_rewards[:2]):  # Focus on top 2 regions
+        width = 0.15  # Wider exploration around promising points
+        min_bound = max(0.05, point - width/2)
+        max_bound = min(0.85, point + width/2)
+        
+        # Explore each promising region with denser sampling
+        for offset in [-0.07, -0.03, 0.03, 0.07]:
+            new_point = point + offset
+            if min_bound <= new_point <= max_bound:
+                promising_regions.append((max(0.05, new_point - 0.05), 
+                                         min(0.85, new_point + 0.05)))
+    
+    # For early exploration of fixed points with adaptive density
+    if best_pruning_amount is not None:
+        # Create denser exploration around the current best point
+        best_region_min = max(0.05, best_pruning_amount - 0.12)
+        best_region_max = min(0.85, best_pruning_amount + 0.12)
+        initial_points = np.linspace(best_region_min, best_region_max, 5)
+    else:
+        # If no good point found, explore the full range with bias toward likely regions
+        initial_points = [0.05, 0.15, 0.25, 0.35, 0.45, 0.6, 0.7]
+    
+    print("\n===== Initial Targeted Exploration =====")
     for point in initial_points:
         print(f"Evaluating initial point: {point:.4f}")
-        reward = get_Reward(point, ranks, rewardfn, rank_type=rank_type)
+        reward = get_Reward(point, ranks, rewardfn, rank_type=rank_type, min_acc=min_acc)
         
         history['pruning'].append(point)
         history['rewards'].append(reward)
@@ -227,35 +275,51 @@ def main() -> None:  # sourcery skip: low-code-quality
             best_pruning_amount = point
             print(f"New best pruning amount: {best_pruning_amount:.4f} (reward: {best_reward:.2f})")
             
-            # If we find a good region, mark it for fine-grained search later
-            promising_regions.append((max(0.0, point - 0.1), min(0.8, point + 0.1)))
+            # Mark smaller region around good points for fine-grained search
+            promising_regions.append((max(0.05, point - 0.05), min(0.85, point + 0.05)))
     
     _clear_memory()
     iteration = 1
     max_iterations = 15  # Cap on iterations to prevent wasting time on unproductive search
+    improvement_threshold = 5.0  # Threshold for considering a significant improvement
 
-    # Helper function for focused search in promising regions
-    def explore_region(center, width=0.1, steps=5):
+    # More aggressive exploration of promising regions
+    def explore_region(center, width=0.1, steps=7):  # More steps for finer search
         nonlocal best_reward, best_pruning_amount
         print(f"Exploring promising region around {center:.4f}...")
         
-        min_bound = max(0.0, center - width/2)
-        max_bound = min(0.8, center + width/2)
+        min_bound = max(0.05, center - width/2)
+        max_bound = min(0.85, center + width/2)
         
-        for step in range(steps):
-            point = min_bound + (max_bound - min_bound) * step / (steps-1)
-            print(f"  Trying fine-grained point: {point:.4f}")
-            reward = get_Reward(point, ranks, rewardfn, rank_type=rank_type)
-            
-            history['pruning'].append(point)
-            history['rewards'].append(reward)
-            
-            if reward > best_reward:
-                best_reward = reward
-                best_pruning_amount = point
-                print(f"New best pruning amount: {best_pruning_amount:.4f} (reward: {best_reward:.2f})")
+        # Use non-uniform sampling with more points near center
+        points = []
+        points.append(center)  # Always include the center
+        
+        # Add points with higher density near the center
+        for step in range(1, (steps//2) + 1):
+            offset = width * step/(steps-1) * 0.8  # 0.8 factor to concentrate points
+            points.append(center - offset)
+            points.append(center + offset)
+        
+        for point in sorted(points):
+            if min_bound <= point <= max_bound:
+                print(f"  Trying fine-grained point: {point:.4f}")
+                reward = get_Reward(point, ranks, rewardfn, rank_type=rank_type, min_acc=min_acc)
+                
+                history['pruning'].append(point)
+                history['rewards'].append(reward)
+                
+                if reward > best_reward:
+                    best_reward = reward
+                    best_pruning_amount = point
+                    print(f"New best pruning amount: {best_pruning_amount:.4f} (reward: {best_reward:.2f})")
+                    
+                    # For very good points, search even more aggressively around them
+                    if reward > prev_best_reward + improvement_threshold:
+                        return True  # Signal that we found a significantly better point
         
         _clear_memory()
+        return False
 
     while not es.stop() and iteration <= max_iterations:
         print(f"\n===== Iteration {iteration} =====")
@@ -269,7 +333,7 @@ def main() -> None:  # sourcery skip: low-code-quality
                 print(f"Evaluating pruning amount: {pruning_amount:.4f}")
 
                 # Get reward includes validation - pass the rank_type
-                reward = get_Reward(pruning_amount, ranks, rewardfn, rank_type=rank_type)
+                reward = get_Reward(pruning_amount, ranks, rewardfn, rank_type=rank_type, min_acc=min_acc)
                 rewards.append(-reward)  # CMA-ES minimizes, so we negate
 
                 # Track the best solution found
@@ -341,7 +405,7 @@ def main() -> None:  # sourcery skip: low-code-quality
 
                     for amount in grid_pruning_amounts:
                         print(f"Grid search - evaluating pruning amount: {amount:.2f}")
-                        reward = get_Reward(amount, ranks, rewardfn, rank_type=rank_type)
+                        reward = get_Reward(amount, ranks, rewardfn, rank_type=rank_type, min_acc=min_acc)
                         grid_rewards.append(reward)
 
                         if reward > best_reward:
