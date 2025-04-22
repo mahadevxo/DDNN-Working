@@ -458,8 +458,8 @@ def fine_tune(model: torch.nn.Module, rank_filter: bool=False, quick_mode: bool=
     best_accuracy = val_acc
     
     # In quick mode, do fewer epochs for faster evaluation
-    max_epochs = 2 if quick_mode else 5
-    early_stop_threshold = 1.0 if quick_mode else 2.0
+    max_epochs = 5 if quick_mode else 10
+    early_stop_threshold = 3.0 if quick_mode else 6.0
     
     while True:
         print(f"--------Epoch {epoch+1}--------")
