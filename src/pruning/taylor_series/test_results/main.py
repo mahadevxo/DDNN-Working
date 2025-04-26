@@ -325,6 +325,8 @@ class Testing:
     def run(self):
         print("Starting testing...")
         pruning_amounts =  np.arange(0.0, 1.0, 0.005)
+        #randomize it
+        np.random.shuffle(pruning_amounts)
         # 0% to 100%, 1% increments
         print(f"Total Pruning amounts: {len(pruning_amounts)}")
         
