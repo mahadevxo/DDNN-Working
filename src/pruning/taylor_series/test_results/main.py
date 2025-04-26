@@ -165,10 +165,13 @@ class Testing:
                 running_loss += loss.item()
                 
                 aaaaah = torch.max(outputs, 1)
-                print(aaaaah)
+                print(len(aaaaah))
                 predicted = aaaaah[1]
                 running_accc += (predicted == labels).sum().item()
                 total_steps += len(labels)
+                if batch_idx % 10 == 0:
+                    print(f"Batch {batch_idx}, Loss: {running_loss / total_steps}, Accuracy: {running_accc / total_steps}")
+                    self._clear_memory()
 
         print(f"Training loss: {running_loss / total_steps}, Training accuracy: {running_accc / total_steps}")
         self._clear_memory()
