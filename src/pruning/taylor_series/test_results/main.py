@@ -292,8 +292,8 @@ class Testing:
         pruner.reset()
         self.train_model(pruner.model, rank_filter=True, pruner=pruner)
         total_filters = self.get_total_filters()
-        pruner.normalize_ranks_per_layer(total_filters)
-        ranks = pruner.get_pruning_plan()
+        pruner.normalize_ranks_per_layer()
+        ranks = pruner.get_pruning_plan(total_filters)
         print(f"Length of Ranks: {len(ranks)}")
         del pruner
         self._clear_memory()
