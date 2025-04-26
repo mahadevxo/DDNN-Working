@@ -267,7 +267,7 @@ class Testing:
             prune_targets = ranks
             # take only x amount of filters to prune
             prune_targets = prune_targets[:filters_to_prune]
-            prune_targets = [(layer_index, filter_index) for layer_index, filter_index, _ in prune_targets]
+            # prune_targets = [(layer_index, filter_index) for layer_index, filter_index, _ in prune_targets]
         else:
             prune_targets = self.get_candidates_to_prune(filters_to_prune)
         layers_pruned = {}
