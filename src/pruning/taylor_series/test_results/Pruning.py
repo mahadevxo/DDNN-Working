@@ -21,7 +21,7 @@ class Pruning:
     def _get_next_conv(self, model, layer_index):
         next_conv = None
         offset = 1
-        modules = list(model.features)
+        modules = list(model.net_1)
         while (layer_index + offset) < len(modules):
             candidate = modules[layer_index + offset]
             if isinstance(candidate, torch.nn.Conv2d):
@@ -32,7 +32,7 @@ class Pruning:
     
     def _get_next_conv_offset(self, model, layer_index):
         offset = 1
-        modules = list(model.features)
+        modules = list(model.net_1)
         while (layer_index + offset) < len(modules):
             candidate = modules[layer_index + offset]
             if isinstance(candidate, torch.nn.Conv2d):
@@ -83,29 +83,29 @@ class Pruning:
     def _prune_last_conv_layer(self, model, conv, new_conv, layer_index, filter_index):
         """Prune the last convolutional layer and update the first fully connected layer"""
         # Replace conv layer in model
-        modules = list(model.features)
+        modules = list(model.net_1)
         modules[layer_index] = new_conv
-        model.features = torch.nn.Sequential(*modules)
+        model.net_1 = torch.nn.Sequential(*modules)
         
         # Find the first fully connected layer
         layer_index = 0
         old_linear_layer = None
-        for _, module in model.classifier._modules.items():
+        for _, module in model.net_2._modules.items():
             if isinstance(module, torch.nn.Linear):
                 old_linear_layer = module
                 break
             layer_index += 1
         
         if old_linear_layer is None:
-            raise ValueError(f"No linear layer found in classifier, Model: {model}")
+            raise ValueError(f"No linear layer found in net_2, Model: {model}")
         
         # Calculate parameters per input channel
-        params_per_input_channel = old_linear_layer.in_features // conv.out_channels
+        params_per_input_channel = old_linear_layer.in_net_1 // conv.out_channels
         
         # Create new linear layer
         new_linear_layer = torch.nn.Linear(
-            old_linear_layer.in_features - params_per_input_channel,
-            old_linear_layer.out_features
+            old_linear_layer.in_net_1 - params_per_input_channel,
+            old_linear_layer.out_net_1
         )
         
         old_weights = old_linear_layer.weight.data.cpu().numpy()
@@ -119,15 +119,15 @@ class Pruning:
         new_linear_layer.weight.data = torch.from_numpy(new_weights).to(self.device)
         new_linear_layer.bias.data = old_linear_layer.bias.data.to(self.device)
         
-        model.classifier = torch.nn.Sequential(
-            *(self._replace_layers(model.classifier, i, [layer_index], \
-                [new_linear_layer]) for i, _ in enumerate(model.classifier)))
+        model.net_2 = torch.nn.Sequential(
+            *(self._replace_layers(model.net_2, i, [layer_index], \
+                [new_linear_layer]) for i, _ in enumerate(model.net_2)))
         
         self._clear_memory()
         return model
     
     def prune_vgg_conv_layer(self, model, layer_index, filter_index):
-        _, conv = list(model.features._modules.items())[layer_index]
+        _, conv = list(model.net_1._modules.items())[layer_index]
         next_conv = self._get_next_conv(model, layer_index)
         new_conv = self._create_new_conv(conv)
 
@@ -138,13 +138,13 @@ class Pruning:
             next_new_conv = self._create_new_conv(next_conv, in_channels=next_conv.in_channels - 1, out_channels=next_conv.out_channels)
             self._prune_next_conv_layer(next_conv, next_new_conv, filter_index)
             # Replace specific layers in the Sequential rather than building tuples
-            modules = list(model.features)
+            modules = list(model.net_1)
             modules[layer_index] = new_conv
             offset = self._get_next_conv_offset(model, layer_index)
             modules[layer_index + offset] = next_new_conv
-            model.features = torch.nn.Sequential(*modules)
+            model.net_1 = torch.nn.Sequential(*modules)
         else:
-            # Use _prune_last_conv_layer to update classifier layers for the last conv layer
+            # Use _prune_last_conv_layer to update net_2 layers for the last conv layer
             model = self._prune_last_conv_layer(model, conv, new_conv, layer_index, filter_index)
         self._clear_memory()
         return model

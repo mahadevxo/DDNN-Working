@@ -156,7 +156,7 @@ class PruningFineTuner:
     def total_num_filters(self):
         return sum(
             layer.out_channels
-            for layer in self.model.features
+            for layer in self.model.net_1
             if isinstance(layer, torch.nn.modules.conv.Conv2d)
         )
     
@@ -171,7 +171,7 @@ class PruningFineTuner:
         self.model.train()
         
         # Enable gradients for pruning
-        for param in self.model.features.parameters():
+        for param in self.model.net_1.parameters():
             param.requires_grad = True
             
         original_filters = self.total_num_filters()
