@@ -60,7 +60,7 @@ class Testing:
             new_filepaths.extend(dataset.filepaths[start:end])
 
         dataset.filepaths = new_filepaths
-        classes_present = set()
+        classes_present = {}
         if train_dataset:
             for file_path in dataset.filepaths:
                 class_name = file_path.split('/')[3]
@@ -69,6 +69,7 @@ class Testing:
 
         if len(classes_present) < 33:
             print(f"Classes not enough: {len(classes_present)}")
+            print(classes_present)
             return False
         else:
             print(f"Classes enough: {len(classes_present)}")
@@ -310,7 +311,7 @@ class Testing:
         print("Starting testing...")
         pruning_amounts =  np.arange(0.0, 1.0, 0.005)
         # 0% to 100%, 1% increments
-        print(f"Pruning amounts: {pruning_amounts}")
+        print(f"Total Pruning amounts: {len(pruning_amounts)}")
         
         ranks = self.get_ranks(self.get_model())
         
