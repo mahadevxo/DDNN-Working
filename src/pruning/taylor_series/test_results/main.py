@@ -47,12 +47,12 @@ class Testing:
             )
         total_models = len(dataset.filepaths) // 12
         
-        if test_dataset:
-            print(f"Total models in test dataset: {total_models}")
-        if comp_time_dataset:
-            print(f"Total models in comp time dataset: {total_models}")
-        if train_dataset:
-            print(f"Total models in train dataset: {total_models}")
+        # if test_dataset:
+        #     print(f"Total models in test dataset: {total_models}")
+        # if comp_time_dataset:
+        #     print(f"Total models in comp time dataset: {total_models}")
+        # if train_dataset:
+        #     print(f"Total models in train dataset: {total_models}")
 
         subset_size = 0.2 if train_dataset else 1.0 if test_dataset else 0.01 if comp_time_dataset else None
         
@@ -80,12 +80,9 @@ class Testing:
         
         classes_present = set(classes_present)
         
-        if train_dataset:
-            if len(classes_present) < 33:
-                print(f"Classes not enough: {len(classes_present)}")
-                return False
-            else:
-                print(f"Classes enough: {len(classes_present)}")
+        if train_dataset and len(classes_present) < 33:
+            print(f"Classes not enough: {len(classes_present)}")
+            return False
 
         self._clear_memory()
 
@@ -134,7 +131,7 @@ class Testing:
             raise RuntimeError("Dataset not enough, cannot validate model")
         
         model = model.to('cpu')
-        print("Model moved to CPU for inference time calculation")
+        # print("Model moved to CPU for inference time calculation")
         model.eval()
         total_time = float(0)
         for data in dataset:
@@ -146,7 +143,7 @@ class Testing:
             total_time += (t2 - t1)
 
         total_time /= len(dataset)
-        print(f"Average inference time: {total_time} seconds")
+        # print(f"Average inference time: {total_time} seconds")
         self._clear_memory()
         return total_time
 
@@ -192,15 +189,15 @@ class Testing:
                 running_acc += (predicted == labels).sum().item()
                 total_steps += len(labels)
                 if batch_idx % 100 == 0:
-                    print(f"Batch {batch_idx}, Loss: {running_loss / total_steps}, Accuracy: {(running_acc*100) / total_steps}")
+                    # print(f"Batch {batch_idx}, Loss: {running_loss / total_steps}, Accuracy: {(running_acc*100) / total_steps}")
                     self._clear_memory()
 
-        print(f"Training loss: {running_loss / total_steps}, Training accuracy: {(100*running_acc) / total_steps}")
+        # print(f"Training loss: {running_loss / total_steps}, Training accuracy: {(100*running_acc) / total_steps}")
         self._clear_memory()
         return model
     
     def fine_tune(self, model):
-        print("Fine-tuning model...")
+        print('*' * 25, "Fine-tuning model", '*' * 25)
         model = model.to(self.device)
         
         epoch = 0
@@ -263,8 +260,8 @@ class Testing:
         total_filters = self.get_total_filters()
         filters_to_prune = int(total_filters * pruning_amount)
         
-        print(f"Total filters: {total_filters}, Filters to prune: {filters_to_prune}")
-        print(f"Pruning {pruning_amount*100}% of filters")
+        # print(f"Total filters: {total_filters}, Filters to prune: {filters_to_prune}")
+        # print(f"Pruning {pruning_amount*100}% of filters")
         
         if len(ranks) > 0:
             prune_targets = ranks
@@ -276,9 +273,9 @@ class Testing:
         layers_pruned = {}
         for layer_index, filter_index in prune_targets:
             layers_pruned[layer_index] = layers_pruned.get(layer_index, 0) + 1
-        print(f"Layers pruned: {layers_pruned}")
+        # print(f"Layers pruned: {layers_pruned}")
         
-        print("Pruning Filters")
+        print('*' * 10, "Pruning Filters", '*' * 10)
         
         model = self.get_model()
         pruner = FilterPruner(model)
@@ -287,7 +284,6 @@ class Testing:
             model = pruner.prune_vgg_conv_layer(model, layer_index, filter_index)
             
             if idx % 10 == 0:
-                print(f"Pruned {idx} filters")
                 self._clear_memory()
         
         for layer in model.modules():
@@ -337,6 +333,8 @@ class Testing:
         self._init_csv(filename)
         
         for pruning_amount in pruning_amounts:
+            print(f'*' * 25, "Pruning Amount: {pruning_amount}", '*' * 25)
+            
             model = self.prune(pruning_amount, ranks)
             
             model_size = self.get_model_size(model)
