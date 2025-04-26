@@ -7,6 +7,9 @@ import torch
 from FilterPruner import FilterPruner
 from Pruning import Pruning
 
+#TODO find why VGG11 and SVCNN are acting differently
+#TODO add a way to get the model size
+#TODO fix the pruning amount accuracy etc code
 class Testing:
     def __init__(self):
         self.device = 'mps' if torch.backends.mps.is_available() else 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -367,10 +370,11 @@ class Testing:
         return total_size / (1024 ** 2)
     
     def prune(self, pruning_amount, ranks) -> torch.nn.Module:
+        # sourcery skip: low-code-quality
         total_filters = self.get_total_filters()
         filters_to_prune = int(total_filters * pruning_amount)
         model_size_before = self.get_model_size(self.get_model())
-        
+
         print(f"Total filters: {total_filters}, Filters to prune: {filters_to_prune} ({pruning_amount*100:.1f}%)")
 
         if len(ranks) > 0:
@@ -380,7 +384,7 @@ class Testing:
 
         print('*' * 10, "Pruning Filters", '*' * 10)
         model = self.get_model()
-        
+
         # Create mapping of conv layers to their indices in module list
         conv_layer_mapping = {}
         for i, layer in enumerate(model.net_1):
@@ -389,16 +393,16 @@ class Testing:
                 # Filter pruner and conv layer indices might be different
                 idx = len(conv_layer_mapping)
                 conv_layer_mapping[idx] = i
-        
+
         print(f"Conv layer mapping: {conv_layer_mapping}")
-        
+
         # Track channel counts before pruning
         channels_per_layer = {}
         for i in conv_layer_mapping.values():
             layer = model.net_1[i]
             if isinstance(layer, torch.nn.Conv2d):
                 channels_per_layer[i] = layer.out_channels
-        
+
         # Filter pruning targets to avoid pruning layers with only 1 channel
         filtered_prune_targets = []
         for filter_index_from_rank, filter_num in prune_targets:
@@ -406,13 +410,13 @@ class Testing:
             if filter_index_from_rank not in conv_layer_mapping:
                 print(f"Filter index {filter_index_from_rank} not found in mapping, skipping")
                 continue
-            
+
             actual_layer_index = conv_layer_mapping[filter_index_from_rank]
-            
+
             if actual_layer_index not in channels_per_layer:
                 print(f"Layer {actual_layer_index} not found in channels count")
                 continue
-                
+
             if channels_per_layer[actual_layer_index] <= 1:
                 print(f"Layer {actual_layer_index} has only 1 channel, skipping pruning")
                 continue
@@ -421,40 +425,40 @@ class Testing:
             filtered_prune_targets.append((actual_layer_index, filter_num))
 
         print(f"Filters to prune after filtering: {len(filtered_prune_targets)}")
-        
+
         # Add debug to examine the actual structure
-        if len(filtered_prune_targets) == 0:
+        if not filtered_prune_targets:
             print("No filters to prune! Examining model structure...")
             for i, layer in enumerate(model.net_1):
                 if isinstance(layer, torch.nn.Conv2d):
                     print(f"Layer {i}: Conv2d with {layer.out_channels} output channels")
-        
+
         pruner = Pruning(model)
-        
+
         # Track pruning progress
         pruned_filters = 0
         for idx, (layer_index, filter_index) in enumerate(filtered_prune_targets):
             try:
                 model = pruner.prune_vgg_conv_layer(model, layer_index, filter_index)
                 pruned_filters += 1
-                
+
                 if idx % 50 == 0 and idx > 0:
                     print(f"Pruned {idx}/{len(filtered_prune_targets)} filters")
                     self._clear_memory()
-                    
+
             except Exception as e:
                 print(f"Error pruning layer {layer_index}, filter {filter_index}: {e}")
                 import traceback
                 traceback.print_exc()
-        
+
         # Verify model changes
         model_size_after = self.get_model_size(model)
         size_reduction = (model_size_before - model_size_after) / model_size_before * 100
-        
+
         print("Pruning summary:")
         print(f"- Filters pruned: {pruned_filters}/{len(filtered_prune_targets)} attempted")
         print(f"- Model size: {model_size_before:.2f} MB → {model_size_after:.2f} MB ({size_reduction:.1f}% reduction)")
-        
+
         return model
     
     def get_ranks(self, model) -> list:
