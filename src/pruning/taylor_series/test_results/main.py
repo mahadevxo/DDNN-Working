@@ -1,11 +1,11 @@
 import time
 import numpy as np
-import test
 from MVCNN.models import MVCNN
 from MVCNN.tools.ImgDataset import SingleImgDataset
 import gc
 import torch
 from FilterPruner import FilterPruner
+from Pruning import Pruning
 
 class Testing:
     def __init__(self):
@@ -278,7 +278,8 @@ class Testing:
         print('*' * 10, "Pruning Filters", '*' * 10)
         
         model = self.get_model()
-        pruner = FilterPruner(model)
+        pruner = Pruning(model)
+        
         
         for idx, (layer_index, filter_index) in enumerate(prune_targets):
             model = pruner.prune_vgg_conv_layer(model, layer_index, filter_index)
