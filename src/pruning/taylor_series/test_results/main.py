@@ -11,7 +11,15 @@ class Testing:
     def __init__(self):
         self.device = 'mps' if torch.backends.mps.is_available() else 'cuda' if torch.cuda.is_available() else 'cpu'
 
-    def get_model(self):
+    def get_model(self) -> torch.nn.Module:
+        """
+        Loads a pre-trained SVCNN model from disk.
+
+        The model is loaded into the device specified in the constructor.
+
+        Returns:
+            A pre-trained SVCNN model.
+        """
         model = MVCNN.SVCNN(
             'svcnn',
         )
@@ -20,15 +28,60 @@ class Testing:
 
         return model
 
-    def _clear_memory(self):
+    def _clear_memory(self) -> None:
+        """
+        Clears the memory cache on the current device and collects garbage.
+
+        This method empties the cache for the CUDA or MPS device if applicable,
+        and performs garbage collection to free up memory resources.
+        """
+
         if self.device == 'cuda':
             torch.cuda.empty_cache()
         elif self.device == 'mps':
             torch.mps.empty_cache()
         gc.collect()
 
-    def get_dataset(self, train_dataset=True, test_dataset=False, comp_time_dataset=False):
+    def get_dataset(self, train_dataset=True, test_dataset=False, comp_time_dataset=False) -> torch.utils.data.DataLoader:
         
+        """
+        Loads and returns a DataLoader containing a subset of the ModelNet40 dataset.
+
+        The subset includes 20% of the models in the train dataset, 100% of the models
+        in the test dataset, and 1% of the models in the comp time dataset.
+
+        The dataset is loaded from a directory tree with the following structure:
+        root_dir/*
+            train/*
+                class1/*
+                    model1_view1.png
+                    model1_view2.png
+                    ...
+                class2/*
+                    model2_view1.png
+                    model2_view2.png
+                    ...
+            test/*
+                class1/*
+                    model1_view1.png
+                    model1_view2.png
+                    ...
+                class2/*
+                    model2_view1.png
+                    model2_view2.png
+                    ...
+
+        The root directory can be specified using the root_dir argument.
+
+        Args:
+            train_dataset (bool): Whether to load the train dataset.
+            test_dataset (bool): Whether to load the test dataset.
+            comp_time_dataset (bool): Whether to load a subset of the test dataset
+                for comparison of inference times.
+
+        Returns:
+            A DataLoader object containing the subset of the ModelNet40 dataset.
+        """
         if train_dataset:
             dataset = SingleImgDataset(
                 root_dir='ModelNet40-12View/*/train',
@@ -93,7 +146,25 @@ class Testing:
             num_workers=4,
         )
 
-    def validate_model(self, model):
+    def validate_model(self, model) -> float:
+        """
+        Validates the given model using the test dataset and returns the accuracy as a percentage.
+
+        This method retrieves the test dataset and runs the model in evaluation mode on it.
+        The model's predictions are compared to the true labels to calculate the number of correct 
+        predictions. The accuracy is computed as the percentage of correct predictions out of the 
+        total number of samples in the dataset.
+
+        Args:
+            model (torch.nn.Module): The model to be validated.
+
+        Returns:
+            float: The accuracy of the model on the test dataset, expressed as a percentage.
+
+        Raises:
+            RuntimeError: If the test dataset is not sufficient for validation.
+        """
+
         dataset = self.get_dataset(train_dataset=False, test_dataset=True)
 
         if dataset is False:
@@ -124,7 +195,22 @@ class Testing:
 
         return float((all_correct / all_points)*100)
     
-    def get_comp_time(self, model):
+    def get_comp_time(self, model) -> float:
+        """
+        Calculates the average inference time of the given model on a subset of the test dataset.
+
+        This method retrieves the subset of the test dataset and runs the model in evaluation mode on it.
+        The time taken to run the model on each sample is recorded and an average is calculated.
+
+        Args:
+            model (torch.nn.Module): The model to calculate the average inference time for.
+
+        Returns:
+            float: The average inference time of the model on the subset of the test dataset, in seconds.
+
+        Raises:
+            RuntimeError: If the subset of the test dataset is not sufficient for calculation of inference time.
+        """
         dataset = self.get_dataset(train_dataset=False, comp_time_dataset=True)
         
         if dataset is False:
@@ -148,7 +234,19 @@ class Testing:
         return total_time
 
 
-    def train_model(self, model, rank_filter=False, pruner=None):
+    def train_model(self, model, rank_filter=False, pruner=None) -> torch.nn.Module:
+        """
+        Train a model on the dataset.
+
+        Args:
+            model (torch.nn.Module): The model to train.
+            rank_filter (bool, optional): Whether to use rank filtering. Defaults to False.
+            pruner (FilterPruner, optional): The filter pruner to use. Defaults to None.
+
+        Returns:
+            torch.nn.Module: The trained model.
+        """
+    
         model = model.train()
         model = model.to(self.device)
         
@@ -196,7 +294,19 @@ class Testing:
         self._clear_memory()
         return model
     
-    def fine_tune(self, model):
+    def fine_tune(self, model) -> torch.nn.Module:
+        """
+        Fine-tunes a given model on the dataset.
+
+        This function performs a few epochs of training on a given model using SGD optimizer and
+        cross-entropy loss to adapt the model to the changes after pruning.
+
+        Args:
+            model (torch.nn.Module): The model to fine-tune.
+
+        Returns:
+            The fine-tuned model.
+        """
         print('*' * 25, "Fine-tuning model", '*' * 25)
         model = model.to(self.device)
         
@@ -231,7 +341,7 @@ class Testing:
         
         return model
     
-    def get_candidates_to_prune(self, total_filters_to_prune):
+    def get_candidates_to_prune(self, total_filters_to_prune) -> list:
         # sourcery skip: class-extract-method
         pruner = FilterPruner(self.get_model())
         pruner.reset()
@@ -242,21 +352,21 @@ class Testing:
         self._clear_memory()
         return filters_to_prune
     
-    def get_total_filters(self):
+    def get_total_filters(self) -> int:
         return sum(
             layer.out_channels
             for layer in self.get_model().net_1
             if isinstance(layer, torch.nn.Conv2d)
         )
     
-    def get_model_size(self, model):
+    def get_model_size(self, model) -> float:
         total_size = sum(
             param.nelement() * param.element_size()
             for param in model.parameters()
         )
         return total_size / (1024 ** 2)
     
-    def prune(self, pruning_amount, ranks):
+    def prune(self, pruning_amount, ranks) -> torch.nn.Module:
         total_filters = self.get_total_filters()
         filters_to_prune = int(total_filters * pruning_amount)
         model_size_before = self.get_model_size(self.get_model())
@@ -318,7 +428,7 @@ class Testing:
         
         return model
     
-    def get_ranks(self, model):
+    def get_ranks(self, model) -> list:
         pruner = FilterPruner(model)
         pruner.reset()
         self.train_model(pruner.model, rank_filter=True, pruner=pruner)
@@ -334,17 +444,17 @@ class Testing:
         else:
             return ranks
     
-    def _init_csv(self, filename=str(time.time())):
+    def _init_csv(self, filename=str(time.time())) -> None:
         with open(filename, 'w') as f:
             f.write("pruning_amount,pre_accuracy, post_accuracy, comp_time, model_size\n")
         print(f"CSV file {filename} initialized")
     
-    def _write_csv(self, filename, pruning_amount, pre_accuracy, post_accuracy, comp_time, model_size):
+    def _write_csv(self, filename, pruning_amount, pre_accuracy, post_accuracy, comp_time, model_size) -> None:
         with open(filename, 'a') as f:
             f.write(f"{pruning_amount},{pre_accuracy},{post_accuracy},{comp_time},{model_size}\n")
         print(f"Data written to {filename}")
         
-    def run(self):
+    def run(self) -> None:
         print("Starting testing...")
         pruning_amounts =  np.arange(0.0, 1.0, 0.005)
         #randomize it
