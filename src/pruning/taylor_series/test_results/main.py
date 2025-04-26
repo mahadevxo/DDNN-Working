@@ -46,7 +46,7 @@ class Testing:
             )
         total_models = len(dataset.filepaths) // 12
 
-        subset_size = 0.05 if train_dataset else 1.0 if test_dataset else 0.01 if comp_time_dataset else None
+        subset_size = 0.2 if train_dataset else 1.0 if test_dataset else 0.01 if comp_time_dataset else None
         
         if subset_size is None:
             raise ValueError("Invalid subset size")
@@ -71,12 +71,13 @@ class Testing:
                     classes_present.append(class_name)
         
         classes_present = set(classes_present)
-
-        if len(classes_present) < 33:
-            print(f"Classes not enough: {len(classes_present)}")
-            return False
-        else:
-            print(f"Classes enough: {len(classes_present)}")
+        
+        if not comp_time_dataset:
+            if len(classes_present) < 33:
+                print(f"Classes not enough: {len(classes_present)}")
+                return False
+            else:
+                print(f"Classes enough: {len(classes_present)}")
 
         self._clear_memory()
 
