@@ -137,6 +137,9 @@ class Testing:
     def train_model(self, model, rank_filter=False, pruner=None):
         model = model.train()
         model = model.to(self.device)
+        
+        if rank_filter:
+            print("Getting Ranks")
 
         dataloader = self.get_dataset(train_dataset=True)
         if dataloader is False:
@@ -146,7 +149,7 @@ class Testing:
         optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
         loss_fn = torch.nn.CrossEntropyLoss()
         
-        running_loss, running_accc, total_steps = 0.0, 0.0, 0.0
+        running_loss, running_acc, total_steps = 0.0, 0.0, 0.0
         
         for batch_idx, data in enumerate(dataloader):
             with torch.autograd.set_grad_enabled(True):
@@ -167,13 +170,13 @@ class Testing:
                 aaaaah = torch.max(outputs, 1)
                 # print(len(aaaaah))
                 predicted = aaaaah[1]
-                running_accc += (predicted == labels).sum().item()
+                running_acc += (predicted == labels).sum().item()
                 total_steps += len(labels)
-                if batch_idx % 10 == 0:
-                    print(f"Batch {batch_idx}, Loss: {running_loss / total_steps}, Accuracy: {running_accc / total_steps}")
+                if batch_idx % 100 == 0:
+                    print(f"Batch {batch_idx}, Loss: {running_loss / total_steps}, Accuracy: {(running_acc*100) / total_steps}")
                     self._clear_memory()
 
-        print(f"Training loss: {running_loss / total_steps}, Training accuracy: {running_accc / total_steps}")
+        print(f"Training loss: {running_loss / total_steps}, Training accuracy: {(100*running_acc) / total_steps}")
         self._clear_memory()
         return model
     
