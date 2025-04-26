@@ -98,10 +98,10 @@ class Testing:
 
     def validate_model(self, model):
         dataset = self.get_dataset(train_dataset=False, test_dataset=True)
-        
+
         if dataset is False:
             raise RuntimeError("Dataset not enough, cannot validate model")
-        
+
         all_correct = 0
         all_points = 0
         wrong_class, samples_class = np.zeros(33), np.zeros(33)
@@ -109,13 +109,15 @@ class Testing:
         model = model.to(self.device)
         model.eval()
 
-        for _, data in enumerate(dataset):
+        for data in dataset:
             input = data[1].to(self.device)
             labels = data[0].to(self.device)
 
             output = model(input)
 
-            _, predicted = torch.max(output, 1)[1]
+            aaaaah = torch.max(output, 1)
+            # print(len(aaaaah))
+            predicted = aaaaah[1]
 
             results = predicted==labels
 
@@ -127,9 +129,9 @@ class Testing:
                     all_points += 1
                 samples_class[int(labels[i].cpu().numpy())] += 1
         all_points += len(results)
-        
+
         self._clear_memory()
-        
+
         return float((all_correct / all_points)*100)
     
     def get_comp_time(self, model):
