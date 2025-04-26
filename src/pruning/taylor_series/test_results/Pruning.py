@@ -90,7 +90,7 @@ class Pruning:
         # Find the first fully connected layer
         layer_index = 0
         old_linear_layer = None
-        for _, module in model.net_2._modules.items():
+        for name, module in model.net_2._modules.items():
             if isinstance(module, torch.nn.Linear):
                 old_linear_layer = module
                 break
@@ -100,17 +100,20 @@ class Pruning:
             raise ValueError(f"No linear layer found in net_2, Model: {model}")
         
         # Calculate parameters per input channel
-        params_per_input_channel = old_linear_layer.in_net_1 // conv.out_channels
+        # FIX: Use the correct attribute name for linear layer
+        in_features = old_linear_layer.in_features
+        params_per_input_channel = in_features // conv.out_channels
         
-        # Create new linear layer
+        # Create new linear layer with updated input size
         new_linear_layer = torch.nn.Linear(
-            old_linear_layer.in_net_1 - params_per_input_channel,
-            old_linear_layer.out_net_1
+            in_features - params_per_input_channel,
+            old_linear_layer.out_features
         )
         
         old_weights = old_linear_layer.weight.data.cpu().numpy()
         new_weights = new_linear_layer.weight.data.cpu().numpy()
         
+        # Copy weights, skipping the pruned filter's connections
         new_weights[:, :filter_index * params_per_input_channel] = \
             old_weights[:, :filter_index * params_per_input_channel]
         new_weights[:, filter_index * params_per_input_channel:] = \
@@ -119,9 +122,10 @@ class Pruning:
         new_linear_layer.weight.data = torch.from_numpy(new_weights).to(self.device)
         new_linear_layer.bias.data = old_linear_layer.bias.data.to(self.device)
         
-        model.net_2 = torch.nn.Sequential(
-            *(self._replace_layers(model.net_2, i, [layer_index], \
-                [new_linear_layer]) for i, _ in enumerate(model.net_2)))
+        # Replace the linear layer in net_2
+        modules = list(model.net_2)
+        modules[layer_index] = new_linear_layer
+        model.net_2 = torch.nn.Sequential(*modules)
         
         self._clear_memory()
         return model

@@ -259,41 +259,63 @@ class Testing:
     def prune(self, pruning_amount, ranks):
         total_filters = self.get_total_filters()
         filters_to_prune = int(total_filters * pruning_amount)
+        model_size_before = self.get_model_size(self.get_model())
         
-        # print(f"Total filters: {total_filters}, Filters to prune: {filters_to_prune}")
-        # print(f"Pruning {pruning_amount*100}% of filters")
-        
+        print(f"Total filters: {total_filters}, Filters to prune: {filters_to_prune} ({pruning_amount*100:.1f}%)")
+
         if len(ranks) > 0:
-            prune_targets = ranks
-            # take only x amount of filters to prune
-            prune_targets = prune_targets[:filters_to_prune]
-            # prune_targets = [(layer_index, filter_index) for layer_index, filter_index, _ in prune_targets]
+            prune_targets = ranks[:filters_to_prune]
         else:
             prune_targets = self.get_candidates_to_prune(filters_to_prune)
-        layers_pruned = {}
-        for layer_index, filter_index in prune_targets:
-            layers_pruned[layer_index] = layers_pruned.get(layer_index, 0) + 1
-        # print(f"Layers pruned: {layers_pruned}")
-        
+
         print('*' * 10, "Pruning Filters", '*' * 10)
-        
+
         model = self.get_model()
         pruner = Pruning(model)
+
+        # Track channel counts before pruning
+        channels_per_layer = {
+            i: layer.out_channels
+            for i, layer in enumerate(model.modules())
+            if isinstance(layer, torch.nn.Conv2d)
+        }
         
+        # Filter pruning targets to avoid pruning layers with only 1 channel
+        filtered_prune_targets = []
+        for layer_index, filter_index in prune_targets:
+            if layer_index not in channels_per_layer:
+                continue
+            if channels_per_layer[layer_index] <= 1:
+                print(f"Layer {layer_index} has only 1 channel, skipping pruning")
+                continue
+
+            channels_per_layer[layer_index] -= 1
+            filtered_prune_targets.append((layer_index, filter_index))
+
+        print(f"Filters to prune after filtering: {len(filtered_prune_targets)}")
         
-        for idx, (layer_index, filter_index) in enumerate(prune_targets):
-            model = pruner.prune_vgg_conv_layer(model, layer_index, filter_index)
-            
-            if idx % 10 == 0:
-                self._clear_memory()
+        # Track pruning progress
+        pruned_filters = 0
+        for idx, (layer_index, filter_index) in enumerate(filtered_prune_targets):
+            try:
+                model = pruner.prune_vgg_conv_layer(model, layer_index, filter_index)
+                pruned_filters += 1
+                
+                if idx % 50 == 0 and idx > 0:
+                    print(f"Pruned {idx}/{len(filtered_prune_targets)} filters")
+                    self._clear_memory()
+                    
+            except Exception as e:
+                print(f"Error pruning layer {layer_index}, filter {filter_index}: {e}")
         
-        for layer in model.modules():
-            if isinstance(layer, (torch.nn.Conv2d, torch.nn.Linear)):
-                if layer.weight is not None:
-                    layer.weight.data = layer.weight.data.float().to(self.device)
-                if layer.bias is not None:
-                    layer.bias.data = layer.bias.data.float().to(self.device)
-        print("Model pruned")
+        # Verify model changes
+        model_size_after = self.get_model_size(model)
+        size_reduction = (model_size_before - model_size_after) / model_size_before * 100
+        
+        print("Pruning summary:")
+        print(f"- Filters pruned: {pruned_filters}/{len(filtered_prune_targets)} attempted")
+        print(f"- Model size: {model_size_before:.2f} MB → {model_size_after:.2f} MB ({size_reduction:.1f}% reduction)")
+        
         return model
     
     def get_ranks(self, model):
