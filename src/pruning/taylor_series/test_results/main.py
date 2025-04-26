@@ -75,7 +75,7 @@ class Testing:
             return False
         else:
             print(f"Classes enough: {len(classes_present)}")
-            print(classes_present[:5])
+            print(classes_present)
 
         self._clear_memory()
 
