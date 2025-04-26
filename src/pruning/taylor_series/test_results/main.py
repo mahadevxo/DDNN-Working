@@ -46,7 +46,9 @@ class Testing:
             )
         total_models = len(dataset.filepaths) // 12
 
-        subset_size = 0.2 if train_dataset else 0.1 if test_dataset else 0.01 if comp_time_dataset else 0.001
+        subset_size = 0.2 if train_dataset else 1.0 if test_dataset else 0.01 if comp_time_dataset else None
+        if subset_size is None:
+            raise ValueError("Invalid subset size")
         subset_size = int(total_models * subset_size)
 
         rand_model_indices = torch.randperm(total_models)[:subset_size]
@@ -74,7 +76,6 @@ class Testing:
             return False
         else:
             print(f"Classes enough: {len(classes_present)}")
-            print(classes_present)
 
         self._clear_memory()
 
