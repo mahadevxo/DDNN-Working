@@ -60,12 +60,12 @@ class Testing:
             new_filepaths.extend(dataset.filepaths[start:end])
 
         dataset.filepaths = new_filepaths
-        classes_present = []
+        classes_present = set()
         if train_dataset:
             for file_path in dataset.filepaths:
                 class_name = file_path.split('/')[3]
                 if class_name not in classes_present:
-                    classes_present.append(class_name)
+                    classes_present.add(class_name)
 
         if len(classes_present) < 33:
             print(f"Classes not enough: {len(classes_present)}")
@@ -149,27 +149,24 @@ class Testing:
         running_loss, running_accc, total_steps = 0.0, 0.0, 0.0
         
         for batch_idx, data in enumerate(dataloader):
-            try:
-                with torch.autograd.set_grad_enabled(True):
-                    inputs = data[1].to(self.device)
-                    labels = data[0].to(self.device)
+            with torch.autograd.set_grad_enabled(True):
+                inputs = data[1].to(self.device)
+                labels = data[0].to(self.device)
 
-                    optimizer.zero_grad()
-                    if rank_filter:
-                        pruner.reset()
-                    outputs = pruner.forward(inputs) if rank_filter else model(inputs)
-                    loss = loss_fn(outputs, labels)
+                optimizer.zero_grad()
+                if rank_filter:
+                    pruner.reset()
+                outputs = pruner.forward(inputs) if rank_filter else model(inputs)
+                loss = loss_fn(outputs, labels)
 
-                    loss.backward()
-                    optimizer.step()
+                loss.backward()
+                optimizer.step()
 
-                    running_loss += loss.item()
-                    _, predicted = torch.max(outputs, 1)[1]
-                    running_accc += (predicted == labels).sum().item()
-                    total_steps += len(labels)
-            except Exception as e:
-                print(f"Error during training batch {batch_idx}: {e}")
-                continue
+                running_loss += loss.item()
+                _, predicted = torch.max(outputs, 1)[1]
+                running_accc += (predicted == labels).sum().item()
+                total_steps += len(labels)
+
         print(f"Training loss: {running_loss / total_steps}, Training accuracy: {running_accc / total_steps}")
         self._clear_memory()
         return model
