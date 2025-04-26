@@ -71,7 +71,6 @@ class Testing:
 
         if len(classes_present) < 33:
             print(f"Classes not enough: {len(classes_present)}")
-            print(classes_present)
             return False
         else:
             print(f"Classes enough: {len(classes_present)}")
