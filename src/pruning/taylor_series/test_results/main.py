@@ -63,7 +63,7 @@ class Testing:
         classes_present = []
         if train_dataset:
             for file_path in dataset.filepaths:
-                class_name = file_path.split('/')[3]
+                class_name = file_path.split('/')[1]
                 if class_name not in classes_present:
                     classes_present.append(class_name)
         
