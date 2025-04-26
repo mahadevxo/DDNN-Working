@@ -223,7 +223,7 @@ class Testing:
     def get_total_filters(self):
         return sum(
             layer.out_channels
-            for layer in self.get_model().features
+            for layer in self.get_model().net_1
             if isinstance(layer, torch.nn.Conv2d)
         )
     

@@ -36,7 +36,7 @@ class FilterPruner:
         self.model.zero_grad()
         
         activation_index = 0
-        for layer_index, layer in enumerate(self.model.features):   
+        for layer_index, layer in enumerate(self.model.net_1):   
             x = layer(x)
             if isinstance(layer, torch.nn.modules.conv.Conv2d):
                 self.activations.append(x)
@@ -44,7 +44,7 @@ class FilterPruner:
                 x.register_hook(lambda grad, idx=activation_index: self.compute_rank(grad, idx))
                 activation_index += 1
         x = x.view(x.size(0), -1)
-        x = self.model.classifier(x)
+        x = self.model.net_2(x)
         return x
     
     def compute_rank(self, grad, activation_index):
