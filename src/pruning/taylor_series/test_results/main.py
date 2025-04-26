@@ -333,7 +333,7 @@ class Testing:
         self._init_csv(filename)
         
         for pruning_amount in pruning_amounts:
-            print(f'*' * 25, "Pruning Amount: {pruning_amount}", '*' * 25)
+            print('*' * 25, f"Pruning Amount: {pruning_amount}", '*' * 25)
             
             model = self.prune(pruning_amount, ranks)
             
