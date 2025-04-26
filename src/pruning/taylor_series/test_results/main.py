@@ -98,6 +98,10 @@ class Testing:
 
     def validate_model(self, model):
         dataset = self.get_dataset(train_dataset=False, test_dataset=True)
+        
+        if dataset is False:
+            raise RuntimeError("Dataset not enough, cannot validate model")
+        
         all_correct = 0
         all_points = 0
         wrong_class, samples_class = np.zeros(33), np.zeros(33)
@@ -130,6 +134,10 @@ class Testing:
     
     def get_comp_time(self, model):
         dataset = self.get_dataset(train_dataset=False, comp_time_dataset=True)
+        
+        if dataset is False:
+            raise RuntimeError("Dataset not enough, cannot validate model")
+        
         model = model.to('cpu')
         print("Model moved to CPU for inference time calculation")
         model.eval()
