@@ -379,30 +379,57 @@ class Testing:
             prune_targets = self.get_candidates_to_prune(filters_to_prune)
 
         print('*' * 10, "Pruning Filters", '*' * 10)
-
         model = self.get_model()
-        pruner = Pruning(model)
-
+        
+        # Create mapping of conv layers to their indices in module list
+        conv_layer_mapping = {}
+        for i, layer in enumerate(model.net_1):
+            if isinstance(layer, torch.nn.Conv2d):
+                # Use a different index sequence for the pruning target lookup
+                # Filter pruner and conv layer indices might be different
+                idx = len(conv_layer_mapping)
+                conv_layer_mapping[idx] = i
+        
+        print(f"Conv layer mapping: {conv_layer_mapping}")
+        
         # Track channel counts before pruning
-        channels_per_layer = {
-            i: layer.out_channels
-            for i, layer in enumerate(model.modules())
-            if isinstance(layer, torch.nn.Conv2d)
-        }
+        channels_per_layer = {}
+        for i in conv_layer_mapping.values():
+            layer = model.net_1[i]
+            if isinstance(layer, torch.nn.Conv2d):
+                channels_per_layer[i] = layer.out_channels
         
         # Filter pruning targets to avoid pruning layers with only 1 channel
         filtered_prune_targets = []
-        for layer_index, filter_index in prune_targets:
-            if layer_index not in channels_per_layer:
+        for filter_index_from_rank, filter_num in prune_targets:
+            # Convert the filter pruner index to the actual layer index in model.net_1
+            if filter_index_from_rank not in conv_layer_mapping:
+                print(f"Filter index {filter_index_from_rank} not found in mapping, skipping")
                 continue
-            if channels_per_layer[layer_index] <= 1:
-                print(f"Layer {layer_index} has only 1 channel, skipping pruning")
+            
+            actual_layer_index = conv_layer_mapping[filter_index_from_rank]
+            
+            if actual_layer_index not in channels_per_layer:
+                print(f"Layer {actual_layer_index} not found in channels count")
+                continue
+                
+            if channels_per_layer[actual_layer_index] <= 1:
+                print(f"Layer {actual_layer_index} has only 1 channel, skipping pruning")
                 continue
 
-            channels_per_layer[layer_index] -= 1
-            filtered_prune_targets.append((layer_index, filter_index))
+            channels_per_layer[actual_layer_index] -= 1
+            filtered_prune_targets.append((actual_layer_index, filter_num))
 
         print(f"Filters to prune after filtering: {len(filtered_prune_targets)}")
+        
+        # Add debug to examine the actual structure
+        if len(filtered_prune_targets) == 0:
+            print("No filters to prune! Examining model structure...")
+            for i, layer in enumerate(model.net_1):
+                if isinstance(layer, torch.nn.Conv2d):
+                    print(f"Layer {i}: Conv2d with {layer.out_channels} output channels")
+        
+        pruner = Pruning(model)
         
         # Track pruning progress
         pruned_filters = 0
@@ -417,6 +444,8 @@ class Testing:
                     
             except Exception as e:
                 print(f"Error pruning layer {layer_index}, filter {filter_index}: {e}")
+                import traceback
+                traceback.print_exc()
         
         # Verify model changes
         model_size_after = self.get_model_size(model)
