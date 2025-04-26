@@ -1,7 +1,7 @@
 import time
 import numpy as np
-from models.MVCNN import MVCNN
-from tools.ImgDataset import SingleImgDataset
+from MVCNN.models import MVCNN
+from MVCNN.tools.ImgDataset import SingleImgDataset
 import gc
 import torch
 from FilterPruner import FilterPruner
