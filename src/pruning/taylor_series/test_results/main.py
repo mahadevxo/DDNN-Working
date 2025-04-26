@@ -300,7 +300,7 @@ class Testing:
         print(f"Data written to {filename}")
         
     def run(self):
-        pruning_amounts =  np.arange(0.0, 1.0, 0.005).tolist()
+        pruning_amounts =  np.arange(0.0, 1.0, 0.005)
         # 0% to 100%, 1% increments
         print(f"Pruning amounts: {pruning_amounts}")
         
