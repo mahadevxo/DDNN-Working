@@ -165,7 +165,7 @@ class Testing:
                 running_loss += loss.item()
                 
                 aaaaah = torch.max(outputs, 1)
-                print(len(aaaaah))
+                # print(len(aaaaah))
                 predicted = aaaaah[1]
                 running_accc += (predicted == labels).sum().item()
                 total_steps += len(labels)
