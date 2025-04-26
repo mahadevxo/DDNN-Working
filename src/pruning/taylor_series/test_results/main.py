@@ -1,5 +1,6 @@
 import time
 import numpy as np
+import test
 from MVCNN.models import MVCNN
 from MVCNN.tools.ImgDataset import SingleImgDataset
 import gc
@@ -45,6 +46,13 @@ class Testing:
                 num_views=12,
             )
         total_models = len(dataset.filepaths) // 12
+        
+        if test_dataset:
+            print(f"Total models in test dataset: {total_models}")
+        if comp_time_dataset:
+            print(f"Total models in comp time dataset: {total_models}")
+        if train_dataset:
+            print(f"Total models in train dataset: {total_models}")
 
         subset_size = 0.2 if train_dataset else 1.0 if test_dataset else 0.01 if comp_time_dataset else None
         
