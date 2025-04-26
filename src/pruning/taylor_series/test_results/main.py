@@ -47,6 +47,7 @@ class Testing:
         total_models = len(dataset.filepaths) // 12
 
         subset_size = 0.05 if train_dataset else 1.0 if test_dataset else 0.01 if comp_time_dataset else None
+        
         if subset_size is None:
             raise ValueError("Invalid subset size")
         subset_size = int(total_models * subset_size)
@@ -290,7 +291,7 @@ class Testing:
         pruner = FilterPruner(model)
         pruner.reset()
         self.train_model(pruner.model, rank_filter=True, pruner=pruner)
-        pruner.normalize_ranks_per_layer()
+        pruner.normalize_ranks_per_layer(self.get_total_filters())
         ranks = pruner.get_pruning_plan()
         print(f"Length of Ranks: {len(ranks)}")
         del pruner
