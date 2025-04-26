@@ -104,7 +104,6 @@ class Testing:
 
         all_correct = 0
         all_points = 0
-        wrong_class, samples_class = np.zeros(33), np.zeros(33)
 
         model = model.to(self.device)
         model.eval()
@@ -120,15 +119,9 @@ class Testing:
             predicted = aaaaah[1]
 
             results = predicted==labels
-
-            for i in range(len(results)[0]):
-                if not bool(results[i].cpu().numpy()):
-                    wrong_class[int(labels[i].cpu().numpy())] += 1
-                else:
-                    all_correct += 1
-                    all_points += 1
-                samples_class[int(labels[i].cpu().numpy())] += 1
-        all_points += len(results)
+            
+            all_correct += results.sum().item()
+            all_points += len(labels)
 
         self._clear_memory()
 
