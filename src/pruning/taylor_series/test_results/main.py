@@ -80,7 +80,7 @@ class Testing:
         
         classes_present = set(classes_present)
         
-        if not comp_time_dataset:
+        if train_dataset:
             if len(classes_present) < 33:
                 print(f"Classes not enough: {len(classes_present)}")
                 return False
