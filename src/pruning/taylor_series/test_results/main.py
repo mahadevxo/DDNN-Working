@@ -300,7 +300,7 @@ class Testing:
         print(f"Data written to {filename}")
         
     def run(self):
-        pruning_amounts =  np.arange(0.1, 1, 0.5)
+        pruning_amounts =  np.arange(0.1, 1.0, 0.1)
         print(f"Pruning amounts: {pruning_amounts}")
         
         ranks = self.get_ranks(self.get_model())
