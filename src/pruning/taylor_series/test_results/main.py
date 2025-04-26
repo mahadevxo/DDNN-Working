@@ -163,7 +163,10 @@ class Testing:
                 optimizer.step()
 
                 running_loss += loss.item()
-                _, predicted = torch.max(outputs, 1)[1]
+                
+                aaaaah = torch.max(outputs, 1)
+                print(aaaaah)
+                predicted = aaaaah[1]
                 running_accc += (predicted == labels).sum().item()
                 total_steps += len(labels)
 
