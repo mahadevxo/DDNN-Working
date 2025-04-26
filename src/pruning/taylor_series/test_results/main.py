@@ -60,12 +60,14 @@ class Testing:
             new_filepaths.extend(dataset.filepaths[start:end])
 
         dataset.filepaths = new_filepaths
-        classes_present = {}
+        classes_present = []
         if train_dataset:
             for file_path in dataset.filepaths:
                 class_name = file_path.split('/')[3]
                 if class_name not in classes_present:
-                    classes_present.add(class_name)
+                    classes_present.append(class_name)
+        
+        classes_present = set(classes_present)
 
         if len(classes_present) < 33:
             print(f"Classes not enough: {len(classes_present)}")
