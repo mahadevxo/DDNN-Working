@@ -63,7 +63,7 @@ class Testing:
         # if train_dataset:
         #     print(f"Total models in train dataset: {total_models}")
 
-        subset_size = 0.2 if train_dataset else 1.0 if test_dataset else 0.01 if comp_time_dataset else None
+        subset_size = 0.3 if train_dataset else 1.0 if test_dataset else 0.03 if comp_time_dataset else None
         
         if subset_size is None:
             raise ValueError("Invalid subset size")
@@ -100,6 +100,7 @@ class Testing:
             batch_size=32,
             shuffle=False,
             num_workers=4,
+            pin_memory=True
         )
 
     def validate_model(self, model) -> float:
@@ -113,21 +114,21 @@ class Testing:
 
         model = model.to(self.device)
         model.eval()
+        with torch.inference_mode():
+            for data in dataset:
+                input = data[1].to(self.device)
+                labels = data[0].to(self.device)
 
-        for data in dataset:
-            input = data[1].to(self.device)
-            labels = data[0].to(self.device)
+                output = model(input)
 
-            output = model(input)
+                aaaaah = torch.max(output, 1)
+                # print(len(aaaaah))
+                predicted = aaaaah[1]
 
-            aaaaah = torch.max(output, 1)
-            # print(len(aaaaah))
-            predicted = aaaaah[1]
-
-            results = predicted==labels
-            
-            all_correct += results.sum().item()
-            all_points += len(labels)
+                results = predicted==labels
+                
+                all_correct += results.sum().item()
+                all_points += len(labels)
 
         self._clear_memory()
 
@@ -143,13 +144,14 @@ class Testing:
         # print("Model moved to CPU for inference time calculation")
         model.eval()
         total_time = float(0)
-        for data in dataset:
-            input = data[1].to('cpu')
+        with torch.inference_mode():
+            for data in dataset:
+                input = data[1].to('cpu')
 
-            t1 = time.time()
-            _ = model(input)
-            t2 = time.time()
-            total_time += (t2 - t1)
+                t1 = time.time()
+                _ = model(input)
+                t2 = time.time()
+                total_time += (t2 - t1)
 
         total_time /= len(dataset)
         # print(f"Average inference time: {total_time} seconds")
@@ -173,7 +175,7 @@ class Testing:
 
         optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
         loss_fn = torch.nn.CrossEntropyLoss()
-        
+        scaler = torch.amp.GradScaler('cuda') if self.device == 'cuda' else None
         running_loss, running_acc, total_steps = 0.0, 0.0, 0.0
         
         for batch_idx, data in enumerate(dataloader):
@@ -184,11 +186,19 @@ class Testing:
                 optimizer.zero_grad()
                 if rank_filter:
                     pruner.reset()
-                outputs = pruner.forward(inputs) if rank_filter else model(inputs)
-                loss = loss_fn(outputs, labels)
-
-                loss.backward()
-                optimizer.step()
+                    
+                if scaler is not None:
+                    with torch.amp.autocast('cuda'):
+                        outputs = pruner.forward(inputs) if rank_filter else model(inputs)
+                        loss = loss_fn(outputs, labels)
+                    scaler.scale(loss).backward()
+                    scaler.step(optimizer)
+                    scaler.update()
+                else:
+                    outputs = pruner.forward(inputs) if rank_filter else model(inputs)
+                    loss = loss_fn(outputs, labels)
+                    loss.backward()
+                    optimizer.step()
 
                 running_loss += loss.item()
                 
@@ -205,38 +215,45 @@ class Testing:
         self._clear_memory()
         return model
     
-    def fine_tune(self, model) -> torch.nn.Module:
+    def fine_tune(self, model):
         print('*' * 25, "Fine-tuning model", '*' * 25)
         model = model.to(self.device)
         
-        epoch = 0
-        prev_accs = []
+        # Use a more efficient optimizer
+        optimizer = torch.optim.AdamW(model.parameters(), lr=0.001, weight_decay=0.01)
+        
+        # Use learning rate scheduler for faster convergence
+        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+            optimizer, mode='max', factor=0.5, patience=2
+        )
+        
+        # Early stopping with smarter threshold
+        early_stop_count = 0
+        early_stop_threshold = 3
         best_accuracy = 0
         
-        while True:
+        for epoch in range(10):
             print(f"Fine-tuning epoch {epoch}")
-            model = self.train_model(model)
+            model = self.train_model(model, optimizer=optimizer)
             
             accuracy = self.validate_model(model)
+            scheduler.step(accuracy)
+            
             print(f"Validation accuracy for epoch {epoch}: {accuracy}")
-            prev_accs.append(accuracy)
-            if len(prev_accs) > 5:
-                prev_accs.pop(0)
+            
             if accuracy > best_accuracy:
                 best_accuracy = accuracy
+                early_stop_count = 0
+            else:
+                early_stop_count += 1
             
-            if epoch > 5 and best_accuracy - 2 <= np.mean(prev_accs).item() <= best_accuracy + 2:
-                print("No Improvement in accuracy; best accuracy:", best_accuracy, "Mean accuracy:", np.mean(prev_accs).item())
+            # Stop early if no improvement
+            if early_stop_count >= early_stop_threshold:
+                print(f"Early stopping at epoch {epoch}")
                 break
             
-            if epoch > 10:
-                print("Stopping fine-tuning after 10 epochs...")
-                print(f"Best accuracy: {best_accuracy}, Mean accuracy: {np.mean(prev_accs).item()}")
-                break
-            
-            epoch += 1
-        
-        self._clear_memory()
+            # Clear memory each epoch
+            self._clear_memory()
         
         return model
     

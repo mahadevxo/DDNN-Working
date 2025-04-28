@@ -52,8 +52,8 @@ class PruningFineTuner:
         for batch_idx, (label, image, _) in enumerate(train_loader):
             try:
                 with torch.autograd.set_grad_enabled(True):
-                    image = image.to(self.device, non_blocking=True)
-                    label = label.to(self.device, non_blocking=True)
+                    image = image.to(self.device, non_blocking=False)
+                    label = label.to(self.device, non_blocking=False)
                     
                     # Zero gradients before forward pass
                     if optimizer is not None:
@@ -201,8 +201,8 @@ class PruningFineTuner:
         # Prune one filter at a time with memory cleanup after each
         for idx, (layer_index, filter_index) in enumerate(prune_targets):
             model = pruner.prune_vgg_conv_layer(model, layer_index, filter_index)
-            if idx % 5 == 0:  # Clean up every few iterations
-                # print(f"Pruned {idx} filters")
+            if idx % 100 == 0:  # Clean up every few iterations
+                print(f"Pruned {idx} filters")
                 self._clear_memory()
         # print("Finished Pruning Filters")
         print(f"Total Filters Pruned: {len(prune_targets)}")
