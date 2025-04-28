@@ -11,7 +11,23 @@ import os
 class Testing:
     def __init__(self):
         self.device = 'mps' if torch.backends.mps.is_available() else 'cuda' if torch.cuda.is_available() else 'cpu'
-
+        
+        test_dataset = SingleImgDataset(
+            root_dir='ModelNet40-12View/*/test',
+            scale_aug=False,
+            rot_aug=False,
+            num_models=1000,
+            num_views=12
+        )
+        self.test_loader = torch.utils.data.DataLoader(
+            test_dataset,
+            batch_size=8,
+            shuffle=False,
+            num_workers=4,
+            pin_memory=True,
+        )
+        
+        
     def get_model(self) -> torch.nn.Module:
         model = MVCNN.SVCNN(
             'svcnn',
@@ -36,13 +52,15 @@ class Testing:
         elif self.device == 'mps':
             torch.mps.empty_cache()
         gc.collect()
+    
 
     def get_dataset(self, train_dataset=True, test_dataset=False, comp_time_dataset=False) -> torch.utils.data.DataLoader:
+        # Load dataset
         if train_dataset:
             dataset = SingleImgDataset(
                 root_dir='ModelNet40-12View/*/train',
                 scale_aug=False,
-                rot_aug=False,
+                rot_aug=True,
                 num_models=1000,
                 num_views=12,
             )
@@ -54,58 +72,79 @@ class Testing:
                 num_models=1000,
                 num_views=12,
             )
-        total_models = len(dataset.filepaths) // 12
-        
-        # if test_dataset:
-        #     print(f"Total models in test dataset: {total_models}")
-        # if comp_time_dataset:
-        #     print(f"Total models in comp time dataset: {total_models}")
-        # if train_dataset:
-        #     print(f"Total models in train dataset: {total_models}")
 
+        total_models = len(dataset.filepaths) // 12
+
+        # Use deterministic sampling instead of random
         subset_size = 0.3 if train_dataset else 1.0 if test_dataset else 0.03 if comp_time_dataset else None
-        
+
         if subset_size is None:
             raise ValueError("Invalid subset size")
+
         subset_size = int(total_models * subset_size)
 
-        rand_model_indices = torch.randperm(total_models)[:subset_size]
-        rand_model_indices = rand_model_indices.tolist()
-
-        new_filepaths = []
-        for idx in rand_model_indices:
-            start = idx * 12
-            end = (idx+1) * 12
-
-            new_filepaths.extend(dataset.filepaths[start:end])
-
-        dataset.filepaths = new_filepaths
-        classes_present = []
+        # Use stratified sampling to ensure class representation
         if train_dataset:
-            for file_path in dataset.filepaths:
-                class_name = file_path.split('/')[1]
-                if class_name not in classes_present:
-                    classes_present.append(class_name)
-        
-        classes_present = set(classes_present)
-        
-        if train_dataset and len(classes_present) < 33:
-            print(f"Classes not enough: {len(classes_present)}")
-            return False
+            # Group filepaths by class
+            class_filepaths = {}
+            for filepath in dataset.filepaths:
+                class_name = filepath.split('/')[1]
+                if class_name not in class_filepaths:
+                    class_filepaths[class_name] = []
+                class_filepaths[class_name].append(filepath)
 
-        self._clear_memory()
+            # Ensure we have all 33 classes
+            if len(class_filepaths) < 33:
+                print(f"Warning: Only {len(class_filepaths)} classes found in dataset")
+                return False
 
-        return torch.utils.data.DataLoader(
+            # Take equal samples from each class
+            models_per_class = max(1, subset_size // len(class_filepaths))
+            new_filepaths = []
+
+            for filepaths in class_filepaths.values():
+                # Group by model (every 12 views is one model)
+                models = [filepaths[i:i+12] for i in range(0, len(filepaths), 12)]
+                # Take deterministic subset using fixed seed
+                with torch.random.fork_rng():
+                    torch.manual_seed(42)  # Fixed seed for reproducibility
+                    selected_models = models[:models_per_class]
+
+                # Flatten the list of selected models
+                for model_views in selected_models:
+                    new_filepaths.extend(model_views)
+        else:
+            # For test/comp datasets, use deterministic subset
+            model_indices = list(range(total_models))[:subset_size]
+
+            new_filepaths = []
+            for idx in model_indices:
+                start = idx * 12
+                end = (idx + 1) * 12
+                new_filepaths.extend(dataset.filepaths[start:end])
+
+        # Update dataset with new filepaths
+        dataset.filepaths = new_filepaths
+
+        # Create and cache the dataloader
+        dataloader = torch.utils.data.DataLoader(
             dataset,
             batch_size=32,
-            shuffle=False,
+            shuffle=train_dataset,  # Only shuffle training data
             num_workers=4,
-            pin_memory=True
+            pin_memory=True,
+            persistent_workers=True,  # Keep workers alive between iterations
+            prefetch_factor=3       # Prefetch more batches
         )
 
-    def validate_model(self, model) -> float:
-        dataset = self.get_dataset(train_dataset=False, test_dataset=True)
+        self._clear_memory()
+        return dataloader
 
+    def validate_model(self, model) -> float:
+        # dataset = self.get_dataset(train_dataset=False, test_dataset=True)
+
+        dataset = self.train_loader
+        
         if dataset is False:
             raise RuntimeError("Dataset not enough, cannot validate model")
 
