@@ -264,6 +264,7 @@ class Testing:
         
     def main(self):        
         pruning_amounts = self._get_pruning_amounts(start=0, end=100, step=4)
+        print(pruning_amounts)
         for pruning_amount in pruning_amounts:
             model = self.get_model()
             
