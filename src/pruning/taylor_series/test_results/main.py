@@ -76,7 +76,7 @@ class Testing:
         total_models = len(dataset.filepaths) // 12
 
         # Use deterministic sampling instead of random
-        subset_size = 0.3 if train_dataset else 1.0 if test_dataset else 0.03 if comp_time_dataset else None
+        subset_size = 0.1 if train_dataset else 1.0 if test_dataset else 0.03 if comp_time_dataset else None
 
         if subset_size is None:
             raise ValueError("Invalid subset size")
