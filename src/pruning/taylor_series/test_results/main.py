@@ -273,7 +273,7 @@ class Testing:
         
         for epoch in range(10):
             print(f"Fine-tuning epoch {epoch}")
-            model = self.train_model(model, optimizer=optimizer)
+            model = self.train_model(model)
             
             accuracy = self.validate_model(model)
             scheduler.step(accuracy)
