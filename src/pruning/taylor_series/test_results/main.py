@@ -143,7 +143,7 @@ class Testing:
     def validate_model(self, model) -> float:
         # dataset = self.get_dataset(train_dataset=False, test_dataset=True)
 
-        dataset = self.train_loader
+        dataset = self.test_loader
         
         if dataset is False:
             raise RuntimeError("Dataset not enough, cannot validate model")
