@@ -48,12 +48,7 @@ class FilterPruner:
         return x
     
     def compute_rank(self, grad, activation_index):
-        """Compute rank of the filters using Taylor expansion.
-        
-        Args:
-            grad: The gradient of the criterion with respect to the output of the layer
-            activation_index: The index of the activation in self.activations
-        """
+        """Compute rank of the filters using Taylor expansion."""
         # Safety check to ensure activation_index is valid
         if activation_index >= len(self.activations) or activation_index < 0:
             print(f"Warning: Invalid activation_index {activation_index}, max is {len(self.activations)-1}")
@@ -61,10 +56,10 @@ class FilterPruner:
             
         activation = self.activations[activation_index]
         
-        # Compute Taylor criterion
-        taylor = activation * grad
+        # Compute Taylor criterion with L1 norm
+        taylor = torch.abs(activation * grad)
         
-        # Average across batch and spatial dimensions
+        # Average across batch and spatial dimensions with better numerical stability
         taylor = taylor.mean(dim=(0, 2, 3)).data
         
         # Initialize filter_ranks for this activation if not already done
@@ -76,6 +71,7 @@ class FilterPruner:
         self.filter_ranks[activation_index] += taylor
         del taylor, activation, grad
         
+        
     def lowest_ranking_filters(self, num):
         data = []
         for i in sorted(self.filter_ranks.keys()):
@@ -84,12 +80,55 @@ class FilterPruner:
         return nsmallest(num, data, itemgetter(2))
     
     def normalize_ranks_per_layer(self):
+        """Normalize using percentile ranking for better distribution."""
+        if not self.filter_ranks:
+            return
+
+        # Collect all ranks into a flat array
+        all_ranks = []
+        rank_indices = {}
+
+        # Create a flat list with identifiers
+        for i in sorted(self.filter_ranks.keys()):
+            for j in range(self.filter_ranks[i].size(0)):
+                all_ranks.append(self.filter_ranks[i][j].item())
+                rank_indices[(i, j)] = len(all_ranks) - 1
+
+        # Sort for percentile calculation
+        all_ranks_sorted = sorted(all_ranks)
+        n = len(all_ranks_sorted)
+
+        rank_to_percentile = {
+            val: idx / (n - 1) if n > 1 else 0.5
+            for idx, val in enumerate(all_ranks_sorted)
+        }
+        # Convert each filter's rank to its percentile
         for i in self.filter_ranks:
-            v = torch.abs(self.filter_ranks[i])
-            v = v / torch.sqrt(torch.sum(v * v))  # Added epsilon for numerical stability
-            self.filter_ranks[i] = v.cpu()
+            for j in range(self.filter_ranks[i].size(0)):
+                val = self.filter_ranks[i][j].item()
+                # Find closest value (handle floating point precision issues)
+                closest_val = min(all_ranks_sorted, key=lambda x: abs(x - val))
+                percentile = rank_to_percentile[closest_val]
+                self.filter_ranks[i][j] = torch.tensor(percentile)
+
+            # Move to CPU to save memory
+            self.filter_ranks[i] = self.filter_ranks[i].cpu()
+    
+    def smooth_distributions(self):
+        """Apply smoothing to prevent clustered importance scores."""
+        for i in self.filter_ranks:
+            # Add small random noise to break ties and clusters
+            noise = torch.randn_like(self.filter_ranks[i]) * 1e-5
+            self.filter_ranks[i] += noise
             
     def get_pruning_plan(self, num_filters_to_prune):
+    # Apply smoothing before ranking
+        self.smooth_distributions()
+        
+        # Apply normalization
+        self.normalize_ranks_per_layer()
+        
+        # Get the lowest ranking filters
         filters_to_prune = self.lowest_ranking_filters(num_filters_to_prune)
         
         filters_to_prune_per_layer = {}

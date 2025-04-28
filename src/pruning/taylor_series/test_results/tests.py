@@ -3,6 +3,7 @@ import argparse
 from MVCNN.models import MVCNN
 from FilterPruner import FilterPruner
 from Pruning import Pruning
+from PFT import PruningFineTuner
 import gc
 
 class PruningTester:
@@ -21,12 +22,11 @@ class PruningTester:
     def load_model(self):
         """Load the SVCNN model"""
         model = MVCNN.SVCNN('svcnn')
-        model.load_state_dict(torch.load('model-00030.pth', map_location=self.device))
+        model.load_state_dict(torch.load('mvcnn.pth', map_location=self.device))
         model = model.to(self.device)
         return model
     
     def get_model_size(self, model):
-        """Calculate model size in MB"""
         param_size = sum(
             param.nelement() * param.element_size() for param in model.parameters()
         )
@@ -90,11 +90,10 @@ class PruningTester:
         pruner.reset()
 
         # Generate dummy input
-        dummy_input = torch.randn(1, 3, 224, 224).to(self.device)
-
+        dummy_input = torch.randn(16, 3, 224, 224).to(self.device)
+        model.eval()
         # Forward pass to compute filter ranks
-        with torch.no_grad():
-            _ = pruner.forward(dummy_input)
+        _ = pruner.forward(dummy_input)
 
         pruner.normalize_ranks_per_layer()
         prune_targets = pruner.get_pruning_plan(filters_to_prune)
