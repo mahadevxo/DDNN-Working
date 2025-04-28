@@ -329,6 +329,9 @@ class Testing:
             model = pruner.prune(pruning_amount, True)
             
             model_size = self.get_size(model)
+            
+            print(f"Model size after {pruning_amount}% pruning: {model_size} MB")
+            
             pre_acc = self.validate_model(model)
             model = self.fine_tune(model)
             post_acc = self.validate_model(model)
