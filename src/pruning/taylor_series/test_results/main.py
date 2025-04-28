@@ -319,7 +319,7 @@ class Testing:
             f.write(f"{pruning_amount},{pre_acc},{post_acc},{comp_time},{size}\n")
         
     def main(self):        
-        pruning_amounts = self._get_pruning_amounts(start=0, end=100, step=4)
+        pruning_amounts = self._get_pruning_amounts(start=0, end=100, step=1)
         print(pruning_amounts)
         for pruning_amount in pruning_amounts:
             model = self.get_model()
