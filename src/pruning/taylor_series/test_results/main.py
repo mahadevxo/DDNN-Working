@@ -268,7 +268,7 @@ class Testing:
         
         # Early stopping with smarter threshold
         early_stop_count = 0
-        early_stop_threshold = 3
+        early_stop_threshold = 5
         best_accuracy = 0
         
         for epoch in range(10):
