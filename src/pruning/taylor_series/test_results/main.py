@@ -283,3 +283,7 @@ class Testing:
             self._clear_memory()
             del model
             del pruner
+
+if __name__ == "__main__":
+    testing = Testing()
+    testing.main()
