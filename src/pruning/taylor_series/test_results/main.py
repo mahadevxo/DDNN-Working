@@ -335,7 +335,7 @@ class Testing:
         print(pruning_amounts)
         for pruning_amount in pruning_amounts:
             model = self.get_model()
-            print('*'*30)
+            print('*'*100)
             print(f"Percentage Done: {((pruning_amounts.index(pruning_amount)+15)/len(pruning_amounts))*100:.2f}%")
             print(f"Pruning amount: {pruning_amount}")
             pruner = PruningFineTuner(model)
