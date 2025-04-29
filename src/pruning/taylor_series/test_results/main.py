@@ -69,7 +69,6 @@ class Testing:
                 rot_aug=True,
                 num_models=1000,
                 num_views=12,
-                persistant_workers=False
             )
         elif test_dataset or comp_time_dataset:
             dataset = SingleImgDataset(
@@ -78,7 +77,6 @@ class Testing:
                 rot_aug=False,
                 num_models=1000,
                 num_views=12,
-                persistant_workers=False
             )
 
         total_models = len(dataset.filepaths) // 12
@@ -138,11 +136,11 @@ class Testing:
         dataloader = torch.utils.data.DataLoader(
             dataset,
             batch_size=32,
-            shuffle=train_dataset,  # Only shuffle training data
+            shuffle=train_dataset,
             num_workers=4,
             pin_memory=True,
-            persistent_workers=True,  # Keep workers alive between iterations
-            prefetch_factor=3       # Prefetch more batches
+            persistent_workers=False,
+            prefetch_factor=2,
         )
 
         self._clear_memory()
