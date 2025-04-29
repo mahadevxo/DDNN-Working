@@ -8,6 +8,12 @@ from copy import deepcopy
 from PFT import PruningFineTuner
 import os
 
+import resource
+
+soft, hard = resource.getrlimit(resource.RLIMIT_NOFILE)
+resource.setrlimit(resource.RLIMIT_NOFILE, (hard, hard))
+print(f"File descriptor limit increased from {soft} to {hard}")
+
 class Testing:
     def __init__(self):
         self.device = 'mps' if torch.backends.mps.is_available() else 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -63,6 +69,7 @@ class Testing:
                 rot_aug=True,
                 num_models=1000,
                 num_views=12,
+                persistant_workers=False
             )
         elif test_dataset or comp_time_dataset:
             dataset = SingleImgDataset(
@@ -71,6 +78,7 @@ class Testing:
                 rot_aug=False,
                 num_models=1000,
                 num_views=12,
+                persistant_workers=False
             )
 
         total_models = len(dataset.filepaths) // 12
@@ -304,12 +312,18 @@ class Testing:
         probabilities = np.exp(-0.5 * ((pruning_amounts - center) / sigma) ** 2)
         probabilities /= probabilities.sum()  # normalize to sum to 1
 
-        return np.random.choice(
+        pruning_amounts = np.random.choice(
             pruning_amounts,
             size=len(pruning_amounts),
             replace=False,
             p=probabilities,
         )
+        
+        done = [80, 43, 58, 41, 66, 17, 61, 60, 27, 34, 50, 26, 29, 81, 52]
+        
+        pruning_amounts = [amount for amount in pruning_amounts if amount not in done]
+        return pruning_amounts
+            
         
     def write_to_file(self, pruning_amount, pre_acc, post_acc, comp_time, size):
         if 'test_results.txt' not in os.listdir():
@@ -323,7 +337,8 @@ class Testing:
         print(pruning_amounts)
         for pruning_amount in pruning_amounts:
             model = self.get_model()
-            
+            print('*'*30)
+            print(f"Percentage Done: {pruning_amounts.index(pruning_amount)}/{len(pruning_amounts)*100:.2f}%")
             print(f"Pruning amount: {pruning_amount}")
             pruner = PruningFineTuner(model)
             model = pruner.prune(pruning_amount, True)
