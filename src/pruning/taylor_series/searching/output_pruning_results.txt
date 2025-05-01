@@ -1,0 +1,3346 @@
+File descriptor limit increased from 1024 to 1048576
+[np.int64(45), np.int64(56), np.int64(51), np.int64(12), np.int64(57), np.int64(82), np.int64(63), np.int64(33), np.int64(30), np.int64(72), np.int64(48), np.int64(75), np.int64(64), np.int64(44), np.int64(62), np.int64(23), np.int64(70), np.int64(86), np.int64(14), np.int64(38), np.int64(54), np.int64(37), np.int64(49), np.int64(35), np.int64(67), np.int64(74), np.int64(32), np.int64(71), np.int64(7), np.int64(65), np.int64(40), np.int64(21), np.int64(55), np.int64(68), np.int64(47), np.int64(31), np.int64(46), np.int64(73), np.int64(19), np.int64(42), np.int64(59), np.int64(89), np.int64(77), np.int64(39), np.int64(53), np.int64(25), np.int64(28), np.int64(36), np.int64(18), np.int64(76), np.int64(69), np.int64(85), np.int64(78), np.int64(24), np.int64(20), np.int64(22), np.int64(79), np.int64(90), np.int64(1), np.int64(83), np.int64(16), np.int64(11), np.int64(4), np.int64(87), np.int64(84), np.int64(15), np.int64(10), np.int64(9), np.int64(93), np.int64(88), np.int64(5), np.int64(8), np.int64(13), np.int64(2), np.int64(6), np.int64(3), np.int64(97), np.int64(91), np.int64(96), np.int64(94), np.int64(92), np.int64(95), np.int64(0), np.int64(98), np.int64(99)]
+****************************************************************************************************
+Percentage Done: 17.65%
+Pruning amount: 45
+Total Filters to prune: 1238 For Pruning Percentage: 45
+Layers that will be pruned {11: 259, 18: 244, 16: 221, 13: 227, 6: 111, 3: 30, 8: 125, 0: 21}
+Pruning Filters
+Pruned 0 filters
+Pruned 100 filters
+Pruned 200 filters
+Pruned 300 filters
+Pruned 400 filters
+Pruned 500 filters
+Pruned 600 filters
+Pruned 700 filters
+Pruned 800 filters
+Pruned 900 filters
+Pruned 1000 filters
+Pruned 1100 filters
+Pruned 1200 filters
+Total Filters Pruned: 1238
+Model size after 45% pruning: 280.16764068603516 MB
+************************* Fine-tuning model *************************
+Fine-tuning epoch 0
+Validation accuracy for epoch 0: 76.3978494623656
+Fine-tuning epoch 1
+Validation accuracy for epoch 1: 74.16218637992831
+Fine-tuning epoch 2
+Validation accuracy for epoch 2: 74.76254480286738
+Fine-tuning epoch 3
+Validation accuracy for epoch 3: 76.83243727598567
+Fine-tuning epoch 4
+Validation accuracy for epoch 4: 73.62007168458781
+Fine-tuning epoch 5
+Validation accuracy for epoch 5: 72.14605734767025
+Fine-tuning epoch 6
+Validation accuracy for epoch 6: 75.06272401433691
+Fine-tuning epoch 7
+Validation accuracy for epoch 7: 74.53853046594983
+Fine-tuning epoch 8
+Validation accuracy for epoch 8: 73.90232974910394
+Early stopping at epoch 8
+Pruning Amount 45, Model Size: 280.16764068603516, Pre-Acc: 65.07168458781362, Post-Acc: 73.64247311827957, Comp Time: 0.8670305638086229
+PruningFineTuner object deleted and memory cleared.
+****************************************************************************************************
+Percentage Done: 18.82%
+Pruning amount: 56
+Total Filters to prune: 1541 For Pruning Percentage: 56
+Layers that will be pruned {13: 318, 16: 271, 8: 146, 18: 302, 6: 132, 11: 316, 0: 24, 3: 32}
+Pruning Filters
+Pruned 0 filters
+Pruned 100 filters
+Pruned 200 filters
+Pruned 300 filters
+Pruned 400 filters
+Pruned 500 filters
+Pruned 600 filters
+Pruned 700 filters
+Pruned 800 filters
+Pruned 900 filters
+Pruned 1000 filters
+Pruned 1100 filters
+Pruned 1200 filters
+Pruned 1300 filters
+Pruned 1400 filters
+Pruned 1500 filters
+Total Filters Pruned: 1541
+Model size after 56% pruning: 231.73419189453125 MB
+************************* Fine-tuning model *************************
+Fine-tuning epoch 0
+Validation accuracy for epoch 0: 76.415770609319
+Fine-tuning epoch 1
+Validation accuracy for epoch 1: 75.49731182795699
+Fine-tuning epoch 2
+Validation accuracy for epoch 2: 75.7078853046595
+Fine-tuning epoch 3
+Validation accuracy for epoch 3: 74.2921146953405
+Fine-tuning epoch 4
+Validation accuracy for epoch 4: 75.17025089605734
+Fine-tuning epoch 5
+Validation accuracy for epoch 5: 75.76612903225806
+Early stopping at epoch 5
+Pruning Amount 56, Model Size: 231.73419189453125, Pre-Acc: 64.88351254480287, Post-Acc: 75.68996415770609, Comp Time: 0.7090701943352109
+PruningFineTuner object deleted and memory cleared.
+****************************************************************************************************
+Percentage Done: 20.00%
+Pruning amount: 51
+Total Filters to prune: 1403 For Pruning Percentage: 51
+Layers that will be pruned {13: 276, 16: 247, 8: 131, 6: 124, 18: 263, 11: 308, 3: 31, 0: 23}
+Pruning Filters
+Pruned 0 filters
+Pruned 100 filters
+Pruned 200 filters
+Pruned 300 filters
+Pruned 400 filters
+Pruned 500 filters
+Pruned 600 filters
+Pruned 700 filters
+Pruned 800 filters
+Pruned 900 filters
+Pruned 1000 filters
+Pruned 1100 filters
+Pruned 1200 filters
+Pruned 1300 filters
+Pruned 1400 filters
+Total Filters Pruned: 1403
+Model size after 51% pruning: 263.2805290222168 MB
+************************* Fine-tuning model *************************
+Fine-tuning epoch 0
+Validation accuracy for epoch 0: 74.57885304659499
+Fine-tuning epoch 1
+Validation accuracy for epoch 1: 75.08960573476703
+Fine-tuning epoch 2
+Validation accuracy for epoch 2: 58.78584229390681
+Fine-tuning epoch 3
+Validation accuracy for epoch 3: 75.41218637992831
+Fine-tuning epoch 4
+Validation accuracy for epoch 4: 74.6505376344086
+Fine-tuning epoch 5
+Validation accuracy for epoch 5: 74.04121863799283
+Fine-tuning epoch 6
+Validation accuracy for epoch 6: 73.49910394265234
+Fine-tuning epoch 7
+Validation accuracy for epoch 7: 73.9695340501792
+Fine-tuning epoch 8
+Validation accuracy for epoch 8: 71.89964157706093
+Early stopping at epoch 8
+Pruning Amount 51, Model Size: 263.2805290222168, Pre-Acc: 65.1747311827957, Post-Acc: 72.14157706093191, Comp Time: 0.7770430928184873
+PruningFineTuner object deleted and memory cleared.
+****************************************************************************************************
+Percentage Done: 21.18%
+Pruning amount: 12
+Total Filters to prune: 330 For Pruning Percentage: 12
+Layers that will be pruned {18: 61, 16: 59, 6: 28, 8: 29, 13: 63, 11: 78, 3: 9, 0: 3}
+Pruning Filters
+Pruned 0 filters
+Pruned 100 filters
+Pruned 200 filters
+Pruned 300 filters
+Total Filters Pruned: 330
+Model size after 12% pruning: 436.8868293762207 MB
+************************* Fine-tuning model *************************
+Fine-tuning epoch 0
+Validation accuracy for epoch 0: 75.98566308243727
+Fine-tuning epoch 1
+Validation accuracy for epoch 1: 75.75268817204301
+Fine-tuning epoch 2
+Validation accuracy for epoch 2: 75.93189964157706
+Fine-tuning epoch 3
+Validation accuracy for epoch 3: 76.05286738351255
+Fine-tuning epoch 4
+Validation accuracy for epoch 4: 75.57795698924731
+Fine-tuning epoch 5
+Validation accuracy for epoch 5: 74.24283154121864
+Fine-tuning epoch 6
+Validation accuracy for epoch 6: 72.90322580645162
+Fine-tuning epoch 7
+Validation accuracy for epoch 7: 71.59498207885304
+Fine-tuning epoch 8
+Validation accuracy for epoch 8: 75.57347670250896
+Early stopping at epoch 8
+Pruning Amount 12, Model Size: 436.8868293762207, Pre-Acc: 65.50627240143369, Post-Acc: 75.331541218638, Comp Time: 1.256139630363101
+PruningFineTuner object deleted and memory cleared.
+****************************************************************************************************
+Percentage Done: 22.35%
+Pruning amount: 57
+Total Filters to prune: 1568 For Pruning Percentage: 57
+Layers that will be pruned {16: 257, 8: 153, 6: 156, 11: 313, 18: 307, 13: 318, 3: 36, 0: 28}
+Pruning Filters
+Pruned 0 filters
+Pruned 100 filters
+Pruned 200 filters
+Pruned 300 filters
+Pruned 400 filters
+Pruned 500 filters
+Pruned 600 filters
+Pruned 700 filters
+Pruned 800 filters
+Pruned 900 filters
+Pruned 1000 filters
+Pruned 1100 filters
+Pruned 1200 filters
+Pruned 1300 filters
+Pruned 1400 filters
+Pruned 1500 filters
+Total Filters Pruned: 1568
+Model size after 57% pruning: 227.81381607055664 MB
+************************* Fine-tuning model *************************
+Fine-tuning epoch 0
+Validation accuracy for epoch 0: 77.46415770609319
+Fine-tuning epoch 1
+Validation accuracy for epoch 1: 76.18727598566308
+Fine-tuning epoch 2
+Validation accuracy for epoch 2: 75.73476702508961
+Fine-tuning epoch 3
+Validation accuracy for epoch 3: 69.57885304659499
+Fine-tuning epoch 4
+Validation accuracy for epoch 4: 72.665770609319
+Fine-tuning epoch 5
+Validation accuracy for epoch 5: 72.42383512544804
+Early stopping at epoch 5
+Pruning Amount 57, Model Size: 227.81381607055664, Pre-Acc: 65.05376344086021, Post-Acc: 72.60752688172043, Comp Time: 0.6563753741128104
+PruningFineTuner object deleted and memory cleared.
+****************************************************************************************************
+Percentage Done: 23.53%
+Pruning amount: 82
+Total Filters to prune: 2256 For Pruning Percentage: 82
+Layers that will be pruned {11: 460, 16: 410, 13: 444, 18: 440, 6: 207, 8: 213, 0: 37, 3: 45}
+Pruning Filters
+Pruned 0 filters
+Pruned 100 filters
+Pruned 200 filters
+Pruned 300 filters
+Pruned 400 filters
+Pruned 500 filters
+Pruned 600 filters
+Pruned 700 filters
+Pruned 800 filters
+Pruned 900 filters
+Pruned 1000 filters
+Pruned 1100 filters
+Pruned 1200 filters
+Pruned 1300 filters
+Pruned 1400 filters
+Pruned 1500 filters
+Pruned 1600 filters
+Pruned 1700 filters
+Pruned 1800 filters
+Pruned 1900 filters
+Pruned 2000 filters
+Pruned 2100 filters
+Pruned 2200 filters
+Total Filters Pruned: 2256
+Model size after 82% pruning: 120.65401077270508 MB
+************************* Fine-tuning model *************************
+Fine-tuning epoch 0
+Validation accuracy for epoch 0: 77.99731182795699
+Fine-tuning epoch 1
+Validation accuracy for epoch 1: 76.37992831541219
+Fine-tuning epoch 2
+Validation accuracy for epoch 2: 76.75179211469533
+Fine-tuning epoch 3
+Validation accuracy for epoch 3: 69.62813620071685
+Fine-tuning epoch 4
+Validation accuracy for epoch 4: 75.81093189964157
+Fine-tuning epoch 5
+Validation accuracy for epoch 5: 74.00985663082437
+Early stopping at epoch 5
+Pruning Amount 82, Model Size: 120.65401077270508, Pre-Acc: 64.9820788530466, Post-Acc: 74.2831541218638, Comp Time: 0.4317561217716762
+PruningFineTuner object deleted and memory cleared.
+****************************************************************************************************
+Percentage Done: 24.71%
+Pruning amount: 63
+Total Filters to prune: 1733 For Pruning Percentage: 63
+Layers that will be pruned {11: 366, 6: 161, 8: 178, 13: 339, 16: 305, 18: 318, 0: 28, 3: 38}
+Pruning Filters
+Pruned 0 filters
+Pruned 100 filters
+Pruned 200 filters
+Pruned 300 filters
+Pruned 400 filters
+Pruned 500 filters
+Pruned 600 filters
+Pruned 700 filters
+Pruned 800 filters
+Pruned 900 filters
+Pruned 1000 filters
+Pruned 1100 filters
+Pruned 1200 filters
+Pruned 1300 filters
+Pruned 1400 filters
+Pruned 1500 filters
+Pruned 1600 filters
+Pruned 1700 filters
+Total Filters Pruned: 1733
+Model size after 63% pruning: 217.61135482788086 MB
+************************* Fine-tuning model *************************
+Fine-tuning epoch 0
+Validation accuracy for epoch 0: 76.67114695340503
+Fine-tuning epoch 1
+Validation accuracy for epoch 1: 76.38888888888889
+Fine-tuning epoch 2
+Validation accuracy for epoch 2: 75.82885304659499
+Fine-tuning epoch 3
+Validation accuracy for epoch 3: 72.77777777777777
+Fine-tuning epoch 4
+Validation accuracy for epoch 4: 75.97670250896057
+Fine-tuning epoch 5
+Validation accuracy for epoch 5: 72.92114695340501
+Early stopping at epoch 5
+Pruning Amount 63, Model Size: 217.61135482788086, Pre-Acc: 64.52508960573476, Post-Acc: 72.67473118279571, Comp Time: 0.6272144998822894
+PruningFineTuner object deleted and memory cleared.
+****************************************************************************************************
+Percentage Done: 25.88%
+Pruning amount: 33
+Total Filters to prune: 908 For Pruning Percentage: 33
+Layers that will be pruned {16: 170, 13: 195, 18: 165, 8: 86, 11: 182, 6: 79, 0: 13, 3: 18}
+Pruning Filters
+Pruned 0 filters
+Pruned 100 filters
+Pruned 200 filters
+Pruned 300 filters
+Pruned 400 filters
+Pruned 500 filters
+Pruned 600 filters
+Pruned 700 filters
+Pruned 800 filters
+Pruned 900 filters
+Total Filters Pruned: 908
+Model size after 33% pruning: 345.4392623901367 MB
+************************* Fine-tuning model *************************
+Fine-tuning epoch 0
+Validation accuracy for epoch 0: 76.85483870967742
+Fine-tuning epoch 1
+Validation accuracy for epoch 1: 76.37992831541219
+Fine-tuning epoch 2
+Validation accuracy for epoch 2: 76.62186379928315
+Fine-tuning epoch 3
+Validation accuracy for epoch 3: 75.5600358422939
+Fine-tuning epoch 4
+Validation accuracy for epoch 4: 75.77060931899642
+Fine-tuning epoch 5
+Validation accuracy for epoch 5: 75.82437275985663
+Early stopping at epoch 5
+Pruning Amount 33, Model Size: 345.4392623901367, Pre-Acc: 65.41666666666667, Post-Acc: 75.72132616487454, Comp Time: 0.9651338032313755
+PruningFineTuner object deleted and memory cleared.
+****************************************************************************************************
+Percentage Done: 27.06%
+Pruning amount: 30
+Total Filters to prune: 825 For Pruning Percentage: 30
+Layers that will be pruned {11: 165, 13: 173, 3: 19, 16: 151, 8: 73, 18: 162, 6: 72, 0: 10}
+Pruning Filters
+Pruned 0 filters
+Pruned 100 filters
+Pruned 200 filters
+Pruned 300 filters
+Pruned 400 filters
+Pruned 500 filters
+Pruned 600 filters
+Pruned 700 filters
+Pruned 800 filters
+Total Filters Pruned: 825
+Model size after 30% pruning: 349.33352279663086 MB
+************************* Fine-tuning model *************************
+Fine-tuning epoch 0
+Validation accuracy for epoch 0: 76.65770609318996
+Fine-tuning epoch 1
+Validation accuracy for epoch 1: 73.73207885304659
+Fine-tuning epoch 2
+Validation accuracy for epoch 2: 75.73924731182797
+Fine-tuning epoch 3
+Validation accuracy for epoch 3: 76.37992831541219
+Fine-tuning epoch 4
+Validation accuracy for epoch 4: 73.88440860215054
+Fine-tuning epoch 5
+Validation accuracy for epoch 5: 74.90143369175627
+Early stopping at epoch 5
+Pruning Amount 30, Model Size: 349.33352279663086, Pre-Acc: 65.34498207885304, Post-Acc: 75.07616487455198, Comp Time: 1.0151814165569486
+PruningFineTuner object deleted and memory cleared.
+****************************************************************************************************
+Percentage Done: 28.24%
+Pruning amount: 72
+Total Filters to prune: 1981 For Pruning Percentage: 72
+Layers that will be pruned {6: 181, 11: 410, 13: 386, 16: 366, 8: 180, 18: 380, 3: 46, 0: 32}
+Pruning Filters
+Pruned 0 filters
+Pruned 100 filters
+Pruned 200 filters
+Pruned 300 filters
+Pruned 400 filters
+Pruned 500 filters
+Pruned 600 filters
+Pruned 700 filters
+Pruned 800 filters
+Pruned 900 filters
+Pruned 1000 filters
+Pruned 1100 filters
+Pruned 1200 filters
+Pruned 1300 filters
+Pruned 1400 filters
+Pruned 1500 filters
+Pruned 1600 filters
+Pruned 1700 filters
+Pruned 1800 filters
+Pruned 1900 filters
+Total Filters Pruned: 1981
+Model size after 72% pruning: 168.11327362060547 MB
+************************* Fine-tuning model *************************
+Fine-tuning epoch 0
+Validation accuracy for epoch 0: 77.93010752688173
+Fine-tuning epoch 1
+Validation accuracy for epoch 1: 74.88351254480287
+Fine-tuning epoch 2
+Validation accuracy for epoch 2: 75.0
+Fine-tuning epoch 3
+Validation accuracy for epoch 3: 76.16935483870968
+Fine-tuning epoch 4
+Validation accuracy for epoch 4: 74.33243727598567
+Fine-tuning epoch 5
+Validation accuracy for epoch 5: 75.73028673835125
+Early stopping at epoch 5
+Pruning Amount 72, Model Size: 168.11327362060547, Pre-Acc: 65.08064516129032, Post-Acc: 75.66756272401433, Comp Time: 0.5180832772027879
+PruningFineTuner object deleted and memory cleared.
+****************************************************************************************************
+Percentage Done: 29.41%
+Pruning amount: 48
+Total Filters to prune: 1320 For Pruning Percentage: 48
+Layers that will be pruned {11: 263, 16: 254, 13: 253, 18: 274, 3: 32, 8: 115, 0: 24, 6: 105}
+Pruning Filters
+Pruned 0 filters
+Pruned 100 filters
+Pruned 200 filters
+Pruned 300 filters
+Pruned 400 filters
+Pruned 500 filters
+Pruned 600 filters
+Pruned 700 filters
+Pruned 800 filters
+Pruned 900 filters
+Pruned 1000 filters
+Pruned 1100 filters
+Pruned 1200 filters
+Pruned 1300 filters
+Total Filters Pruned: 1320
+Model size after 48% pruning: 255.95760345458984 MB
+************************* Fine-tuning model *************************
+Fine-tuning epoch 0
+Validation accuracy for epoch 0: 75.73924731182797
+Fine-tuning epoch 1
+Validation accuracy for epoch 1: 74.9820788530466
+Fine-tuning epoch 2
+Validation accuracy for epoch 2: 75.5421146953405
+Fine-tuning epoch 3
+Validation accuracy for epoch 3: 76.20967741935483
+Fine-tuning epoch 4
+Validation accuracy for epoch 4: 74.9820788530466
+Fine-tuning epoch 5
+Validation accuracy for epoch 5: 70.67204301075269
+Fine-tuning epoch 6
+Validation accuracy for epoch 6: 74.78494623655914
+Fine-tuning epoch 7
+Validation accuracy for epoch 7: 74.35483870967742
+Fine-tuning epoch 8
+Validation accuracy for epoch 8: 73.27060931899642
+Early stopping at epoch 8
+Pruning Amount 48, Model Size: 255.95760345458984, Pre-Acc: 65.39426523297492, Post-Acc: 73.33333333333333, Comp Time: 0.7398030757904053
+PruningFineTuner object deleted and memory cleared.
+****************************************************************************************************
+Percentage Done: 30.59%
+Pruning amount: 75
+Total Filters to prune: 2064 For Pruning Percentage: 75
+Layers that will be pruned {6: 189, 13: 405, 16: 369, 8: 198, 11: 420, 18: 401, 3: 48, 0: 34}
+Pruning Filters
+Pruned 0 filters
+Pruned 100 filters
+Pruned 200 filters
+Pruned 300 filters
+Pruned 400 filters
+Pruned 500 filters
+Pruned 600 filters
+Pruned 700 filters
+Pruned 800 filters
+Pruned 900 filters
+Pruned 1000 filters
+Pruned 1100 filters
+Pruned 1200 filters
+Pruned 1300 filters
+Pruned 1400 filters
+Pruned 1500 filters
+Pruned 1600 filters
+Pruned 1700 filters
+Pruned 1800 filters
+Pruned 1900 filters
+Pruned 2000 filters
+Total Filters Pruned: 2064
+Model size after 75% pruning: 151.52836227416992 MB
+************************* Fine-tuning model *************************
+Fine-tuning epoch 0
+Validation accuracy for epoch 0: 75.81989247311827
+Fine-tuning epoch 1
+Validation accuracy for epoch 1: 74.4758064516129
+Fine-tuning epoch 2
+Validation accuracy for epoch 2: 75.73028673835125
+Fine-tuning epoch 3
+Validation accuracy for epoch 3: 77.10125448028674
+Fine-tuning epoch 4
+Validation accuracy for epoch 4: 74.82974910394266
+Fine-tuning epoch 5
+Validation accuracy for epoch 5: 73.93817204301075
+Fine-tuning epoch 6
+Validation accuracy for epoch 6: 75.42114695340501
+Fine-tuning epoch 7
+Validation accuracy for epoch 7: 72.72401433691756
+Fine-tuning epoch 8
+Validation accuracy for epoch 8: 74.53405017921146
+Early stopping at epoch 8
+Pruning Amount 75, Model Size: 151.52836227416992, Pre-Acc: 65.06272401433691, Post-Acc: 74.6146953405018, Comp Time: 0.46561081068856375
+PruningFineTuner object deleted and memory cleared.
+****************************************************************************************************
+Percentage Done: 31.76%
+Pruning amount: 64
+Total Filters to prune: 1761 For Pruning Percentage: 64
+Layers that will be pruned {13: 351, 18: 339, 6: 163, 11: 349, 16: 320, 3: 37, 8: 172, 0: 30}
+Pruning Filters
+Pruned 0 filters
+Pruned 100 filters
+Pruned 200 filters
+Pruned 300 filters
+Pruned 400 filters
+Pruned 500 filters
+Pruned 600 filters
+Pruned 700 filters
+Pruned 800 filters
+Pruned 900 filters
+Pruned 1000 filters
+Pruned 1100 filters
+Pruned 1200 filters
+Pruned 1300 filters
+Pruned 1400 filters
+Pruned 1500 filters
+Pruned 1600 filters
+Pruned 1700 filters
+Total Filters Pruned: 1761
+Model size after 64% pruning: 201.24510955810547 MB
+************************* Fine-tuning model *************************
+Fine-tuning epoch 0
+Validation accuracy for epoch 0: 77.53136200716845
+Fine-tuning epoch 1
+Validation accuracy for epoch 1: 74.92831541218638
+Fine-tuning epoch 2
+Validation accuracy for epoch 2: 75.40770609318996
+Fine-tuning epoch 3
+Validation accuracy for epoch 3: 75.94086021505376
+Fine-tuning epoch 4
+Validation accuracy for epoch 4: 68.49910394265233
+Fine-tuning epoch 5
+Validation accuracy for epoch 5: 75.02240143369175
+Early stopping at epoch 5
+Pruning Amount 64, Model Size: 201.24510955810547, Pre-Acc: 65.1568100358423, Post-Acc: 74.9910394265233, Comp Time: 0.635600623630342
+PruningFineTuner object deleted and memory cleared.
+****************************************************************************************************
+Percentage Done: 32.94%
+Pruning amount: 44
+Total Filters to prune: 1210 For Pruning Percentage: 44
+Layers that will be pruned {11: 244, 16: 211, 6: 119, 13: 238, 18: 233, 8: 114, 0: 22, 3: 29}
+Pruning Filters
+Pruned 0 filters
+Pruned 100 filters
+Pruned 200 filters
+Pruned 300 filters
+Pruned 400 filters
+Pruned 500 filters
+Pruned 600 filters
+Pruned 700 filters
+Pruned 800 filters
+Pruned 900 filters
+Pruned 1000 filters
+Pruned 1100 filters
+Pruned 1200 filters
+Total Filters Pruned: 1210
+Model size after 44% pruning: 288.98523330688477 MB
+************************* Fine-tuning model *************************
+Fine-tuning epoch 0
+Validation accuracy for epoch 0: 77.15053763440861
+Fine-tuning epoch 1
+Validation accuracy for epoch 1: 77.39247311827957
+Fine-tuning epoch 2
+Validation accuracy for epoch 2: 76.81451612903226
+Fine-tuning epoch 3
+Validation accuracy for epoch 3: 75.62724014336918
+Fine-tuning epoch 4
+Validation accuracy for epoch 4: 74.05913978494624
+Fine-tuning epoch 5
+Validation accuracy for epoch 5: 75.30913978494624
+Fine-tuning epoch 6
+Validation accuracy for epoch 6: 73.00179211469533
+Early stopping at epoch 6
+Pruning Amount 44, Model Size: 288.98523330688477, Pre-Acc: 65.32706093189964, Post-Acc: 72.80017921146953, Comp Time: 0.8225044977097284
+PruningFineTuner object deleted and memory cleared.
+****************************************************************************************************
+Percentage Done: 34.12%
+Pruning amount: 62
+Total Filters to prune: 1706 For Pruning Percentage: 62
+Layers that will be pruned {13: 338, 18: 336, 11: 350, 3: 36, 16: 302, 8: 150, 6: 167, 0: 27}
+Pruning Filters
+Pruned 0 filters
+Pruned 100 filters
+Pruned 200 filters
+Pruned 300 filters
+Pruned 400 filters
+Pruned 500 filters
+Pruned 600 filters
+Pruned 700 filters
+Pruned 800 filters
+Pruned 900 filters
+Pruned 1000 filters
+Pruned 1100 filters
+Pruned 1200 filters
+Pruned 1300 filters
+Pruned 1400 filters
+Pruned 1500 filters
+Pruned 1600 filters
+Pruned 1700 filters
+Total Filters Pruned: 1706
+Model size after 62% pruning: 204.10740661621094 MB
+************************* Fine-tuning model *************************
+Fine-tuning epoch 0
+Validation accuracy for epoch 0: 78.16308243727599
+Fine-tuning epoch 1
+Validation accuracy for epoch 1: 77.0206093189964
+Fine-tuning epoch 2
+Validation accuracy for epoch 2: 74.93279569892472
+Fine-tuning epoch 3
+Validation accuracy for epoch 3: 75.60035842293907
+Fine-tuning epoch 4
+Validation accuracy for epoch 4: 72.98387096774194
+Fine-tuning epoch 5
+Validation accuracy for epoch 5: 76.5636200716846
+Early stopping at epoch 5
+Pruning Amount 62, Model Size: 204.10740661621094, Pre-Acc: 65.20609318996415, Post-Acc: 76.42921146953405, Comp Time: 0.6318237440926688
+PruningFineTuner object deleted and memory cleared.
+****************************************************************************************************
+Percentage Done: 35.29%
+Pruning amount: 23
+Total Filters to prune: 632 For Pruning Percentage: 23
+Layers that will be pruned {6: 47, 13: 129, 8: 61, 16: 123, 18: 121, 11: 125, 3: 16, 0: 10}
+Pruning Filters
+Pruned 0 filters
+Pruned 100 filters
+Pruned 200 filters
+Pruned 300 filters
+Pruned 400 filters
+Pruned 500 filters
+Pruned 600 filters
+Total Filters Pruned: 632
+Model size after 23% pruning: 384.3471450805664 MB
+************************* Fine-tuning model *************************
+Fine-tuning epoch 0
+Validation accuracy for epoch 0: 76.06182795698925
+Fine-tuning epoch 1
+Validation accuracy for epoch 1: 76.26792114695341
+Fine-tuning epoch 2
+Validation accuracy for epoch 2: 76.12455197132616
+Fine-tuning epoch 3
+Validation accuracy for epoch 3: 72.35663082437276
+Fine-tuning epoch 4
+Validation accuracy for epoch 4: 73.37813620071685
+Fine-tuning epoch 5
+Validation accuracy for epoch 5: 65.70340501792114
+Fine-tuning epoch 6
+Validation accuracy for epoch 6: 74.19354838709677
+Early stopping at epoch 6
+Pruning Amount 23, Model Size: 384.3471450805664, Pre-Acc: 65.39426523297492, Post-Acc: 74.2921146953405, Comp Time: 1.1911963508242653
+PruningFineTuner object deleted and memory cleared.
+****************************************************************************************************
+Percentage Done: 36.47%
+Pruning amount: 70
+Total Filters to prune: 1926 For Pruning Percentage: 70
+Layers that will be pruned {16: 354, 11: 398, 3: 45, 18: 377, 13: 378, 8: 169, 6: 171, 0: 34}
+Pruning Filters
+Pruned 0 filters
+Pruned 100 filters
+Pruned 200 filters
+Pruned 300 filters
+Pruned 400 filters
+Pruned 500 filters
+Pruned 600 filters
+Pruned 700 filters
+Pruned 800 filters
+Pruned 900 filters
+Pruned 1000 filters
+Pruned 1100 filters
+Pruned 1200 filters
+Pruned 1300 filters
+Pruned 1400 filters
+Pruned 1500 filters
+Pruned 1600 filters
+Pruned 1700 filters
+Pruned 1800 filters
+Pruned 1900 filters
+Total Filters Pruned: 1926
+Model size after 70% pruning: 170.81836318969727 MB
+************************* Fine-tuning model *************************
+Fine-tuning epoch 0
+Validation accuracy for epoch 0: 77.62992831541219
+Fine-tuning epoch 1
+Validation accuracy for epoch 1: 76.41129032258065
+Fine-tuning epoch 2
+Validation accuracy for epoch 2: 74.00985663082437
+Fine-tuning epoch 3
+Validation accuracy for epoch 3: 76.80107526881721
+Fine-tuning epoch 4
+Validation accuracy for epoch 4: 76.0663082437276
+Fine-tuning epoch 5
+Validation accuracy for epoch 5: 75.7168458781362
+Early stopping at epoch 5
+Pruning Amount 70, Model Size: 170.81836318969727, Pre-Acc: 65.22849462365592, Post-Acc: 75.90501792114695, Comp Time: 0.5536588260105678
+PruningFineTuner object deleted and memory cleared.
+****************************************************************************************************
+Percentage Done: 37.65%
+Pruning amount: 86
+Total Filters to prune: 2366 For Pruning Percentage: 86
+Layers that will be pruned {11: 470, 0: 44, 16: 427, 18: 448, 6: 230, 13: 451, 8: 228, 3: 68}
+Pruning Filters
+Pruned 0 filters
+Pruned 100 filters
+Pruned 200 filters
+Pruned 300 filters
+Pruned 400 filters
+Pruned 500 filters
+Pruned 600 filters
+Pruned 700 filters
+Pruned 800 filters
+Pruned 900 filters
+Pruned 1000 filters
+Pruned 1100 filters
+Pruned 1200 filters
+Pruned 1300 filters
+Pruned 1400 filters
+Pruned 1500 filters
+Pruned 1600 filters
+Pruned 1700 filters
+Pruned 1800 filters
+Pruned 1900 filters
+Pruned 2000 filters
+Pruned 2100 filters
+Pruned 2200 filters
+Pruned 2300 filters
+Total Filters Pruned: 2366
+Model size after 86% pruning: 114.16339874267578 MB
+************************* Fine-tuning model *************************
+Fine-tuning epoch 0
+Validation accuracy for epoch 0: 74.87903225806451
+Fine-tuning epoch 1
+Validation accuracy for epoch 1: 76.90860215053763
+Fine-tuning epoch 2
+Validation accuracy for epoch 2: 76.67114695340503
+Fine-tuning epoch 3
+Validation accuracy for epoch 3: 75.74372759856631
+Fine-tuning epoch 4
+Validation accuracy for epoch 4: 76.37992831541219
+Fine-tuning epoch 5
+Validation accuracy for epoch 5: 75.3673835125448
+Fine-tuning epoch 6
+Validation accuracy for epoch 6: 73.85752688172043
+Early stopping at epoch 6
+Pruning Amount 86, Model Size: 114.16339874267578, Pre-Acc: 64.43548387096774, Post-Acc: 73.65143369175627, Comp Time: 0.3429974260784331
+PruningFineTuner object deleted and memory cleared.
+****************************************************************************************************
+Percentage Done: 38.82%
+Pruning amount: 14
+Total Filters to prune: 385 For Pruning Percentage: 14
+Layers that will be pruned {16: 76, 18: 82, 11: 83, 8: 32, 13: 67, 6: 31, 0: 8, 3: 6}
+Pruning Filters
+Pruned 0 filters
+Pruned 100 filters
+Pruned 200 filters
+Pruned 300 filters
+Total Filters Pruned: 385
+Model size after 14% pruning: 419.63903427124023 MB
+************************* Fine-tuning model *************************
+Fine-tuning epoch 0
+Validation accuracy for epoch 0: 76.66218637992831
+Fine-tuning epoch 1
+Validation accuracy for epoch 1: 76.23207885304659
+Fine-tuning epoch 2
+Validation accuracy for epoch 2: 74.52508960573476
+Fine-tuning epoch 3
+Validation accuracy for epoch 3: 75.90053763440861
+Fine-tuning epoch 4
+Validation accuracy for epoch 4: 73.3557347670251
+Fine-tuning epoch 5
+Validation accuracy for epoch 5: 71.87724014336918
+Early stopping at epoch 5
+Pruning Amount 14, Model Size: 419.63903427124023, Pre-Acc: 65.58691756272401, Post-Acc: 71.9399641577061, Comp Time: 1.3134061495463054
+PruningFineTuner object deleted and memory cleared.
+****************************************************************************************************
+Percentage Done: 40.00%
+Pruning amount: 38
+Total Filters to prune: 1045 For Pruning Percentage: 38
+Layers that will be pruned {16: 191, 13: 217, 11: 203, 18: 205, 8: 91, 3: 26, 6: 99, 0: 13}
+Pruning Filters
+Pruned 0 filters
+Pruned 100 filters
+Pruned 200 filters
+Pruned 300 filters
+Pruned 400 filters
+Pruned 500 filters
+Pruned 600 filters
+Pruned 700 filters
+Pruned 800 filters
+Pruned 900 filters
+Pruned 1000 filters
+Total Filters Pruned: 1045
+Model size after 38% pruning: 312.7378387451172 MB
+************************* Fine-tuning model *************************
+Fine-tuning epoch 0
+Validation accuracy for epoch 0: 76.61290322580645
+Fine-tuning epoch 1
+Validation accuracy for epoch 1: 77.19086021505376
+Fine-tuning epoch 2
+Validation accuracy for epoch 2: 75.48835125448029
+Fine-tuning epoch 3
+Validation accuracy for epoch 3: 77.77329749103943
+Fine-tuning epoch 4
+Validation accuracy for epoch 4: 74.43100358422939
+Fine-tuning epoch 5
+Validation accuracy for epoch 5: 76.24103942652329
+Fine-tuning epoch 6
+Validation accuracy for epoch 6: 73.92921146953405
+Fine-tuning epoch 7
+Validation accuracy for epoch 7: 75.17025089605734
+Fine-tuning epoch 8
+Validation accuracy for epoch 8: 74.96415770609319
+Early stopping at epoch 8
+Pruning Amount 38, Model Size: 312.7378387451172, Pre-Acc: 65.11200716845879, Post-Acc: 75.1836917562724, Comp Time: 0.972647712344215
+PruningFineTuner object deleted and memory cleared.
+****************************************************************************************************
+Percentage Done: 41.18%
+Pruning amount: 54
+Total Filters to prune: 1486 For Pruning Percentage: 54
+Layers that will be pruned {13: 280, 11: 318, 16: 270, 18: 275, 6: 144, 8: 130, 3: 39, 0: 30}
+Pruning Filters
+Pruned 0 filters
+Pruned 100 filters
+Pruned 200 filters
+Pruned 300 filters
+Pruned 400 filters
+Pruned 500 filters
+Pruned 600 filters
+Pruned 700 filters
+Pruned 800 filters
+Pruned 900 filters
+Pruned 1000 filters
+Pruned 1100 filters
+Pruned 1200 filters
+Pruned 1300 filters
+Pruned 1400 filters
+Total Filters Pruned: 1486
+Model size after 54% pruning: 253.22015762329102 MB
+************************* Fine-tuning model *************************
+Fine-tuning epoch 0
+Validation accuracy for epoch 0: 76.77867383512545
+Fine-tuning epoch 1
+Validation accuracy for epoch 1: 75.75268817204301
+Fine-tuning epoch 2
+Validation accuracy for epoch 2: 77.05645161290322
+Fine-tuning epoch 3
+Validation accuracy for epoch 3: 77.55376344086021
+Fine-tuning epoch 4
+Validation accuracy for epoch 4: 74.51164874551971
+Fine-tuning epoch 5
+Validation accuracy for epoch 5: 73.77240143369175
+Fine-tuning epoch 6
+Validation accuracy for epoch 6: 74.35483870967742
+Fine-tuning epoch 7
+Validation accuracy for epoch 7: 73.67383512544802
+Fine-tuning epoch 8
+Validation accuracy for epoch 8: 75.10304659498208
+Early stopping at epoch 8
+Pruning Amount 54, Model Size: 253.22015762329102, Pre-Acc: 65.27329749103943, Post-Acc: 75.24641577060932, Comp Time: 0.6869870026906332
+PruningFineTuner object deleted and memory cleared.
+****************************************************************************************************
+Percentage Done: 42.35%
+Pruning amount: 37
+Total Filters to prune: 1018 For Pruning Percentage: 37
+Layers that will be pruned {13: 200, 11: 216, 16: 187, 18: 196, 0: 18, 6: 82, 3: 17, 8: 102}
+Pruning Filters
+Pruned 0 filters
+Pruned 100 filters
+Pruned 200 filters
+Pruned 300 filters
+Pruned 400 filters
+Pruned 500 filters
+Pruned 600 filters
+Pruned 700 filters
+Pruned 800 filters
+Pruned 900 filters
+Pruned 1000 filters
+Total Filters Pruned: 1018
+Model size after 37% pruning: 319.9970893859863 MB
+************************* Fine-tuning model *************************
+Fine-tuning epoch 0
+Validation accuracy for epoch 0: 75.89157706093191
+Fine-tuning epoch 1
+Validation accuracy for epoch 1: 75.23745519713262
+Fine-tuning epoch 2
+Validation accuracy for epoch 2: 74.37275985663082
+Fine-tuning epoch 3
+Validation accuracy for epoch 3: 75.37186379928316
+Fine-tuning epoch 4
+Validation accuracy for epoch 4: 76.12007168458781
+Fine-tuning epoch 5
+Validation accuracy for epoch 5: 74.08602150537634
+Fine-tuning epoch 6
+Validation accuracy for epoch 6: 74.91935483870968
+Fine-tuning epoch 7
+Validation accuracy for epoch 7: 73.584229390681
+Fine-tuning epoch 8
+Validation accuracy for epoch 8: 74.6236559139785
+Fine-tuning epoch 9
+Validation accuracy for epoch 9: 72.45071684587813
+Early stopping at epoch 9
+Pruning Amount 37, Model Size: 319.9970893859863, Pre-Acc: 65.03584229390681, Post-Acc: 72.58512544802868, Comp Time: 0.952736116590954
+PruningFineTuner object deleted and memory cleared.
+****************************************************************************************************
+Percentage Done: 43.53%
+Pruning amount: 49
+Total Filters to prune: 1348 For Pruning Percentage: 49
+Layers that will be pruned {13: 274, 11: 279, 16: 241, 6: 125, 18: 251, 8: 122, 3: 30, 0: 26}
+Pruning Filters
+Pruned 0 filters
+Pruned 100 filters
+Pruned 200 filters
+Pruned 300 filters
+Pruned 400 filters
+Pruned 500 filters
+Pruned 600 filters
+Pruned 700 filters
+Pruned 800 filters
+Pruned 900 filters
+Pruned 1000 filters
+Pruned 1100 filters
+Pruned 1200 filters
+Pruned 1300 filters
+Total Filters Pruned: 1348
+Model size after 49% pruning: 273.17417907714844 MB
+************************* Fine-tuning model *************************
+Fine-tuning epoch 0
+Validation accuracy for epoch 0: 76.0394265232975
+Fine-tuning epoch 1
+Validation accuracy for epoch 1: 75.9094982078853
+Fine-tuning epoch 2
+Validation accuracy for epoch 2: 74.6236559139785
+Fine-tuning epoch 3
+Validation accuracy for epoch 3: 74.90591397849462
+Fine-tuning epoch 4
+Validation accuracy for epoch 4: 74.98655913978494
+Fine-tuning epoch 5
+Validation accuracy for epoch 5: 72.38799283154121
+Early stopping at epoch 5
+Pruning Amount 49, Model Size: 273.17417907714844, Pre-Acc: 65.41666666666667, Post-Acc: 72.24462365591397, Comp Time: 0.7616430237179711
+PruningFineTuner object deleted and memory cleared.
+****************************************************************************************************
+Percentage Done: 44.71%
+Pruning amount: 35
+Total Filters to prune: 963 For Pruning Percentage: 35
+Layers that will be pruned {16: 193, 6: 99, 13: 169, 11: 194, 8: 97, 18: 167, 3: 24, 0: 20}
+Pruning Filters
+Pruned 0 filters
+Pruned 100 filters
+Pruned 200 filters
+Pruned 300 filters
+Pruned 400 filters
+Pruned 500 filters
+Pruned 600 filters
+Pruned 700 filters
+Pruned 800 filters
+Pruned 900 filters
+Total Filters Pruned: 963
+Model size after 35% pruning: 343.2893409729004 MB
+************************* Fine-tuning model *************************
+Fine-tuning epoch 0
+Validation accuracy for epoch 0: 77.09229390681004
+Fine-tuning epoch 1
+Validation accuracy for epoch 1: 75.52867383512545
+Fine-tuning epoch 2
+Validation accuracy for epoch 2: 77.60304659498209
+Fine-tuning epoch 3
+Validation accuracy for epoch 3: 75.74372759856631
+Fine-tuning epoch 4
+Validation accuracy for epoch 4: 74.40860215053763
+Fine-tuning epoch 5
+Validation accuracy for epoch 5: 73.85304659498208
+Fine-tuning epoch 6
+Validation accuracy for epoch 6: 73.3557347670251
+Fine-tuning epoch 7
+Validation accuracy for epoch 7: 74.41308243727599
+Early stopping at epoch 7
+Pruning Amount 35, Model Size: 343.2893409729004, Pre-Acc: 65.40322580645162, Post-Acc: 74.4758064516129, Comp Time: 0.9935818172636486
+PruningFineTuner object deleted and memory cleared.
+****************************************************************************************************
+Percentage Done: 45.88%
+Pruning amount: 67
+Total Filters to prune: 1843 For Pruning Percentage: 67
+Layers that will be pruned {18: 346, 16: 336, 6: 177, 13: 354, 11: 394, 8: 167, 0: 30, 3: 39}
+Pruning Filters
+Pruned 0 filters
+Pruned 100 filters
+Pruned 200 filters
+Pruned 300 filters
+Pruned 400 filters
+Pruned 500 filters
+Pruned 600 filters
+Pruned 700 filters
+Pruned 800 filters
+Pruned 900 filters
+Pruned 1000 filters
+Pruned 1100 filters
+Pruned 1200 filters
+Pruned 1300 filters
+Pruned 1400 filters
+Pruned 1500 filters
+Pruned 1600 filters
+Pruned 1700 filters
+Pruned 1800 filters
+Total Filters Pruned: 1843
+Model size after 67% pruning: 195.19280242919922 MB
+************************* Fine-tuning model *************************
+Fine-tuning epoch 0
+Validation accuracy for epoch 0: 76.14695340501792
+Fine-tuning epoch 1
+Validation accuracy for epoch 1: 74.1353046594982
+Fine-tuning epoch 2
+Validation accuracy for epoch 2: 76.76523297491039
+Fine-tuning epoch 3
+Validation accuracy for epoch 3: 71.29928315412187
+Fine-tuning epoch 4
+Validation accuracy for epoch 4: 75.97222222222221
+Fine-tuning epoch 5
+Validation accuracy for epoch 5: 74.2741935483871
+Fine-tuning epoch 6
+Validation accuracy for epoch 6: 73.88440860215054
+Fine-tuning epoch 7
+Validation accuracy for epoch 7: 74.19802867383513
+Early stopping at epoch 7
+Pruning Amount 67, Model Size: 195.19280242919922, Pre-Acc: 65.20161290322581, Post-Acc: 74.26523297491039, Comp Time: 0.6127720333281017
+PruningFineTuner object deleted and memory cleared.
+****************************************************************************************************
+Percentage Done: 47.06%
+Pruning amount: 74
+Total Filters to prune: 2036 For Pruning Percentage: 74
+Layers that will be pruned {13: 391, 18: 382, 6: 187, 16: 387, 3: 45, 11: 420, 8: 191, 0: 33}
+Pruning Filters
+Pruned 0 filters
+Pruned 100 filters
+Pruned 200 filters
+Pruned 300 filters
+Pruned 400 filters
+Pruned 500 filters
+Pruned 600 filters
+Pruned 700 filters
+Pruned 800 filters
+Pruned 900 filters
+Pruned 1000 filters
+Pruned 1100 filters
+Pruned 1200 filters
+Pruned 1300 filters
+Pruned 1400 filters
+Pruned 1500 filters
+Pruned 1600 filters
+Pruned 1700 filters
+Pruned 1800 filters
+Pruned 1900 filters
+Pruned 2000 filters
+Total Filters Pruned: 2036
+Model size after 74% pruning: 166.18778228759766 MB
+************************* Fine-tuning model *************************
+Fine-tuning epoch 0
+Validation accuracy for epoch 0: 77.0206093189964
+Fine-tuning epoch 1
+Validation accuracy for epoch 1: 76.21863799283155
+Fine-tuning epoch 2
+Validation accuracy for epoch 2: 76.83691756272401
+Fine-tuning epoch 3
+Validation accuracy for epoch 3: 73.78136200716845
+Fine-tuning epoch 4
+Validation accuracy for epoch 4: 75.65412186379929
+Fine-tuning epoch 5
+Validation accuracy for epoch 5: 76.00358422939068
+Early stopping at epoch 5
+Pruning Amount 74, Model Size: 166.18778228759766, Pre-Acc: 65.31810035842294, Post-Acc: 75.95878136200717, Comp Time: 0.5168084417070661
+PruningFineTuner object deleted and memory cleared.
+****************************************************************************************************
+Percentage Done: 48.24%
+Pruning amount: 32
+Total Filters to prune: 880 For Pruning Percentage: 32
+Layers that will be pruned {3: 20, 16: 166, 18: 162, 11: 188, 8: 75, 13: 170, 6: 85, 0: 14}
+Pruning Filters
+Pruned 0 filters
+Pruned 100 filters
+Pruned 200 filters
+Pruned 300 filters
+Pruned 400 filters
+Pruned 500 filters
+Pruned 600 filters
+Pruned 700 filters
+Pruned 800 filters
+Total Filters Pruned: 880
+Model size after 32% pruning: 348.4480209350586 MB
+************************* Fine-tuning model *************************
+Fine-tuning epoch 0
+Validation accuracy for epoch 0: 77.32526881720429
+Fine-tuning epoch 1
+Validation accuracy for epoch 1: 76.07974910394265
+Fine-tuning epoch 2
+Validation accuracy for epoch 2: 76.89964157706093
+Fine-tuning epoch 3
+Validation accuracy for epoch 3: 76.6353046594982
+Fine-tuning epoch 4
+Validation accuracy for epoch 4: 75.3405017921147
+Fine-tuning epoch 5
+Validation accuracy for epoch 5: 71.32168458781362
+Early stopping at epoch 5
+Pruning Amount 32, Model Size: 348.4480209350586, Pre-Acc: 65.34498207885304, Post-Acc: 71.07078853046595, Comp Time: 1.024655546460833
+PruningFineTuner object deleted and memory cleared.
+****************************************************************************************************
+Percentage Done: 49.41%
+Pruning amount: 71
+Total Filters to prune: 1953 For Pruning Percentage: 71
+Layers that will be pruned {13: 373, 11: 409, 16: 367, 6: 174, 18: 381, 8: 171, 0: 34, 3: 44}
+Pruning Filters
+Pruned 0 filters
+Pruned 100 filters
+Pruned 200 filters
+Pruned 300 filters
+Pruned 400 filters
+Pruned 500 filters
+Pruned 600 filters
+Pruned 700 filters
+Pruned 800 filters
+Pruned 900 filters
+Pruned 1000 filters
+Pruned 1100 filters
+Pruned 1200 filters
+Pruned 1300 filters
+Pruned 1400 filters
+Pruned 1500 filters
+Pruned 1600 filters
+Pruned 1700 filters
+Pruned 1800 filters
+Pruned 1900 filters
+Total Filters Pruned: 1953
+Model size after 71% pruning: 167.54853057861328 MB
+************************* Fine-tuning model *************************
+Fine-tuning epoch 0
+Validation accuracy for epoch 0: 78.42293906810036
+Fine-tuning epoch 1
+Validation accuracy for epoch 1: 77.5
+Fine-tuning epoch 2
+Validation accuracy for epoch 2: 75.62724014336918
+Fine-tuning epoch 3
+Validation accuracy for epoch 3: 75.64516129032258
+Fine-tuning epoch 4
+Validation accuracy for epoch 4: 74.73118279569893
+Fine-tuning epoch 5
+Validation accuracy for epoch 5: 75.04928315412187
+Early stopping at epoch 5
+Pruning Amount 71, Model Size: 167.54853057861328, Pre-Acc: 65.09408602150538, Post-Acc: 74.92383512544802, Comp Time: 0.5320005530402774
+PruningFineTuner object deleted and memory cleared.
+****************************************************************************************************
+Percentage Done: 50.59%
+Pruning amount: 7
+Total Filters to prune: 192 For Pruning Percentage: 7
+Layers that will be pruned {11: 34, 6: 28, 8: 19, 16: 30, 13: 28, 18: 45, 0: 2, 3: 6}
+Pruning Filters
+Pruned 0 filters
+Pruned 100 filters
+Total Filters Pruned: 192
+Model size after 7% pruning: 452.74938583374023 MB
+************************* Fine-tuning model *************************
+Fine-tuning epoch 0
+Validation accuracy for epoch 0: 77.98387096774194
+Fine-tuning epoch 1
+Validation accuracy for epoch 1: 75.90501792114695
+Fine-tuning epoch 2
+Validation accuracy for epoch 2: 74.2831541218638
+Fine-tuning epoch 3
+Validation accuracy for epoch 3: 72.77329749103943
+Fine-tuning epoch 4
+Validation accuracy for epoch 4: 75.12096774193549
+Fine-tuning epoch 5
+Validation accuracy for epoch 5: 73.93817204301075
+Early stopping at epoch 5
+Pruning Amount 7, Model Size: 452.74938583374023, Pre-Acc: 65.74820788530465, Post-Acc: 74.18906810035843, Comp Time: 1.4713394528343564
+PruningFineTuner object deleted and memory cleared.
+****************************************************************************************************
+Percentage Done: 51.76%
+Pruning amount: 65
+Total Filters to prune: 1788 For Pruning Percentage: 65
+Layers that will be pruned {18: 344, 8: 164, 3: 40, 13: 364, 16: 326, 6: 158, 11: 359, 0: 33}
+Pruning Filters
+Pruned 0 filters
+Pruned 100 filters
+Pruned 200 filters
+Pruned 300 filters
+Pruned 400 filters
+Pruned 500 filters
+Pruned 600 filters
+Pruned 700 filters
+Pruned 800 filters
+Pruned 900 filters
+Pruned 1000 filters
+Pruned 1100 filters
+Pruned 1200 filters
+Pruned 1300 filters
+Pruned 1400 filters
+Pruned 1500 filters
+Pruned 1600 filters
+Pruned 1700 filters
+Total Filters Pruned: 1788
+Model size after 65% pruning: 197.15674591064453 MB
+************************* Fine-tuning model *************************
+Fine-tuning epoch 0
+Validation accuracy for epoch 0: 76.19175627240143
+Fine-tuning epoch 1
+Validation accuracy for epoch 1: 74.67293906810036
+Fine-tuning epoch 2
+Validation accuracy for epoch 2: 75.04928315412187
+Fine-tuning epoch 3
+Validation accuracy for epoch 3: 72.21326164874552
+Fine-tuning epoch 4
+Validation accuracy for epoch 4: 74.6505376344086
+Fine-tuning epoch 5
+Validation accuracy for epoch 5: 73.9336917562724
+Early stopping at epoch 5
+Pruning Amount 65, Model Size: 197.15674591064453, Pre-Acc: 65.40770609318997, Post-Acc: 73.30645161290322, Comp Time: 0.5928896608806792
+PruningFineTuner object deleted and memory cleared.
+****************************************************************************************************
+Percentage Done: 52.94%
+Pruning amount: 40
+Total Filters to prune: 1100 For Pruning Percentage: 40
+Layers that will be pruned {13: 214, 6: 101, 16: 199, 11: 234, 18: 201, 8: 107, 3: 25, 0: 19}
+Pruning Filters
+Pruned 0 filters
+Pruned 100 filters
+Pruned 200 filters
+Pruned 300 filters
+Pruned 400 filters
+Pruned 500 filters
+Pruned 600 filters
+Pruned 700 filters
+Pruned 800 filters
+Pruned 900 filters
+Pruned 1000 filters
+Total Filters Pruned: 1100
+Model size after 40% pruning: 314.97811126708984 MB
+************************* Fine-tuning model *************************
+Fine-tuning epoch 0
+Validation accuracy for epoch 0: 76.76075268817203
+Fine-tuning epoch 1
+Validation accuracy for epoch 1: 75.32258064516128
+Fine-tuning epoch 2
+Validation accuracy for epoch 2: 75.86021505376344
+Fine-tuning epoch 3
+Validation accuracy for epoch 3: 72.8942652329749
+Fine-tuning epoch 4
+Validation accuracy for epoch 4: 76.18727598566308
+Fine-tuning epoch 5
+Validation accuracy for epoch 5: 75.0089605734767
+Early stopping at epoch 5
+Pruning Amount 40, Model Size: 314.97811126708984, Pre-Acc: 65.23745519713262, Post-Acc: 74.90591397849462, Comp Time: 0.9017133372170585
+PruningFineTuner object deleted and memory cleared.
+****************************************************************************************************
+Percentage Done: 54.12%
+Pruning amount: 21
+Total Filters to prune: 577 For Pruning Percentage: 21
+Layers that will be pruned {16: 98, 6: 55, 18: 111, 11: 123, 8: 48, 13: 114, 0: 11, 3: 17}
+Pruning Filters
+Pruned 0 filters
+Pruned 100 filters
+Pruned 200 filters
+Pruned 300 filters
+Pruned 400 filters
+Pruned 500 filters
+Total Filters Pruned: 577
+Model size after 21% pruning: 393.429630279541 MB
+************************* Fine-tuning model *************************
+Fine-tuning epoch 0
+Validation accuracy for epoch 0: 77.56720430107526
+Fine-tuning epoch 1
+Validation accuracy for epoch 1: 76.55913978494624
+Fine-tuning epoch 2
+Validation accuracy for epoch 2: 73.90232974910394
+Fine-tuning epoch 3
+Validation accuracy for epoch 3: 76.6173835125448
+Fine-tuning epoch 4
+Validation accuracy for epoch 4: 74.77598566308244
+Fine-tuning epoch 5
+Validation accuracy for epoch 5: 74.46236559139786
+Early stopping at epoch 5
+Pruning Amount 21, Model Size: 393.429630279541, Pre-Acc: 65.3405017921147, Post-Acc: 74.31899641577061, Comp Time: 1.1640171323503767
+PruningFineTuner object deleted and memory cleared.
+****************************************************************************************************
+Percentage Done: 55.29%
+Pruning amount: 55
+Total Filters to prune: 1513 For Pruning Percentage: 55
+Layers that will be pruned {11: 323, 16: 271, 18: 285, 13: 296, 8: 144, 6: 129, 0: 31, 3: 34}
+Pruning Filters
+Pruned 0 filters
+Pruned 100 filters
+Pruned 200 filters
+Pruned 300 filters
+Pruned 400 filters
+Pruned 500 filters
+Pruned 600 filters
+Pruned 700 filters
+Pruned 800 filters
+Pruned 900 filters
+Pruned 1000 filters
+Pruned 1100 filters
+Pruned 1200 filters
+Pruned 1300 filters
+Pruned 1400 filters
+Pruned 1500 filters
+Total Filters Pruned: 1513
+Model size after 55% pruning: 245.15044403076172 MB
+************************* Fine-tuning model *************************
+Fine-tuning epoch 0
+Validation accuracy for epoch 0: 76.5636200716846
+Fine-tuning epoch 1
+Validation accuracy for epoch 1: 74.65501792114695
+Fine-tuning epoch 2
+Validation accuracy for epoch 2: 76.24103942652329
+Fine-tuning epoch 3
+Validation accuracy for epoch 3: 76.96236559139786
+Fine-tuning epoch 4
+Validation accuracy for epoch 4: 74.23835125448028
+Fine-tuning epoch 5
+Validation accuracy for epoch 5: 75.38978494623656
+Fine-tuning epoch 6
+Validation accuracy for epoch 6: 75.38978494623656
+Fine-tuning epoch 7
+Validation accuracy for epoch 7: 73.3736559139785
+Fine-tuning epoch 8
+Validation accuracy for epoch 8: 72.8584229390681
+Early stopping at epoch 8
+Pruning Amount 55, Model Size: 245.15044403076172, Pre-Acc: 65.28225806451613, Post-Acc: 72.71505376344086, Comp Time: 0.7196518125988188
+PruningFineTuner object deleted and memory cleared.
+****************************************************************************************************
+Percentage Done: 56.47%
+Pruning amount: 68
+Total Filters to prune: 1871 For Pruning Percentage: 68
+Layers that will be pruned {8: 175, 11: 382, 16: 350, 13: 369, 18: 354, 6: 162, 3: 44, 0: 35}
+Pruning Filters
+Pruned 0 filters
+Pruned 100 filters
+Pruned 200 filters
+Pruned 300 filters
+Pruned 400 filters
+Pruned 500 filters
+Pruned 600 filters
+Pruned 700 filters
+Pruned 800 filters
+Pruned 900 filters
+Pruned 1000 filters
+Pruned 1100 filters
+Pruned 1200 filters
+Pruned 1300 filters
+Pruned 1400 filters
+Pruned 1500 filters
+Pruned 1600 filters
+Pruned 1700 filters
+Pruned 1800 filters
+Total Filters Pruned: 1871
+Model size after 68% pruning: 188.81209182739258 MB
+************************* Fine-tuning model *************************
+Fine-tuning epoch 0
+Validation accuracy for epoch 0: 78.2258064516129
+Fine-tuning epoch 1
+Validation accuracy for epoch 1: 76.95340501792116
+Fine-tuning epoch 2
+Validation accuracy for epoch 2: 75.38082437275986
+Fine-tuning epoch 3
+Validation accuracy for epoch 3: 74.21594982078852
+Fine-tuning epoch 4
+Validation accuracy for epoch 4: 76.04838709677419
+Fine-tuning epoch 5
+Validation accuracy for epoch 5: 74.93727598566309
+Early stopping at epoch 5
+Pruning Amount 68, Model Size: 188.81209182739258, Pre-Acc: 65.39426523297492, Post-Acc: 75.10752688172043, Comp Time: 0.5641441231682187
+PruningFineTuner object deleted and memory cleared.
+****************************************************************************************************
+Percentage Done: 57.65%
+Pruning amount: 47
+Total Filters to prune: 1293 For Pruning Percentage: 47
+Layers that will be pruned {18: 236, 11: 255, 6: 118, 13: 243, 16: 237, 8: 148, 0: 26, 3: 30}
+Pruning Filters
+Pruned 0 filters
+Pruned 100 filters
+Pruned 200 filters
+Pruned 300 filters
+Pruned 400 filters
+Pruned 500 filters
+Pruned 600 filters
+Pruned 700 filters
+Pruned 800 filters
+Pruned 900 filters
+Pruned 1000 filters
+Pruned 1100 filters
+Pruned 1200 filters
+Total Filters Pruned: 1293
+Model size after 47% pruning: 285.4448013305664 MB
+************************* Fine-tuning model *************************
+Fine-tuning epoch 0
+Validation accuracy for epoch 0: 75.68996415770609
+Fine-tuning epoch 1
+Validation accuracy for epoch 1: 76.7921146953405
+Fine-tuning epoch 2
+Validation accuracy for epoch 2: 75.22401433691756
+Fine-tuning epoch 3
+Validation accuracy for epoch 3: 75.72132616487454
+Fine-tuning epoch 4
+Validation accuracy for epoch 4: 72.38351254480287
+Fine-tuning epoch 5
+Validation accuracy for epoch 5: 71.69802867383513
+Fine-tuning epoch 6
+Validation accuracy for epoch 6: 70.57347670250897
+Early stopping at epoch 6
+Pruning Amount 47, Model Size: 285.4448013305664, Pre-Acc: 65.23297491039428, Post-Acc: 70.54659498207886, Comp Time: 0.7957909674871535
+PruningFineTuner object deleted and memory cleared.
+****************************************************************************************************
+Percentage Done: 58.82%
+Pruning amount: 31
+Total Filters to prune: 853 For Pruning Percentage: 31
+Layers that will be pruned {18: 164, 11: 185, 13: 176, 16: 148, 8: 70, 6: 77, 3: 19, 0: 14}
+Pruning Filters
+Pruned 0 filters
+Pruned 100 filters
+Pruned 200 filters
+Pruned 300 filters
+Pruned 400 filters
+Pruned 500 filters
+Pruned 600 filters
+Pruned 700 filters
+Pruned 800 filters
+Total Filters Pruned: 853
+Model size after 31% pruning: 347.40514755249023 MB
+************************* Fine-tuning model *************************
+Fine-tuning epoch 0
+Validation accuracy for epoch 0: 75.89157706093191
+Fine-tuning epoch 1
+Validation accuracy for epoch 1: 74.14426523297492
+Fine-tuning epoch 2
+Validation accuracy for epoch 2: 76.7921146953405
+Fine-tuning epoch 3
+Validation accuracy for epoch 3: 76.92652329749103
+Fine-tuning epoch 4
+Validation accuracy for epoch 4: 75.94086021505376
+Fine-tuning epoch 5
+Validation accuracy for epoch 5: 74.97311827956989
+Fine-tuning epoch 6
+Validation accuracy for epoch 6: 74.20698924731182
+Fine-tuning epoch 7
+Validation accuracy for epoch 7: 74.31451612903226
+Fine-tuning epoch 8
+Validation accuracy for epoch 8: 73.70519713261649
+Early stopping at epoch 8
+Pruning Amount 31, Model Size: 347.40514755249023, Pre-Acc: 65.26881720430107, Post-Acc: 73.62007168458781, Comp Time: 1.0282348905290877
+PruningFineTuner object deleted and memory cleared.
+****************************************************************************************************
+Percentage Done: 60.00%
+Pruning amount: 46
+Total Filters to prune: 1265 For Pruning Percentage: 46
+Layers that will be pruned {11: 244, 16: 236, 8: 116, 13: 248, 18: 245, 6: 125, 0: 20, 3: 31}
+Pruning Filters
+Pruned 0 filters
+Pruned 100 filters
+Pruned 200 filters
+Pruned 300 filters
+Pruned 400 filters
+Pruned 500 filters
+Pruned 600 filters
+Pruned 700 filters
+Pruned 800 filters
+Pruned 900 filters
+Pruned 1000 filters
+Pruned 1100 filters
+Pruned 1200 filters
+Total Filters Pruned: 1265
+Model size after 46% pruning: 278.9403495788574 MB
+************************* Fine-tuning model *************************
+Fine-tuning epoch 0
+Validation accuracy for epoch 0: 76.31272401433692
+Fine-tuning epoch 1
+Validation accuracy for epoch 1: 75.76164874551972
+Fine-tuning epoch 2
+Validation accuracy for epoch 2: 76.30376344086022
+Fine-tuning epoch 3
+Validation accuracy for epoch 3: 74.37275985663082
+Fine-tuning epoch 4
+Validation accuracy for epoch 4: 74.87455197132617
+Fine-tuning epoch 5
+Validation accuracy for epoch 5: 75.12096774193549
+Early stopping at epoch 5
+Pruning Amount 46, Model Size: 278.9403495788574, Pre-Acc: 65.24193548387098, Post-Acc: 75.331541218638, Comp Time: 0.8573643025897798
+PruningFineTuner object deleted and memory cleared.
+****************************************************************************************************
+Percentage Done: 61.18%
+Pruning amount: 73
+Total Filters to prune: 2008 For Pruning Percentage: 73
+Layers that will be pruned {18: 363, 13: 396, 11: 419, 3: 45, 16: 372, 6: 187, 8: 195, 0: 31}
+Pruning Filters
+Pruned 0 filters
+Pruned 100 filters
+Pruned 200 filters
+Pruned 300 filters
+Pruned 400 filters
+Pruned 500 filters
+Pruned 600 filters
+Pruned 700 filters
+Pruned 800 filters
+Pruned 900 filters
+Pruned 1000 filters
+Pruned 1100 filters
+Pruned 1200 filters
+Pruned 1300 filters
+Pruned 1400 filters
+Pruned 1500 filters
+Pruned 1600 filters
+Pruned 1700 filters
+Pruned 1800 filters
+Pruned 1900 filters
+Pruned 2000 filters
+Total Filters Pruned: 2008
+Model size after 73% pruning: 180.9053955078125 MB
+************************* Fine-tuning model *************************
+Fine-tuning epoch 0
+Validation accuracy for epoch 0: 75.63620071684588
+Fine-tuning epoch 1
+Validation accuracy for epoch 1: 74.70878136200717
+Fine-tuning epoch 2
+Validation accuracy for epoch 2: 76.21863799283155
+Fine-tuning epoch 3
+Validation accuracy for epoch 3: 74.84767025089606
+Fine-tuning epoch 4
+Validation accuracy for epoch 4: 75.51971326164875
+Fine-tuning epoch 5
+Validation accuracy for epoch 5: 73.5931899641577
+Fine-tuning epoch 6
+Validation accuracy for epoch 6: 73.11827956989248
+Fine-tuning epoch 7
+Validation accuracy for epoch 7: 72.06093189964157
+Early stopping at epoch 7
+Pruning Amount 73, Model Size: 180.9053955078125, Pre-Acc: 65.15232974910394, Post-Acc: 72.10125448028674, Comp Time: 0.5353539330618722
+PruningFineTuner object deleted and memory cleared.
+****************************************************************************************************
+Percentage Done: 62.35%
+Pruning amount: 19
+Total Filters to prune: 522 For Pruning Percentage: 19
+Layers that will be pruned {13: 110, 6: 30, 8: 51, 18: 97, 11: 120, 16: 96, 3: 13, 0: 5}
+Pruning Filters
+Pruned 0 filters
+Pruned 100 filters
+Pruned 200 filters
+Pruned 300 filters
+Pruned 400 filters
+Pruned 500 filters
+Total Filters Pruned: 522
+Model size after 19% pruning: 404.849552154541 MB
+************************* Fine-tuning model *************************
+Fine-tuning epoch 0
+Validation accuracy for epoch 0: 76.92652329749103
+Fine-tuning epoch 1
+Validation accuracy for epoch 1: 77.07437275985663
+Fine-tuning epoch 2
+Validation accuracy for epoch 2: 75.00448028673836
+Fine-tuning epoch 3
+Validation accuracy for epoch 3: 75.03136200716845
+Fine-tuning epoch 4
+Validation accuracy for epoch 4: 75.1836917562724
+Fine-tuning epoch 5
+Validation accuracy for epoch 5: 75.04032258064515
+Fine-tuning epoch 6
+Validation accuracy for epoch 6: 74.14426523297492
+Early stopping at epoch 6
+Pruning Amount 19, Model Size: 404.849552154541, Pre-Acc: 65.46146953405018, Post-Acc: 74.43100358422939, Comp Time: 1.1903959228878929
+PruningFineTuner object deleted and memory cleared.
+****************************************************************************************************
+Percentage Done: 63.53%
+Pruning amount: 42
+Total Filters to prune: 1155 For Pruning Percentage: 42
+Layers that will be pruned {18: 232, 16: 206, 11: 236, 13: 231, 8: 105, 6: 91, 0: 22, 3: 32}
+Pruning Filters
+Pruned 0 filters
+Pruned 100 filters
+Pruned 200 filters
+Pruned 300 filters
+Pruned 400 filters
+Pruned 500 filters
+Pruned 600 filters
+Pruned 700 filters
+Pruned 800 filters
+Pruned 900 filters
+Pruned 1000 filters
+Pruned 1100 filters
+Total Filters Pruned: 1155
+Model size after 42% pruning: 290.45724868774414 MB
+************************* Fine-tuning model *************************
+Fine-tuning epoch 0
+Validation accuracy for epoch 0: 77.1326164874552
+Fine-tuning epoch 1
+Validation accuracy for epoch 1: 73.67831541218638
+Fine-tuning epoch 2
+Validation accuracy for epoch 2: 74.09946236559139
+Fine-tuning epoch 3
+Validation accuracy for epoch 3: 73.16756272401433
+Fine-tuning epoch 4
+Validation accuracy for epoch 4: 72.77777777777777
+Fine-tuning epoch 5
+Validation accuracy for epoch 5: 72.94802867383513
+Early stopping at epoch 5
+Pruning Amount 42, Model Size: 290.45724868774414, Pre-Acc: 65.71236559139784, Post-Acc: 72.58064516129032, Comp Time: 0.844463552747454
+PruningFineTuner object deleted and memory cleared.
+****************************************************************************************************
+Percentage Done: 64.71%
+Pruning amount: 59
+Total Filters to prune: 1623 For Pruning Percentage: 59
+Layers that will be pruned {16: 302, 18: 333, 13: 314, 11: 337, 6: 144, 8: 135, 3: 31, 0: 27}
+Pruning Filters
+Pruned 0 filters
+Pruned 100 filters
+Pruned 200 filters
+Pruned 300 filters
+Pruned 400 filters
+Pruned 500 filters
+Pruned 600 filters
+Pruned 700 filters
+Pruned 800 filters
+Pruned 900 filters
+Pruned 1000 filters
+Pruned 1100 filters
+Pruned 1200 filters
+Pruned 1300 filters
+Pruned 1400 filters
+Pruned 1500 filters
+Pruned 1600 filters
+Total Filters Pruned: 1623
+Model size after 59% pruning: 207.1981544494629 MB
+************************* Fine-tuning model *************************
+Fine-tuning epoch 0
+Validation accuracy for epoch 0: 76.48297491039426
+Fine-tuning epoch 1
+Validation accuracy for epoch 1: 77.6836917562724
+Fine-tuning epoch 2
+Validation accuracy for epoch 2: 75.60483870967742
+Fine-tuning epoch 3
+Validation accuracy for epoch 3: 73.83064516129032
+Fine-tuning epoch 4
+Validation accuracy for epoch 4: 74.16218637992831
+Fine-tuning epoch 5
+Validation accuracy for epoch 5: 74.92383512544802
+Fine-tuning epoch 6
+Validation accuracy for epoch 6: 73.99193548387096
+Early stopping at epoch 6
+Pruning Amount 59, Model Size: 207.1981544494629, Pre-Acc: 65.28673835125448, Post-Acc: 74.15770609318997, Comp Time: 0.6793192000616164
+PruningFineTuner object deleted and memory cleared.
+****************************************************************************************************
+Percentage Done: 65.88%
+Pruning amount: 89
+Total Filters to prune: 2449 For Pruning Percentage: 89
+Layers that will be pruned {13: 472, 8: 231, 3: 87, 11: 483, 18: 455, 6: 233, 16: 442, 0: 46}
+Pruning Filters
+Pruned 0 filters
+Pruned 100 filters
+Pruned 200 filters
+Pruned 300 filters
+Pruned 400 filters
+Pruned 500 filters
+Pruned 600 filters
+Pruned 700 filters
+Pruned 800 filters
+Pruned 900 filters
+Pruned 1000 filters
+Pruned 1100 filters
+Pruned 1200 filters
+Pruned 1300 filters
+Pruned 1400 filters
+Pruned 1500 filters
+Pruned 1600 filters
+Pruned 1700 filters
+Pruned 1800 filters
+Pruned 1900 filters
+Pruned 2000 filters
+Pruned 2100 filters
+Pruned 2200 filters
+Pruned 2300 filters
+Pruned 2400 filters
+Total Filters Pruned: 2449
+Model size after 89% pruning: 108.56592178344727 MB
+************************* Fine-tuning model *************************
+Fine-tuning epoch 0
+Validation accuracy for epoch 0: 77.11021505376344
+Fine-tuning epoch 1
+Validation accuracy for epoch 1: 55.20609318996416
+Fine-tuning epoch 2
+Validation accuracy for epoch 2: 74.26075268817203
+Fine-tuning epoch 3
+Validation accuracy for epoch 3: 72.32974910394265
+Fine-tuning epoch 4
+Validation accuracy for epoch 4: 69.55197132616487
+Fine-tuning epoch 5
+Validation accuracy for epoch 5: 73.49462365591398
+Early stopping at epoch 5
+Pruning Amount 89, Model Size: 108.56592178344727, Pre-Acc: 62.88082437275986, Post-Acc: 73.0689964157706, Comp Time: 0.2936317693619501
+PruningFineTuner object deleted and memory cleared.
+****************************************************************************************************
+Percentage Done: 67.06%
+Pruning amount: 77
+Total Filters to prune: 2119 For Pruning Percentage: 77
+Layers that will be pruned {18: 415, 16: 384, 11: 440, 13: 419, 8: 187, 3: 46, 6: 193, 0: 35}
+Pruning Filters
+Pruned 0 filters
+Pruned 100 filters
+Pruned 200 filters
+Pruned 300 filters
+Pruned 400 filters
+Pruned 500 filters
+Pruned 600 filters
+Pruned 700 filters
+Pruned 800 filters
+Pruned 900 filters
+Pruned 1000 filters
+Pruned 1100 filters
+Pruned 1200 filters
+Pruned 1300 filters
+Pruned 1400 filters
+Pruned 1500 filters
+Pruned 1600 filters
+Pruned 1700 filters
+Pruned 1800 filters
+Pruned 1900 filters
+Pruned 2000 filters
+Pruned 2100 filters
+Total Filters Pruned: 2119
+Model size after 77% pruning: 140.46168518066406 MB
+************************* Fine-tuning model *************************
+Fine-tuning epoch 0
+Validation accuracy for epoch 0: 76.82347670250897
+Fine-tuning epoch 1
+Validation accuracy for epoch 1: 75.62724014336918
+Fine-tuning epoch 2
+Validation accuracy for epoch 2: 75.62724014336918
+Fine-tuning epoch 3
+Validation accuracy for epoch 3: 76.21863799283155
+Fine-tuning epoch 4
+Validation accuracy for epoch 4: 77.10125448028674
+Fine-tuning epoch 5
+Validation accuracy for epoch 5: 74.84767025089606
+Fine-tuning epoch 6
+Validation accuracy for epoch 6: 75.12992831541219
+Fine-tuning epoch 7
+Validation accuracy for epoch 7: 74.97311827956989
+Fine-tuning epoch 8
+Validation accuracy for epoch 8: 74.34139784946237
+Fine-tuning epoch 9
+Validation accuracy for epoch 9: 70.70340501792116
+Early stopping at epoch 9
+Pruning Amount 77, Model Size: 140.46168518066406, Pre-Acc: 65.22849462365592, Post-Acc: 71.0394265232975, Comp Time: 0.4318085170927502
+PruningFineTuner object deleted and memory cleared.
+****************************************************************************************************
+Percentage Done: 68.24%
+Pruning amount: 39
+Total Filters to prune: 1073 For Pruning Percentage: 39
+Layers that will be pruned {16: 194, 18: 191, 13: 218, 11: 218, 8: 117, 6: 100, 3: 21, 0: 14}
+Pruning Filters
+Pruned 0 filters
+Pruned 100 filters
+Pruned 200 filters
+Pruned 300 filters
+Pruned 400 filters
+Pruned 500 filters
+Pruned 600 filters
+Pruned 700 filters
+Pruned 800 filters
+Pruned 900 filters
+Pruned 1000 filters
+Total Filters Pruned: 1073
+Model size after 39% pruning: 322.9103240966797 MB
+************************* Fine-tuning model *************************
+Fine-tuning epoch 0
+Validation accuracy for epoch 0: 76.75179211469533
+Fine-tuning epoch 1
+Validation accuracy for epoch 1: 76.14247311827957
+Fine-tuning epoch 2
+Validation accuracy for epoch 2: 75.85573476702508
+Fine-tuning epoch 3
+Validation accuracy for epoch 3: 76.18279569892474
+Fine-tuning epoch 4
+Validation accuracy for epoch 4: 75.93637992831542
+Fine-tuning epoch 5
+Validation accuracy for epoch 5: 74.03673835125448
+Early stopping at epoch 5
+Pruning Amount 39, Model Size: 322.9103240966797, Pre-Acc: 65.57347670250896, Post-Acc: 73.86200716845877, Comp Time: 0.9239174865541004
+PruningFineTuner object deleted and memory cleared.
+****************************************************************************************************
+Percentage Done: 69.41%
+Pruning amount: 53
+Total Filters to prune: 1458 For Pruning Percentage: 53
+Layers that will be pruned {16: 264, 13: 279, 3: 38, 11: 284, 6: 145, 8: 126, 0: 28, 18: 294}
+Pruning Filters
+Pruned 0 filters
+Pruned 100 filters
+Pruned 200 filters
+Pruned 300 filters
+Pruned 400 filters
+Pruned 500 filters
+Pruned 600 filters
+Pruned 700 filters
+Pruned 800 filters
+Pruned 900 filters
+Pruned 1000 filters
+Pruned 1100 filters
+Pruned 1200 filters
+Pruned 1300 filters
+Pruned 1400 filters
+Total Filters Pruned: 1458
+Model size after 53% pruning: 239.09299850463867 MB
+************************* Fine-tuning model *************************
+Fine-tuning epoch 0
+Validation accuracy for epoch 0: 77.1236559139785
+Fine-tuning epoch 1
+Validation accuracy for epoch 1: 76.84587813620072
+Fine-tuning epoch 2
+Validation accuracy for epoch 2: 74.65501792114695
+Fine-tuning epoch 3
+Validation accuracy for epoch 3: 75.36290322580645
+Fine-tuning epoch 4
+Validation accuracy for epoch 4: 73.70519713261649
+Fine-tuning epoch 5
+Validation accuracy for epoch 5: 74.57437275985663
+Early stopping at epoch 5
+Pruning Amount 53, Model Size: 239.09299850463867, Pre-Acc: 64.74014336917563, Post-Acc: 74.2831541218638, Comp Time: 0.7072122437613351
+PruningFineTuner object deleted and memory cleared.
+****************************************************************************************************
+Percentage Done: 70.59%
+Pruning amount: 25
+Total Filters to prune: 688 For Pruning Percentage: 25
+Layers that will be pruned {11: 147, 16: 131, 13: 132, 18: 143, 3: 18, 6: 48, 8: 62, 0: 7}
+Pruning Filters
+Pruned 0 filters
+Pruned 100 filters
+Pruned 200 filters
+Pruned 300 filters
+Pruned 400 filters
+Pruned 500 filters
+Pruned 600 filters
+Total Filters Pruned: 688
+Model size after 25% pruning: 366.45285415649414 MB
+************************* Fine-tuning model *************************
+Fine-tuning epoch 0
+Validation accuracy for epoch 0: 78.42741935483872
+Fine-tuning epoch 1
+Validation accuracy for epoch 1: 76.12455197132616
+Fine-tuning epoch 2
+Validation accuracy for epoch 2: 73.2078853046595
+Fine-tuning epoch 3
+Validation accuracy for epoch 3: 77.35663082437276
+Fine-tuning epoch 4
+Validation accuracy for epoch 4: 74.52508960573476
+Fine-tuning epoch 5
+Validation accuracy for epoch 5: 75.41218637992831
+Early stopping at epoch 5
+Pruning Amount 25, Model Size: 366.45285415649414, Pre-Acc: 65.46594982078852, Post-Acc: 75.82437275985663, Comp Time: 1.127757923943656
+PruningFineTuner object deleted and memory cleared.
+****************************************************************************************************
+Percentage Done: 71.76%
+Pruning amount: 28
+Total Filters to prune: 770 For Pruning Percentage: 28
+Layers that will be pruned {18: 157, 11: 142, 8: 95, 16: 133, 13: 146, 6: 64, 3: 17, 0: 16}
+Pruning Filters
+Pruned 0 filters
+Pruned 100 filters
+Pruned 200 filters
+Pruned 300 filters
+Pruned 400 filters
+Pruned 500 filters
+Pruned 600 filters
+Pruned 700 filters
+Total Filters Pruned: 770
+Model size after 28% pruning: 354.4083251953125 MB
+************************* Fine-tuning model *************************
+Fine-tuning epoch 0
+Validation accuracy for epoch 0: 75.82885304659499
+Fine-tuning epoch 1
+Validation accuracy for epoch 1: 76.34856630824373
+Fine-tuning epoch 2
+Validation accuracy for epoch 2: 75.95878136200717
+Fine-tuning epoch 3
+Validation accuracy for epoch 3: 76.02598566308244
+Fine-tuning epoch 4
+Validation accuracy for epoch 4: 75.331541218638
+Fine-tuning epoch 5
+Validation accuracy for epoch 5: 70.32706093189964
+Fine-tuning epoch 6
+Validation accuracy for epoch 6: 75.15232974910394
+Early stopping at epoch 6
+Pruning Amount 28, Model Size: 354.4083251953125, Pre-Acc: 65.1568100358423, Post-Acc: 75.04032258064515, Comp Time: 1.0072701090858096
+PruningFineTuner object deleted and memory cleared.
+****************************************************************************************************
+Percentage Done: 72.94%
+Pruning amount: 36
+Total Filters to prune: 990 For Pruning Percentage: 36
+Layers that will be pruned {13: 189, 18: 200, 3: 28, 16: 186, 11: 199, 8: 89, 6: 88, 0: 11}
+Pruning Filters
+Pruned 0 filters
+Pruned 100 filters
+Pruned 200 filters
+Pruned 300 filters
+Pruned 400 filters
+Pruned 500 filters
+Pruned 600 filters
+Pruned 700 filters
+Pruned 800 filters
+Pruned 900 filters
+Total Filters Pruned: 990
+Model size after 36% pruning: 317.52881622314453 MB
+************************* Fine-tuning model *************************
+Fine-tuning epoch 0
+Validation accuracy for epoch 0: 75.1747311827957
+Fine-tuning epoch 1
+Validation accuracy for epoch 1: 76.96236559139786
+Fine-tuning epoch 2
+Validation accuracy for epoch 2: 76.13799283154123
+Fine-tuning epoch 3
+Validation accuracy for epoch 3: 75.63620071684588
+Fine-tuning epoch 4
+Validation accuracy for epoch 4: 73.40501792114695
+Fine-tuning epoch 5
+Validation accuracy for epoch 5: 72.32974910394265
+Fine-tuning epoch 6
+Validation accuracy for epoch 6: 73.77688172043011
+Early stopping at epoch 6
+Pruning Amount 36, Model Size: 317.52881622314453, Pre-Acc: 65.11648745519713, Post-Acc: 73.87544802867384, Comp Time: 0.9741287572043282
+PruningFineTuner object deleted and memory cleared.
+****************************************************************************************************
+Percentage Done: 74.12%
+Pruning amount: 18
+Total Filters to prune: 495 For Pruning Percentage: 18
+Layers that will be pruned {16: 92, 13: 98, 18: 98, 11: 104, 6: 46, 8: 42, 3: 8, 0: 7}
+Pruning Filters
+Pruned 0 filters
+Pruned 100 filters
+Pruned 200 filters
+Pruned 300 filters
+Pruned 400 filters
+Total Filters Pruned: 495
+Model size after 18% pruning: 404.90927505493164 MB
+************************* Fine-tuning model *************************
+Fine-tuning epoch 0
+Validation accuracy for epoch 0: 76.32616487455198
+Fine-tuning epoch 1
+Validation accuracy for epoch 1: 76.06182795698925
+Fine-tuning epoch 2
+Validation accuracy for epoch 2: 76.12903225806451
+Fine-tuning epoch 3
+Validation accuracy for epoch 3: 75.85125448028674
+Fine-tuning epoch 4
+Validation accuracy for epoch 4: 75.8736559139785
+Fine-tuning epoch 5
+Validation accuracy for epoch 5: 74.35483870967742
+Early stopping at epoch 5
+Pruning Amount 18, Model Size: 404.90927505493164, Pre-Acc: 65.66756272401435, Post-Acc: 74.39516129032258, Comp Time: 1.1855822971888952
+PruningFineTuner object deleted and memory cleared.
+****************************************************************************************************
+Percentage Done: 75.29%
+Pruning amount: 76
+Total Filters to prune: 2091 For Pruning Percentage: 76
+Layers that will be pruned {13: 412, 11: 423, 6: 198, 18: 397, 8: 194, 16: 383, 3: 48, 0: 36}
+Pruning Filters
+Pruned 0 filters
+Pruned 100 filters
+Pruned 200 filters
+Pruned 300 filters
+Pruned 400 filters
+Pruned 500 filters
+Pruned 600 filters
+Pruned 700 filters
+Pruned 800 filters
+Pruned 900 filters
+Pruned 1000 filters
+Pruned 1100 filters
+Pruned 1200 filters
+Pruned 1300 filters
+Pruned 1400 filters
+Pruned 1500 filters
+Pruned 1600 filters
+Pruned 1700 filters
+Pruned 1800 filters
+Pruned 1900 filters
+Pruned 2000 filters
+Total Filters Pruned: 2091
+Model size after 76% pruning: 154.40615463256836 MB
+************************* Fine-tuning model *************************
+Fine-tuning epoch 0
+Validation accuracy for epoch 0: 75.16129032258064
+Fine-tuning epoch 1
+Validation accuracy for epoch 1: 73.85304659498208
+Fine-tuning epoch 2
+Validation accuracy for epoch 2: 75.08064516129032
+Fine-tuning epoch 3
+Validation accuracy for epoch 3: 73.9605734767025
+Fine-tuning epoch 4
+Validation accuracy for epoch 4: 71.74283154121865
+Fine-tuning epoch 5
+Validation accuracy for epoch 5: 74.74462365591398
+Early stopping at epoch 5
+Pruning Amount 76, Model Size: 154.40615463256836, Pre-Acc: 64.12186379928315, Post-Acc: 74.44444444444444, Comp Time: 0.4484701610746838
+PruningFineTuner object deleted and memory cleared.
+****************************************************************************************************
+Percentage Done: 76.47%
+Pruning amount: 69
+Total Filters to prune: 1898 For Pruning Percentage: 69
+Layers that will be pruned {13: 372, 11: 409, 6: 171, 16: 347, 0: 28, 18: 370, 8: 164, 3: 37}
+Pruning Filters
+Pruned 0 filters
+Pruned 100 filters
+Pruned 200 filters
+Pruned 300 filters
+Pruned 400 filters
+Pruned 500 filters
+Pruned 600 filters
+Pruned 700 filters
+Pruned 800 filters
+Pruned 900 filters
+Pruned 1000 filters
+Pruned 1100 filters
+Pruned 1200 filters
+Pruned 1300 filters
+Pruned 1400 filters
+Pruned 1500 filters
+Pruned 1600 filters
+Pruned 1700 filters
+Pruned 1800 filters
+Total Filters Pruned: 1898
+Model size after 69% pruning: 176.3371124267578 MB
+************************* Fine-tuning model *************************
+Fine-tuning epoch 0
+Validation accuracy for epoch 0: 76.72043010752688
+Fine-tuning epoch 1
+Validation accuracy for epoch 1: 76.97580645161291
+Fine-tuning epoch 2
+Validation accuracy for epoch 2: 75.63620071684588
+Fine-tuning epoch 3
+Validation accuracy for epoch 3: 74.13082437275985
+Fine-tuning epoch 4
+Validation accuracy for epoch 4: 74.91039426523297
+Fine-tuning epoch 5
+Validation accuracy for epoch 5: 75.5331541218638
+Fine-tuning epoch 6
+Validation accuracy for epoch 6: 73.81272401433692
+Early stopping at epoch 6
+Pruning Amount 69, Model Size: 176.3371124267578, Pre-Acc: 65.04480286738351, Post-Acc: 73.79032258064517, Comp Time: 0.5754117170969645
+PruningFineTuner object deleted and memory cleared.
+****************************************************************************************************
+Percentage Done: 77.65%
+Pruning amount: 85
+Total Filters to prune: 2339 For Pruning Percentage: 85
+Layers that will be pruned {13: 457, 18: 441, 16: 420, 11: 461, 6: 218, 8: 235, 0: 43, 3: 64}
+Pruning Filters
+Pruned 0 filters
+Pruned 100 filters
+Pruned 200 filters
+Pruned 300 filters
+Pruned 400 filters
+Pruned 500 filters
+Pruned 600 filters
+Pruned 700 filters
+Pruned 800 filters
+Pruned 900 filters
+Pruned 1000 filters
+Pruned 1100 filters
+Pruned 1200 filters
+Pruned 1300 filters
+Pruned 1400 filters
+Pruned 1500 filters
+Pruned 1600 filters
+Pruned 1700 filters
+Pruned 1800 filters
+Pruned 1900 filters
+Pruned 2000 filters
+Pruned 2100 filters
+Pruned 2200 filters
+Pruned 2300 filters
+Total Filters Pruned: 2339
+Model size after 85% pruning: 119.59820175170898 MB
+************************* Fine-tuning model *************************
+Fine-tuning epoch 0
+Validation accuracy for epoch 0: 76.46505376344086
+Fine-tuning epoch 1
+Validation accuracy for epoch 1: 76.75179211469533
+Fine-tuning epoch 2
+Validation accuracy for epoch 2: 77.02956989247312
+Fine-tuning epoch 3
+Validation accuracy for epoch 3: 74.92831541218638
+Fine-tuning epoch 4
+Validation accuracy for epoch 4: 75.73476702508961
+Fine-tuning epoch 5
+Validation accuracy for epoch 5: 72.77777777777777
+Fine-tuning epoch 6
+Validation accuracy for epoch 6: 73.62455197132617
+Fine-tuning epoch 7
+Validation accuracy for epoch 7: 74.6236559139785
+Early stopping at epoch 7
+Pruning Amount 85, Model Size: 119.59820175170898, Pre-Acc: 65.03584229390681, Post-Acc: 74.97759856630825, Comp Time: 0.34610010328746976
+PruningFineTuner object deleted and memory cleared.
+****************************************************************************************************
+Percentage Done: 78.82%
+Pruning amount: 78
+Total Filters to prune: 2146 For Pruning Percentage: 78
+Layers that will be pruned {13: 425, 0: 36, 16: 388, 11: 434, 8: 206, 6: 201, 18: 411, 3: 45}
+Pruning Filters
+Pruned 0 filters
+Pruned 100 filters
+Pruned 200 filters
+Pruned 300 filters
+Pruned 400 filters
+Pruned 500 filters
+Pruned 600 filters
+Pruned 700 filters
+Pruned 800 filters
+Pruned 900 filters
+Pruned 1000 filters
+Pruned 1100 filters
+Pruned 1200 filters
+Pruned 1300 filters
+Pruned 1400 filters
+Pruned 1500 filters
+Pruned 1600 filters
+Pruned 1700 filters
+Pruned 1800 filters
+Pruned 1900 filters
+Pruned 2000 filters
+Pruned 2100 filters
+Total Filters Pruned: 2146
+Model size after 78% pruning: 143.37847900390625 MB
+************************* Fine-tuning model *************************
+Fine-tuning epoch 0
+Validation accuracy for epoch 0: 76.20071684587813
+Fine-tuning epoch 1
+Validation accuracy for epoch 1: 77.19982078853047
+Fine-tuning epoch 2
+Validation accuracy for epoch 2: 78.0152329749104
+Fine-tuning epoch 3
+Validation accuracy for epoch 3: 74.73566308243727
+Fine-tuning epoch 4
+Validation accuracy for epoch 4: 73.24820788530467
+Fine-tuning epoch 5
+Validation accuracy for epoch 5: 75.33602150537635
+Fine-tuning epoch 6
+Validation accuracy for epoch 6: 75.10304659498208
+Fine-tuning epoch 7
+Validation accuracy for epoch 7: 76.32168458781362
+Early stopping at epoch 7
+Pruning Amount 78, Model Size: 143.37847900390625, Pre-Acc: 65.18817204301075, Post-Acc: 75.89605734767025, Comp Time: 0.43767335301353816
+PruningFineTuner object deleted and memory cleared.
+****************************************************************************************************
+Percentage Done: 80.00%
+Pruning amount: 24
+Total Filters to prune: 660 For Pruning Percentage: 24
+Layers that will be pruned {8: 59, 6: 57, 18: 129, 16: 115, 11: 131, 13: 140, 3: 17, 0: 12}
+Pruning Filters
+Pruned 0 filters
+Pruned 100 filters
+Pruned 200 filters
+Pruned 300 filters
+Pruned 400 filters
+Pruned 500 filters
+Pruned 600 filters
+Total Filters Pruned: 660
+Model size after 24% pruning: 377.83061599731445 MB
+************************* Fine-tuning model *************************
+Fine-tuning epoch 0
+Validation accuracy for epoch 0: 78.0152329749104
+Fine-tuning epoch 1
+Validation accuracy for epoch 1: 76.69354838709678
+Fine-tuning epoch 2
+Validation accuracy for epoch 2: 75.76612903225806
+Fine-tuning epoch 3
+Validation accuracy for epoch 3: 74.71774193548387
+Fine-tuning epoch 4
+Validation accuracy for epoch 4: 73.5931899641577
+Fine-tuning epoch 5
+Validation accuracy for epoch 5: 75.68996415770609
+Early stopping at epoch 5
+Pruning Amount 24, Model Size: 377.83061599731445, Pre-Acc: 65.30017921146953, Post-Acc: 75.75268817204301, Comp Time: 1.1476672603970481
+PruningFineTuner object deleted and memory cleared.
+****************************************************************************************************
+Percentage Done: 81.18%
+Pruning amount: 20
+Total Filters to prune: 550 For Pruning Percentage: 20
+Layers that will be pruned {18: 116, 16: 102, 13: 106, 11: 105, 8: 48, 6: 47, 3: 17, 0: 9}
+Pruning Filters
+Pruned 0 filters
+Pruned 100 filters
+Pruned 200 filters
+Pruned 300 filters
+Pruned 400 filters
+Pruned 500 filters
+Total Filters Pruned: 550
+Model size after 20% pruning: 390.11583709716797 MB
+************************* Fine-tuning model *************************
+Fine-tuning epoch 0
+Validation accuracy for epoch 0: 75.43906810035843
+Fine-tuning epoch 1
+Validation accuracy for epoch 1: 76.28136200716847
+Fine-tuning epoch 2
+Validation accuracy for epoch 2: 77.45967741935483
+Fine-tuning epoch 3
+Validation accuracy for epoch 3: 75.3494623655914
+Fine-tuning epoch 4
+Validation accuracy for epoch 4: 76.09767025089606
+Fine-tuning epoch 5
+Validation accuracy for epoch 5: 73.65143369175627
+Fine-tuning epoch 6
+Validation accuracy for epoch 6: 73.21236559139786
+Fine-tuning epoch 7
+Validation accuracy for epoch 7: 74.52508960573476
+Early stopping at epoch 7
+Pruning Amount 20, Model Size: 390.11583709716797, Pre-Acc: 65.12544802867384, Post-Acc: 74.44444444444444, Comp Time: 1.1882611002240862
+PruningFineTuner object deleted and memory cleared.
+****************************************************************************************************
+Percentage Done: 82.35%
+Pruning amount: 22
+Total Filters to prune: 605 For Pruning Percentage: 22
+Layers that will be pruned {18: 115, 8: 57, 16: 116, 6: 54, 13: 117, 11: 126, 3: 12, 0: 8}
+Pruning Filters
+Pruned 0 filters
+Pruned 100 filters
+Pruned 200 filters
+Pruned 300 filters
+Pruned 400 filters
+Pruned 500 filters
+Pruned 600 filters
+Total Filters Pruned: 605
+Model size after 22% pruning: 389.5612106323242 MB
+************************* Fine-tuning model *************************
+Fine-tuning epoch 0
+Validation accuracy for epoch 0: 66.42473118279571
+Fine-tuning epoch 1
+Validation accuracy for epoch 1: 74.0905017921147
+Fine-tuning epoch 2
+Validation accuracy for epoch 2: 76.13351254480287
+Fine-tuning epoch 3
+Validation accuracy for epoch 3: 73.78136200716845
+Fine-tuning epoch 4
+Validation accuracy for epoch 4: 74.73118279569893
+Fine-tuning epoch 5
+Validation accuracy for epoch 5: 75.35394265232975
+Fine-tuning epoch 6
+Validation accuracy for epoch 6: 73.31093189964157
+Fine-tuning epoch 7
+Validation accuracy for epoch 7: 72.9793906810036
+Early stopping at epoch 7
+Pruning Amount 22, Model Size: 389.5612106323242, Pre-Acc: 65.62275985663082, Post-Acc: 72.92562724014337, Comp Time: 1.1135498114994593
+PruningFineTuner object deleted and memory cleared.
+****************************************************************************************************
+Percentage Done: 83.53%
+Pruning amount: 79
+Total Filters to prune: 2174 For Pruning Percentage: 79
+Layers that will be pruned {11: 452, 13: 426, 16: 387, 6: 195, 8: 216, 18: 419, 3: 45, 0: 34}
+Pruning Filters
+Pruned 0 filters
+Pruned 100 filters
+Pruned 200 filters
+Pruned 300 filters
+Pruned 400 filters
+Pruned 500 filters
+Pruned 600 filters
+Pruned 700 filters
+Pruned 800 filters
+Pruned 900 filters
+Pruned 1000 filters
+Pruned 1100 filters
+Pruned 1200 filters
+Pruned 1300 filters
+Pruned 1400 filters
+Pruned 1500 filters
+Pruned 1600 filters
+Pruned 1700 filters
+Pruned 1800 filters
+Pruned 1900 filters
+Pruned 2000 filters
+Pruned 2100 filters
+Total Filters Pruned: 2174
+Model size after 79% pruning: 137.12623977661133 MB
+************************* Fine-tuning model *************************
+Fine-tuning epoch 0
+Validation accuracy for epoch 0: 76.31720430107526
+Fine-tuning epoch 1
+Validation accuracy for epoch 1: 77.2894265232975
+Fine-tuning epoch 2
+Validation accuracy for epoch 2: 75.5510752688172
+Fine-tuning epoch 3
+Validation accuracy for epoch 3: 75.85125448028674
+Fine-tuning epoch 4
+Validation accuracy for epoch 4: 75.00448028673836
+Fine-tuning epoch 5
+Validation accuracy for epoch 5: 75.59139784946237
+Fine-tuning epoch 6
+Validation accuracy for epoch 6: 74.23835125448028
+Early stopping at epoch 6
+Pruning Amount 79, Model Size: 137.12623977661133, Pre-Acc: 64.80286738351253, Post-Acc: 73.92921146953405, Comp Time: 0.4527249563307989
+PruningFineTuner object deleted and memory cleared.
+****************************************************************************************************
+Percentage Done: 84.71%
+Pruning amount: 90
+Total Filters to prune: 2476 For Pruning Percentage: 90
+Layers that will be pruned {16: 438, 18: 462, 13: 474, 3: 95, 11: 479, 6: 238, 8: 241, 0: 49}
+Pruning Filters
+Pruned 0 filters
+Pruned 100 filters
+Pruned 200 filters
+Pruned 300 filters
+Pruned 400 filters
+Pruned 500 filters
+Pruned 600 filters
+Pruned 700 filters
+Pruned 800 filters
+Pruned 900 filters
+Pruned 1000 filters
+Pruned 1100 filters
+Pruned 1200 filters
+Pruned 1300 filters
+Pruned 1400 filters
+Pruned 1500 filters
+Pruned 1600 filters
+Pruned 1700 filters
+Pruned 1800 filters
+Pruned 1900 filters
+Pruned 2000 filters
+Pruned 2100 filters
+Pruned 2200 filters
+Pruned 2300 filters
+Pruned 2400 filters
+Total Filters Pruned: 2476
+Model size after 90% pruning: 103.16112518310547 MB
+************************* Fine-tuning model *************************
+Fine-tuning epoch 0
+Validation accuracy for epoch 0: 78.81272401433692
+Fine-tuning epoch 1
+Validation accuracy for epoch 1: 76.3978494623656
+Fine-tuning epoch 2
+Validation accuracy for epoch 2: 74.78046594982078
+Fine-tuning epoch 3
+Validation accuracy for epoch 3: 73.68279569892474
+Fine-tuning epoch 4
+Validation accuracy for epoch 4: 76.07974910394265
+Fine-tuning epoch 5
+Validation accuracy for epoch 5: 75.41218637992831
+Early stopping at epoch 5
+Pruning Amount 90, Model Size: 103.16112518310547, Pre-Acc: 59.556451612903224, Post-Acc: 75.51523297491039, Comp Time: 0.23417080016363234
+PruningFineTuner object deleted and memory cleared.
+****************************************************************************************************
+Percentage Done: 85.88%
+Pruning amount: 1
+Total Filters to prune: 27 For Pruning Percentage: 1
+Layers that will be pruned {16: 7, 11: 4, 18: 3, 13: 6, 6: 6, 8: 1}
+Pruning Filters
+Pruned 0 filters
+Total Filters Pruned: 27
+Model size after 1% pruning: 488.7059898376465 MB
+************************* Fine-tuning model *************************
+Fine-tuning epoch 0
+Validation accuracy for epoch 0: 76.68010752688173
+Fine-tuning epoch 1
+Validation accuracy for epoch 1: 78.05555555555556
+Fine-tuning epoch 2
+Validation accuracy for epoch 2: 75.77956989247312
+Fine-tuning epoch 3
+Validation accuracy for epoch 3: 76.25448028673834
+Fine-tuning epoch 4
+Validation accuracy for epoch 4: 72.18637992831542
+Fine-tuning epoch 5
+Validation accuracy for epoch 5: 76.81003584229391
+Fine-tuning epoch 6
+Validation accuracy for epoch 6: 74.67741935483872
+Early stopping at epoch 6
+Pruning Amount 1, Model Size: 488.7059898376465, Pre-Acc: 65.65860215053763, Post-Acc: 74.56093189964157, Comp Time: 1.404316822687785
+PruningFineTuner object deleted and memory cleared.
+****************************************************************************************************
+Percentage Done: 87.06%
+Pruning amount: 83
+Total Filters to prune: 2284 For Pruning Percentage: 83
+Layers that will be pruned {18: 437, 16: 413, 11: 468, 8: 218, 6: 209, 13: 451, 3: 49, 0: 39}
+Pruning Filters
+Pruned 0 filters
+Pruned 100 filters
+Pruned 200 filters
+Pruned 300 filters
+Pruned 400 filters
+Pruned 500 filters
+Pruned 600 filters
+Pruned 700 filters
+Pruned 800 filters
+Pruned 900 filters
+Pruned 1000 filters
+Pruned 1100 filters
+Pruned 1200 filters
+Pruned 1300 filters
+Pruned 1400 filters
+Pruned 1500 filters
+Pruned 1600 filters
+Pruned 1700 filters
+Pruned 1800 filters
+Pruned 1900 filters
+Pruned 2000 filters
+Pruned 2100 filters
+Pruned 2200 filters
+Total Filters Pruned: 2284
+Model size after 83% pruning: 122.84163665771484 MB
+************************* Fine-tuning model *************************
+Fine-tuning epoch 0
+Validation accuracy for epoch 0: 76.86379928315412
+Fine-tuning epoch 1
+Validation accuracy for epoch 1: 75.86917562724015
+Fine-tuning epoch 2
+Validation accuracy for epoch 2: 76.49641577060932
+Fine-tuning epoch 3
+Validation accuracy for epoch 3: 76.04838709677419
+Fine-tuning epoch 4
+Validation accuracy for epoch 4: 74.48476702508961
+Fine-tuning epoch 5
+Validation accuracy for epoch 5: 74.61917562724014
+Early stopping at epoch 5
+Pruning Amount 83, Model Size: 122.84163665771484, Pre-Acc: 65.30017921146953, Post-Acc: 74.64605734767025, Comp Time: 0.42790968077523367
+PruningFineTuner object deleted and memory cleared.
+****************************************************************************************************
+Percentage Done: 88.24%
+Pruning amount: 16
+Total Filters to prune: 440 For Pruning Percentage: 16
+Layers that will be pruned {6: 34, 11: 106, 16: 83, 18: 86, 8: 49, 13: 70, 0: 5, 3: 7}
+Pruning Filters
+Pruned 0 filters
+Pruned 100 filters
+Pruned 200 filters
+Pruned 300 filters
+Pruned 400 filters
+Total Filters Pruned: 440
+Model size after 16% pruning: 415.2939109802246 MB
+************************* Fine-tuning model *************************
+Fine-tuning epoch 0
+Validation accuracy for epoch 0: 77.89426523297492
+Fine-tuning epoch 1
+Validation accuracy for epoch 1: 77.71505376344085
+Fine-tuning epoch 2
+Validation accuracy for epoch 2: 76.65770609318996
+Fine-tuning epoch 3
+Validation accuracy for epoch 3: 70.3225806451613
+Fine-tuning epoch 4
+Validation accuracy for epoch 4: 72.31182795698925
+Fine-tuning epoch 5
+Validation accuracy for epoch 5: 73.44086021505376
+Early stopping at epoch 5
+Pruning Amount 16, Model Size: 415.2939109802246, Pre-Acc: 65.1836917562724, Post-Acc: 73.48118279569893, Comp Time: 1.283293644587199
+PruningFineTuner object deleted and memory cleared.
+****************************************************************************************************
+Percentage Done: 89.41%
+Pruning amount: 11
+Total Filters to prune: 302 For Pruning Percentage: 11
+Layers that will be pruned {18: 54, 11: 60, 13: 56, 8: 38, 16: 51, 3: 9, 6: 30, 0: 4}
+Pruning Filters
+Pruned 0 filters
+Pruned 100 filters
+Pruned 200 filters
+Pruned 300 filters
+Total Filters Pruned: 302
+Model size after 11% pruning: 443.00402450561523 MB
+************************* Fine-tuning model *************************
+Fine-tuning epoch 0
+Validation accuracy for epoch 0: 77.41487455197132
+Fine-tuning epoch 1
+Validation accuracy for epoch 1: 76.55017921146954
+Fine-tuning epoch 2
+Validation accuracy for epoch 2: 73.88440860215054
+Fine-tuning epoch 3
+Validation accuracy for epoch 3: 75.08512544802868
+Fine-tuning epoch 4
+Validation accuracy for epoch 4: 74.51612903225806
+Fine-tuning epoch 5
+Validation accuracy for epoch 5: 75.41666666666667
+Early stopping at epoch 5
+Pruning Amount 11, Model Size: 443.00402450561523, Pre-Acc: 65.58243727598565, Post-Acc: 75.5241935483871, Comp Time: 1.2997888496943883
+PruningFineTuner object deleted and memory cleared.
+****************************************************************************************************
+Percentage Done: 90.59%
+Pruning amount: 4
+Total Filters to prune: 110 For Pruning Percentage: 4
+Layers that will be pruned {8: 10, 13: 28, 18: 24, 16: 17, 6: 11, 11: 18, 3: 2}
+Pruning Filters
+Pruned 0 filters
+Pruned 100 filters
+Total Filters Pruned: 110
+Model size after 4% pruning: 470.4941062927246 MB
+************************* Fine-tuning model *************************
+Fine-tuning epoch 0
+Validation accuracy for epoch 0: 69.34587813620071
+Fine-tuning epoch 1
+Validation accuracy for epoch 1: 75.68996415770609
+Fine-tuning epoch 2
+Validation accuracy for epoch 2: 38.342293906810035
+Fine-tuning epoch 3
+Validation accuracy for epoch 3: 74.15770609318997
+Fine-tuning epoch 4
+Validation accuracy for epoch 4: 74.99551971326164
+Fine-tuning epoch 5
+Validation accuracy for epoch 5: 73.81272401433692
+Fine-tuning epoch 6
+Validation accuracy for epoch 6: 73.57078853046595
+Early stopping at epoch 6
+Pruning Amount 4, Model Size: 470.4941062927246, Pre-Acc: 65.27777777777779, Post-Acc: 73.63799283154123, Comp Time: 1.4446627071925573
+PruningFineTuner object deleted and memory cleared.
+****************************************************************************************************
+Percentage Done: 91.76%
+Pruning amount: 87
+Total Filters to prune: 2394 For Pruning Percentage: 87
+Layers that will be pruned {0: 45, 11: 474, 3: 69, 16: 425, 13: 465, 8: 226, 18: 462, 6: 228}
+Pruning Filters
+Pruned 0 filters
+Pruned 100 filters
+Pruned 200 filters
+Pruned 300 filters
+Pruned 400 filters
+Pruned 500 filters
+Pruned 600 filters
+Pruned 700 filters
+Pruned 800 filters
+Pruned 900 filters
+Pruned 1000 filters
+Pruned 1100 filters
+Pruned 1200 filters
+Pruned 1300 filters
+Pruned 1400 filters
+Pruned 1500 filters
+Pruned 1600 filters
+Pruned 1700 filters
+Pruned 1800 filters
+Pruned 1900 filters
+Pruned 2000 filters
+Pruned 2100 filters
+Pruned 2200 filters
+Pruned 2300 filters
+Total Filters Pruned: 2394
+Model size after 87% pruning: 103.3458023071289 MB
+************************* Fine-tuning model *************************
+Fine-tuning epoch 0
+Validation accuracy for epoch 0: 77.23118279569893
+Fine-tuning epoch 1
+Validation accuracy for epoch 1: 76.74731182795699
+Fine-tuning epoch 2
+Validation accuracy for epoch 2: 77.27598566308244
+Fine-tuning epoch 3
+Validation accuracy for epoch 3: 75.10752688172043
+Fine-tuning epoch 4
+Validation accuracy for epoch 4: 75.1747311827957
+Fine-tuning epoch 5
+Validation accuracy for epoch 5: 74.91935483870968
+Fine-tuning epoch 6
+Validation accuracy for epoch 6: 73.72759856630825
+Fine-tuning epoch 7
+Validation accuracy for epoch 7: 73.81272401433692
+Early stopping at epoch 7
+Pruning Amount 87, Model Size: 103.3458023071289, Pre-Acc: 64.67293906810035, Post-Acc: 73.82616487455196, Comp Time: 0.33353863443647114
+PruningFineTuner object deleted and memory cleared.
+****************************************************************************************************
+Percentage Done: 92.94%
+Pruning amount: 84
+Total Filters to prune: 2311 For Pruning Percentage: 84
+Layers that will be pruned {3: 50, 16: 418, 13: 453, 8: 232, 18: 440, 11: 466, 6: 213, 0: 39}
+Pruning Filters
+Pruned 0 filters
+Pruned 100 filters
+Pruned 200 filters
+Pruned 300 filters
+Pruned 400 filters
+Pruned 500 filters
+Pruned 600 filters
+Pruned 700 filters
+Pruned 800 filters
+Pruned 900 filters
+Pruned 1000 filters
+Pruned 1100 filters
+Pruned 1200 filters
+Pruned 1300 filters
+Pruned 1400 filters
+Pruned 1500 filters
+Pruned 1600 filters
+Pruned 1700 filters
+Pruned 1800 filters
+Pruned 1900 filters
+Pruned 2000 filters
+Pruned 2100 filters
+Pruned 2200 filters
+Pruned 2300 filters
+Total Filters Pruned: 2311
+Model size after 84% pruning: 120.44763565063477 MB
+************************* Fine-tuning model *************************
+Fine-tuning epoch 0
+Validation accuracy for epoch 0: 77.51344086021506
+Fine-tuning epoch 1
+Validation accuracy for epoch 1: 74.24731182795699
+Fine-tuning epoch 2
+Validation accuracy for epoch 2: 76.16039426523298
+Fine-tuning epoch 3
+Validation accuracy for epoch 3: 74.86111111111111
+Fine-tuning epoch 4
+Validation accuracy for epoch 4: 76.42921146953405
+Fine-tuning epoch 5
+Validation accuracy for epoch 5: 75.30913978494624
+Early stopping at epoch 5
+Pruning Amount 84, Model Size: 120.44763565063477, Pre-Acc: 64.58333333333334, Post-Acc: 75.20609318996416, Comp Time: 0.4126629942939395
+PruningFineTuner object deleted and memory cleared.
+****************************************************************************************************
+Percentage Done: 94.12%
+Pruning amount: 15
+Total Filters to prune: 412 For Pruning Percentage: 15
+Layers that will be pruned {16: 76, 18: 85, 11: 94, 13: 73, 6: 31, 8: 34, 0: 8, 3: 11}
+Pruning Filters
+Pruned 0 filters
+Pruned 100 filters
+Pruned 200 filters
+Pruned 300 filters
+Pruned 400 filters
+Total Filters Pruned: 412
+Model size after 15% pruning: 416.7761917114258 MB
+************************* Fine-tuning model *************************
+Fine-tuning epoch 0
+Validation accuracy for epoch 0: 76.50089605734766
+Fine-tuning epoch 1
+Validation accuracy for epoch 1: 76.80107526881721
+Fine-tuning epoch 2
+Validation accuracy for epoch 2: 73.99641577060932
+Fine-tuning epoch 3
+Validation accuracy for epoch 3: 75.50627240143369
+Fine-tuning epoch 4
+Validation accuracy for epoch 4: 75.5421146953405
+Fine-tuning epoch 5
+Validation accuracy for epoch 5: 69.90143369175628
+Fine-tuning epoch 6
+Validation accuracy for epoch 6: 74.50268817204301
+Early stopping at epoch 6
+Pruning Amount 15, Model Size: 416.7761917114258, Pre-Acc: 65.29569892473118, Post-Acc: 74.18010752688173, Comp Time: 1.2221167087554932
+PruningFineTuner object deleted and memory cleared.
+****************************************************************************************************
+Percentage Done: 95.29%
+Pruning amount: 10
+Total Filters to prune: 275 For Pruning Percentage: 10
+Layers that will be pruned {16: 49, 13: 43, 18: 59, 8: 24, 6: 29, 11: 60, 3: 5, 0: 6}
+Pruning Filters
+Pruned 0 filters
+Pruned 100 filters
+Pruned 200 filters
+Total Filters Pruned: 275
+Model size after 10% pruning: 439.9363594055176 MB
+************************* Fine-tuning model *************************
+Fine-tuning epoch 0
+Validation accuracy for epoch 0: 77.28494623655914
+Fine-tuning epoch 1
+Validation accuracy for epoch 1: 76.98476702508961
+Fine-tuning epoch 2
+Validation accuracy for epoch 2: 76.78763440860214
+Fine-tuning epoch 3
+Validation accuracy for epoch 3: 75.165770609319
+Fine-tuning epoch 4
+Validation accuracy for epoch 4: 75.73476702508961
+Fine-tuning epoch 5
+Validation accuracy for epoch 5: 73.99641577060932
+Early stopping at epoch 5
+Pruning Amount 10, Model Size: 439.9363594055176, Pre-Acc: 65.41218637992831, Post-Acc: 74.07706093189964, Comp Time: 1.341111353465489
+PruningFineTuner object deleted and memory cleared.
+****************************************************************************************************
+Percentage Done: 96.47%
+Pruning amount: 9
+Total Filters to prune: 247 For Pruning Percentage: 9
+Layers that will be pruned {11: 58, 13: 61, 6: 20, 8: 18, 18: 46, 16: 27, 0: 12, 3: 5}
+Pruning Filters
+Pruned 0 filters
+Pruned 100 filters
+Pruned 200 filters
+Total Filters Pruned: 247
+Model size after 9% pruning: 450.4961738586426 MB
+************************* Fine-tuning model *************************
+Fine-tuning epoch 0
+Validation accuracy for epoch 0: 76.15591397849462
+Fine-tuning epoch 1
+Validation accuracy for epoch 1: 74.90591397849462
+Fine-tuning epoch 2
+Validation accuracy for epoch 2: 75.30913978494624
+Fine-tuning epoch 3
+Validation accuracy for epoch 3: 73.84408602150538
+Fine-tuning epoch 4
+Validation accuracy for epoch 4: 74.7894265232975
+Fine-tuning epoch 5
+Validation accuracy for epoch 5: 74.99551971326164
+Early stopping at epoch 5
+Pruning Amount 9, Model Size: 450.4961738586426, Pre-Acc: 65.49283154121865, Post-Acc: 74.82974910394266, Comp Time: 1.2676048846471877
+PruningFineTuner object deleted and memory cleared.
+****************************************************************************************************
+Percentage Done: 97.65%
+Pruning amount: 93
+Total Filters to prune: 2559 For Pruning Percentage: 93
+Layers that will be pruned {16: 451, 13: 484, 11: 485, 18: 480, 8: 243, 6: 244, 0: 60, 3: 112}
+Pruning Filters
+Pruned 0 filters
+Pruned 100 filters
+Pruned 200 filters
+Pruned 300 filters
+Pruned 400 filters
+Pruned 500 filters
+Pruned 600 filters
+Pruned 700 filters
+Pruned 800 filters
+Pruned 900 filters
+Pruned 1000 filters
+Pruned 1100 filters
+Pruned 1200 filters
+Pruned 1300 filters
+Pruned 1400 filters
+Pruned 1500 filters
+Pruned 1600 filters
+Pruned 1700 filters
+Pruned 1800 filters
+Pruned 1900 filters
+Pruned 2000 filters
+Pruned 2100 filters
+Pruned 2200 filters
+Pruned 2300 filters
+Pruned 2400 filters
+Pruned 2500 filters
+Total Filters Pruned: 2559
+Model size after 93% pruning: 89.22595596313477 MB
+************************* Fine-tuning model *************************
+Fine-tuning epoch 0
+Validation accuracy for epoch 0: 69.90591397849462
+Fine-tuning epoch 1
+Validation accuracy for epoch 1: 72.89874551971326
+Fine-tuning epoch 2
+Validation accuracy for epoch 2: 70.91397849462365
+Fine-tuning epoch 3
+Validation accuracy for epoch 3: 72.48207885304659
+Fine-tuning epoch 4
+Validation accuracy for epoch 4: 64.21594982078854
+Fine-tuning epoch 5
+Validation accuracy for epoch 5: 71.39336917562724
+Fine-tuning epoch 6
+Validation accuracy for epoch 6: 70.94982078853047
+Early stopping at epoch 6
+Pruning Amount 93, Model Size: 89.22595596313477, Pre-Acc: 32.898745519713266, Post-Acc: 70.8736559139785, Comp Time: 0.08411567551749093
+PruningFineTuner object deleted and memory cleared.
+****************************************************************************************************
+Percentage Done: 98.82%
+Pruning amount: 88
+Total Filters to prune: 2421 For Pruning Percentage: 88
+Layers that will be pruned {16: 442, 13: 463, 11: 482, 8: 235, 6: 228, 18: 459, 3: 68, 0: 44}
+Pruning Filters
+Pruned 0 filters
+Pruned 100 filters
+Pruned 200 filters
+Pruned 300 filters
+Pruned 400 filters
+Pruned 500 filters
+Pruned 600 filters
+Pruned 700 filters
+Pruned 800 filters
+Pruned 900 filters
+Pruned 1000 filters
+Pruned 1100 filters
+Pruned 1200 filters
+Pruned 1300 filters
+Pruned 1400 filters
+Pruned 1500 filters
+Pruned 1600 filters
+Pruned 1700 filters
+Pruned 1800 filters
+Pruned 1900 filters
+Pruned 2000 filters
+Pruned 2100 filters
+Pruned 2200 filters
+Pruned 2300 filters
+Pruned 2400 filters
+Total Filters Pruned: 2421
+Model size after 88% pruning: 105.56474304199219 MB
+************************* Fine-tuning model *************************
+Fine-tuning epoch 0
+Validation accuracy for epoch 0: 75.03584229390681
+Fine-tuning epoch 1
+Validation accuracy for epoch 1: 77.14605734767025
+Fine-tuning epoch 2
+Validation accuracy for epoch 2: 75.45698924731182
+Fine-tuning epoch 3
+Validation accuracy for epoch 3: 75.5600358422939
+Fine-tuning epoch 4
+Validation accuracy for epoch 4: 75.6989247311828
+Fine-tuning epoch 5
+Validation accuracy for epoch 5: 76.11559139784946
+Fine-tuning epoch 6
+Validation accuracy for epoch 6: 72.62096774193549
+Early stopping at epoch 6
+Pruning Amount 88, Model Size: 105.56474304199219, Pre-Acc: 64.04121863799284, Post-Acc: 72.54480286738352, Comp Time: 0.32220345451718285
+PruningFineTuner object deleted and memory cleared.
+****************************************************************************************************
+Percentage Done: 100.00%
+Pruning amount: 5
+Total Filters to prune: 137 For Pruning Percentage: 5
+Layers that will be pruned {11: 26, 18: 24, 8: 16, 16: 27, 0: 4, 13: 22, 6: 16, 3: 2}
+Pruning Filters
+Pruned 0 filters
+Pruned 100 filters
+Total Filters Pruned: 137
+Model size after 5% pruning: 469.9286880493164 MB
+************************* Fine-tuning model *************************
+Fine-tuning epoch 0
+Validation accuracy for epoch 0: 77.22670250896057
+Fine-tuning epoch 1
+Validation accuracy for epoch 1: 77.08781362007169
+Fine-tuning epoch 2
+Validation accuracy for epoch 2: 76.58602150537635
+Fine-tuning epoch 3
+Validation accuracy for epoch 3: 73.5931899641577
+Fine-tuning epoch 4
+Validation accuracy for epoch 4: 75.20161290322581
+Fine-tuning epoch 5
+Validation accuracy for epoch 5: 75.09408602150538
+Early stopping at epoch 5
+Pruning Amount 5, Model Size: 469.9286880493164, Pre-Acc: 65.93189964157706, Post-Acc: 74.95071684587813, Comp Time: 1.3667125361306327
+PruningFineTuner object deleted and memory cleared.
+****************************************************************************************************
+Percentage Done: 101.18%
+Pruning amount: 8
+Total Filters to prune: 220 For Pruning Percentage: 8
+Layers that will be pruned {16: 35, 6: 22, 13: 51, 11: 36, 18: 41, 8: 26, 0: 4, 3: 5}
+Pruning Filters
+Pruned 0 filters
+Pruned 100 filters
+Pruned 200 filters
+Total Filters Pruned: 220
+Model size after 8% pruning: 454.8168296813965 MB
+************************* Fine-tuning model *************************
+Fine-tuning epoch 0
+Validation accuracy for epoch 0: 76.59498207885305
+Fine-tuning epoch 1
+Validation accuracy for epoch 1: 75.60483870967742
+Fine-tuning epoch 2
+Validation accuracy for epoch 2: 75.28225806451613
+Fine-tuning epoch 3
+Validation accuracy for epoch 3: 74.1353046594982
+Fine-tuning epoch 4
+Validation accuracy for epoch 4: 76.11111111111111
+Fine-tuning epoch 5
+Validation accuracy for epoch 5: 74.36827956989247
+Early stopping at epoch 5
+Pruning Amount 8, Model Size: 454.8168296813965, Pre-Acc: 65.70340501792114, Post-Acc: 74.40412186379929, Comp Time: 1.3910706156776065
+PruningFineTuner object deleted and memory cleared.
+****************************************************************************************************
+Percentage Done: 102.35%
+Pruning amount: 13
+Total Filters to prune: 357 For Pruning Percentage: 13
+Layers that will be pruned {11: 75, 13: 74, 18: 62, 8: 36, 16: 60, 6: 34, 0: 10, 3: 6}
+Pruning Filters
+Pruned 0 filters
+Pruned 100 filters
+Pruned 200 filters
+Pruned 300 filters
+Total Filters Pruned: 357
+Model size after 13% pruning: 435.5780334472656 MB
+************************* Fine-tuning model *************************
+Fine-tuning epoch 0
+Validation accuracy for epoch 0: 74.87455197132617
+Fine-tuning epoch 1
+Validation accuracy for epoch 1: 76.29032258064517
+Fine-tuning epoch 2
+Validation accuracy for epoch 2: 75.71236559139784
+Fine-tuning epoch 3
+Validation accuracy for epoch 3: 74.91487455197132
+Fine-tuning epoch 4
+Validation accuracy for epoch 4: 72.91666666666666
+Fine-tuning epoch 5
+Validation accuracy for epoch 5: 71.81451612903226
+Fine-tuning epoch 6
+Validation accuracy for epoch 6: 71.31720430107526
+Early stopping at epoch 6
+Pruning Amount 13, Model Size: 435.5780334472656, Pre-Acc: 65.38082437275986, Post-Acc: 71.51433691756273, Comp Time: 1.2953113374255953
+PruningFineTuner object deleted and memory cleared.
+****************************************************************************************************
+Percentage Done: 103.53%
+Pruning amount: 2
+Total Filters to prune: 55 For Pruning Percentage: 2
+Layers that will be pruned {8: 7, 16: 9, 11: 12, 13: 10, 18: 10, 6: 5, 0: 2}
+Pruning Filters
+Pruned 0 filters
+Total Filters Pruned: 55
+Model size after 2% pruning: 482.6586265563965 MB
+************************* Fine-tuning model *************************
+Fine-tuning epoch 0
+Validation accuracy for epoch 0: 73.88440860215054
+Fine-tuning epoch 1
+Validation accuracy for epoch 1: 76.07974910394265
+Fine-tuning epoch 2
+Validation accuracy for epoch 2: 74.668458781362
+Fine-tuning epoch 3
+Validation accuracy for epoch 3: 73.5304659498208
+Fine-tuning epoch 4
+Validation accuracy for epoch 4: 74.32347670250896
+Fine-tuning epoch 5
+Validation accuracy for epoch 5: 74.24283154121864
+Fine-tuning epoch 6
+Validation accuracy for epoch 6: 73.84408602150538
+Early stopping at epoch 6
+Pruning Amount 2, Model Size: 482.6586265563965, Pre-Acc: 65.68548387096774, Post-Acc: 73.94265232974911, Comp Time: 1.490836881455921
+PruningFineTuner object deleted and memory cleared.
+****************************************************************************************************
+Percentage Done: 104.71%
+Pruning amount: 6
+Total Filters to prune: 165 For Pruning Percentage: 6
+Layers that will be pruned {11: 34, 6: 15, 13: 31, 8: 19, 16: 26, 18: 34, 0: 4, 3: 2}
+Pruning Filters
+Pruned 0 filters
+Pruned 100 filters
+Total Filters Pruned: 165
+Model size after 6% pruning: 461.57919692993164 MB
+************************* Fine-tuning model *************************
+Fine-tuning epoch 0
+Validation accuracy for epoch 0: 78.20340501792114
+Fine-tuning epoch 1
+Validation accuracy for epoch 1: 75.89157706093191
+Fine-tuning epoch 2
+Validation accuracy for epoch 2: 76.62186379928315
+Fine-tuning epoch 3
+Validation accuracy for epoch 3: 76.44713261648745
+Fine-tuning epoch 4
+Validation accuracy for epoch 4: 73.54838709677419
+Fine-tuning epoch 5
+Validation accuracy for epoch 5: 75.77956989247312
+Early stopping at epoch 5
+Pruning Amount 6, Model Size: 461.57919692993164, Pre-Acc: 65.63620071684588, Post-Acc: 75.64068100358423, Comp Time: 1.3566086065201532
+PruningFineTuner object deleted and memory cleared.
+****************************************************************************************************
+Percentage Done: 105.88%
+Pruning amount: 3
+Total Filters to prune: 82 For Pruning Percentage: 3
+Layers that will be pruned {18: 19, 13: 16, 16: 9, 8: 8, 11: 12, 6: 11, 0: 5, 3: 2}
+Pruning Filters
+Pruned 0 filters
+Total Filters Pruned: 82
+Model size after 3% pruning: 475.26826095581055 MB
+************************* Fine-tuning model *************************
+Fine-tuning epoch 0
+Validation accuracy for epoch 0: 76.97580645161291
+Fine-tuning epoch 1
+Validation accuracy for epoch 1: 77.27150537634408
+Fine-tuning epoch 2
+Validation accuracy for epoch 2: 74.39516129032258
+Fine-tuning epoch 3
+Validation accuracy for epoch 3: 76.01702508960574
+Fine-tuning epoch 4
+Validation accuracy for epoch 4: 74.72222222222223
+Fine-tuning epoch 5
+Validation accuracy for epoch 5: 74.85215053763442
+Fine-tuning epoch 6
+Validation accuracy for epoch 6: 74.081541218638
+Early stopping at epoch 6
+Pruning Amount 3, Model Size: 475.26826095581055, Pre-Acc: 65.56899641577061, Post-Acc: 73.87544802867384, Comp Time: 1.4325046085176014
+PruningFineTuner object deleted and memory cleared.
+****************************************************************************************************
+Percentage Done: 107.06%
+Pruning amount: 97
+Total Filters to prune: 2669 For Pruning Percentage: 97
+Layers that will be pruned {13: 502, 8: 251, 3: 125, 11: 502, 18: 490, 16: 482, 0: 63, 6: 254}
+Pruning Filters
+Pruned 0 filters
+Pruned 100 filters
+Pruned 200 filters
+Pruned 300 filters
+Pruned 400 filters
+Pruned 500 filters
+Pruned 600 filters
+Pruned 700 filters
+Pruned 800 filters
+Pruned 900 filters
+Pruned 1000 filters
+Pruned 1100 filters
+Pruned 1200 filters
+Pruned 1300 filters
+Pruned 1400 filters
+Pruned 1500 filters
+Pruned 1600 filters
+Pruned 1700 filters
+Pruned 1800 filters
+Pruned 1900 filters
+Pruned 2000 filters
+Pruned 2100 filters
+Pruned 2200 filters
+Pruned 2300 filters
+Pruned 2400 filters
+Pruned 2500 filters
+Pruned 2600 filters
+Total Filters Pruned: 2669
+Model size after 97% pruning: 81.429931640625 MB
+************************* Fine-tuning model *************************
+Fine-tuning epoch 0
+Validation accuracy for epoch 0: 46.83691756272401
+Fine-tuning epoch 1
+Validation accuracy for epoch 1: 57.69265232974911
+Fine-tuning epoch 2
+Validation accuracy for epoch 2: 57.213261648745515
+Fine-tuning epoch 3
+Validation accuracy for epoch 3: 61.84587813620072
+Fine-tuning epoch 4
+Validation accuracy for epoch 4: 61.66666666666667
+Fine-tuning epoch 5
+Validation accuracy for epoch 5: 63.261648745519715
+Fine-tuning epoch 6
+Validation accuracy for epoch 6: 63.99641577060932
+Fine-tuning epoch 7
+Validation accuracy for epoch 7: 63.55286738351255
+Fine-tuning epoch 8
+Validation accuracy for epoch 8: 63.86200716845878
+Fine-tuning epoch 9
+Validation accuracy for epoch 9: 65.31810035842294
+Pruning Amount 97, Model Size: 81.429931640625, Pre-Acc: 5.376344086021505, Post-Acc: 65.29569892473118, Comp Time: 0.05458941913786389
+PruningFineTuner object deleted and memory cleared.
+****************************************************************************************************
+Percentage Done: 108.24%
+Pruning amount: 91
+Total Filters to prune: 2504 For Pruning Percentage: 91
+Layers that will be pruned {16: 438, 13: 474, 18: 470, 11: 483, 6: 243, 8: 239, 3: 107, 0: 50}
+Pruning Filters
+Pruned 0 filters
+Pruned 100 filters
+Pruned 200 filters
+Pruned 300 filters
+Pruned 400 filters
+Pruned 500 filters
+Pruned 600 filters
+Pruned 700 filters
+Pruned 800 filters
+Pruned 900 filters
+Pruned 1000 filters
+Pruned 1100 filters
+Pruned 1200 filters
+Pruned 1300 filters
+Pruned 1400 filters
+Pruned 1500 filters
+Pruned 1600 filters
+Pruned 1700 filters
+Pruned 1800 filters
+Pruned 1900 filters
+Pruned 2000 filters
+Pruned 2100 filters
+Pruned 2200 filters
+Pruned 2300 filters
+Pruned 2400 filters
+Pruned 2500 filters
+Total Filters Pruned: 2504
+Model size after 91% pruning: 96.9906997680664 MB
+************************* Fine-tuning model *************************
+Fine-tuning epoch 0
+Validation accuracy for epoch 0: 76.18727598566308
+Fine-tuning epoch 1
+Validation accuracy for epoch 1: 76.11111111111111
+Fine-tuning epoch 2
+Validation accuracy for epoch 2: 75.54659498207886
+Fine-tuning epoch 3
+Validation accuracy for epoch 3: 72.75537634408602
+Fine-tuning epoch 4
+Validation accuracy for epoch 4: 75.40770609318996
+Fine-tuning epoch 5
+Validation accuracy for epoch 5: 74.63709677419355
+Early stopping at epoch 5
+Pruning Amount 91, Model Size: 96.9906997680664, Pre-Acc: 55.41218637992832, Post-Acc: 74.82078853046595, Comp Time: 0.2104735601515997
+PruningFineTuner object deleted and memory cleared.
+****************************************************************************************************
+Percentage Done: 109.41%
+Pruning amount: 96
+Total Filters to prune: 2641 For Pruning Percentage: 96
+Layers that will be pruned {11: 493, 13: 497, 16: 473, 18: 492, 8: 250, 6: 250, 0: 63, 3: 123}
+Pruning Filters
+Pruned 0 filters
+Pruned 100 filters
+Pruned 200 filters
+Pruned 300 filters
+Pruned 400 filters
+Pruned 500 filters
+Pruned 600 filters
+Pruned 700 filters
+Pruned 800 filters
+Pruned 900 filters
+Pruned 1000 filters
+Pruned 1100 filters
+Pruned 1200 filters
+Pruned 1300 filters
+Pruned 1400 filters
+Pruned 1500 filters
+Pruned 1600 filters
+Pruned 1700 filters
+Pruned 1800 filters
+Pruned 1900 filters
+Pruned 2000 filters
+Pruned 2100 filters
+Pruned 2200 filters
+Pruned 2300 filters
+Pruned 2400 filters
+Pruned 2500 filters
+Pruned 2600 filters
+Total Filters Pruned: 2641
+Model size after 96% pruning: 79.92302703857422 MB
+************************* Fine-tuning model *************************
+Fine-tuning epoch 0
+Validation accuracy for epoch 0: 49.17562724014337
+Fine-tuning epoch 1
+Validation accuracy for epoch 1: 58.49462365591398
+Fine-tuning epoch 2
+Validation accuracy for epoch 2: 60.10752688172043
+Fine-tuning epoch 3
+Validation accuracy for epoch 3: 60.488351254480285
+Fine-tuning epoch 4
+Validation accuracy for epoch 4: 61.415770609319
+Fine-tuning epoch 5
+Validation accuracy for epoch 5: 64.1173835125448
+Fine-tuning epoch 6
+Validation accuracy for epoch 6: 65.32706093189964
+Fine-tuning epoch 7
+Validation accuracy for epoch 7: 63.53942652329749
+Fine-tuning epoch 8
+Validation accuracy for epoch 8: 62.715053763440864
+Fine-tuning epoch 9
+Validation accuracy for epoch 9: 66.084229390681
+Pruning Amount 96, Model Size: 79.92302703857422, Pre-Acc: 5.304659498207885, Post-Acc: 66.03494623655915, Comp Time: 0.05606812522524879
+PruningFineTuner object deleted and memory cleared.
+****************************************************************************************************
+Percentage Done: 110.59%
+Pruning amount: 94
+Total Filters to prune: 2586 For Pruning Percentage: 94
+Layers that will be pruned {13: 484, 11: 489, 16: 457, 0: 60, 18: 480, 8: 246, 6: 248, 3: 122}
+Pruning Filters
+Pruned 0 filters
+Pruned 100 filters
+Pruned 200 filters
+Pruned 300 filters
+Pruned 400 filters
+Pruned 500 filters
+Pruned 600 filters
+Pruned 700 filters
+Pruned 800 filters
+Pruned 900 filters
+Pruned 1000 filters
+Pruned 1100 filters
+Pruned 1200 filters
+Pruned 1300 filters
+Pruned 1400 filters
+Pruned 1500 filters
+Pruned 1600 filters
+Pruned 1700 filters
+Pruned 1800 filters
+Pruned 1900 filters
+Pruned 2000 filters
+Pruned 2100 filters
+Pruned 2200 filters
+Pruned 2300 filters
+Pruned 2400 filters
+Pruned 2500 filters
+Total Filters Pruned: 2586
+Model size after 94% pruning: 89.19656753540039 MB
+************************* Fine-tuning model *************************
+Fine-tuning epoch 0
+Validation accuracy for epoch 0: 69.7715053763441
+Fine-tuning epoch 1
+Validation accuracy for epoch 1: 72.60752688172043
+Fine-tuning epoch 2
+Validation accuracy for epoch 2: 72.5
+Fine-tuning epoch 3
+Validation accuracy for epoch 3: 72.93906810035843
+Fine-tuning epoch 4
+Validation accuracy for epoch 4: 72.72849462365592
+Fine-tuning epoch 5
+Validation accuracy for epoch 5: 69.93727598566308
+Fine-tuning epoch 6
+Validation accuracy for epoch 6: 73.18996415770609
+Fine-tuning epoch 7
+Validation accuracy for epoch 7: 72.05645161290323
+Fine-tuning epoch 8
+Validation accuracy for epoch 8: 72.09677419354838
+Fine-tuning epoch 9
+Validation accuracy for epoch 9: 71.98924731182795
+Pruning Amount 94, Model Size: 89.19656753540039, Pre-Acc: 24.372759856630825, Post-Acc: 71.93548387096774, Comp Time: 0.07886062349591937
+PruningFineTuner object deleted and memory cleared.
+****************************************************************************************************
+Percentage Done: 111.76%
+Pruning amount: 92
+Total Filters to prune: 2531 For Pruning Percentage: 92
+Layers that will be pruned {13: 479, 11: 487, 3: 108, 16: 455, 8: 241, 18: 467, 6: 242, 0: 52}
+Pruning Filters
+Pruned 0 filters
+Pruned 100 filters
+Pruned 200 filters
+Pruned 300 filters
+Pruned 400 filters
+Pruned 500 filters
+Pruned 600 filters
+Pruned 700 filters
+Pruned 800 filters
+Pruned 900 filters
+Pruned 1000 filters
+Pruned 1100 filters
+Pruned 1200 filters
+Pruned 1300 filters
+Pruned 1400 filters
+Pruned 1500 filters
+Pruned 1600 filters
+Pruned 1700 filters
+Pruned 1800 filters
+Pruned 1900 filters
+Pruned 2000 filters
+Pruned 2100 filters
+Pruned 2200 filters
+Pruned 2300 filters
+Pruned 2400 filters
+Pruned 2500 filters
+Total Filters Pruned: 2531
+Model size after 92% pruning: 99.22110748291016 MB
+************************* Fine-tuning model *************************
+Fine-tuning epoch 0
+Validation accuracy for epoch 0: 74.68637992831542
+Fine-tuning epoch 1
+Validation accuracy for epoch 1: 76.70698924731182
+Fine-tuning epoch 2
+Validation accuracy for epoch 2: 73.84408602150538
+Fine-tuning epoch 3
+Validation accuracy for epoch 3: 75.68996415770609
+Fine-tuning epoch 4
+Validation accuracy for epoch 4: 74.19802867383513
+Fine-tuning epoch 5
+Validation accuracy for epoch 5: 74.15322580645162
+Fine-tuning epoch 6
+Validation accuracy for epoch 6: 75.92293906810036
+Early stopping at epoch 6
+Pruning Amount 92, Model Size: 99.22110748291016, Pre-Acc: 54.896953405017925, Post-Acc: 75.80197132616487, Comp Time: 0.2022351310366676
+PruningFineTuner object deleted and memory cleared.
+****************************************************************************************************
+Percentage Done: 112.94%
+Pruning amount: 95
+Total Filters to prune: 2614 For Pruning Percentage: 95
+Layers that will be pruned {11: 494, 13: 489, 6: 249, 18: 476, 8: 248, 16: 472, 0: 63, 3: 123}
+Pruning Filters
+Pruned 0 filters
+Pruned 100 filters
+Pruned 200 filters
+Pruned 300 filters
+Pruned 400 filters
+Pruned 500 filters
+Pruned 600 filters
+Pruned 700 filters
+Pruned 800 filters
+Pruned 900 filters
+Pruned 1000 filters
+Pruned 1100 filters
+Pruned 1200 filters
+Pruned 1300 filters
+Pruned 1400 filters
+Pruned 1500 filters
+Pruned 1600 filters
+Pruned 1700 filters
+Pruned 1800 filters
+Pruned 1900 filters
+Pruned 2000 filters
+Pruned 2100 filters
+Pruned 2200 filters
+Pruned 2300 filters
+Pruned 2400 filters
+Pruned 2500 filters
+Pruned 2600 filters
+Total Filters Pruned: 2614
+Model size after 95% pruning: 92.21360778808594 MB
+************************* Fine-tuning model *************************
+Fine-tuning epoch 0
+Validation accuracy for epoch 0: 57.6568100358423
+Fine-tuning epoch 1
+Validation accuracy for epoch 1: 60.757168458781365
+Fine-tuning epoch 2
+Validation accuracy for epoch 2: 65.46594982078852
+Fine-tuning epoch 3
+Validation accuracy for epoch 3: 64.4310035842294
+Fine-tuning epoch 4
+Validation accuracy for epoch 4: 67.24014336917563
+Fine-tuning epoch 5
+Validation accuracy for epoch 5: 66.47849462365592
+Fine-tuning epoch 6
+Validation accuracy for epoch 6: 68.15412186379929
+Fine-tuning epoch 7
+Validation accuracy for epoch 7: 68.85752688172043
+Fine-tuning epoch 8
+Validation accuracy for epoch 8: 67.6747311827957
+Fine-tuning epoch 9
+Validation accuracy for epoch 9: 68.51254480286738
+Pruning Amount 95, Model Size: 92.21360778808594, Pre-Acc: 4.444444444444445, Post-Acc: 68.47222222222223, Comp Time: 0.07014123598734538
+PruningFineTuner object deleted and memory cleared.
+****************************************************************************************************
+Percentage Done: 114.12%
+Pruning amount: 0
+Total Filters to prune: 0 For Pruning Percentage: 0
+Layers that will be pruned {}
+Pruning Filters
+Total Filters Pruned: 0
+Model size after 0% pruning: 491.72034072875977 MB
+************************* Fine-tuning model *************************
+Fine-tuning epoch 0
+Validation accuracy for epoch 0: 76.44713261648745
+Fine-tuning epoch 1
+Validation accuracy for epoch 1: 74.36379928315412
+Fine-tuning epoch 2
+Validation accuracy for epoch 2: 76.00358422939068
+Fine-tuning epoch 3
+Validation accuracy for epoch 3: 75.61379928315412
+Fine-tuning epoch 4
+Validation accuracy for epoch 4: 74.33691756272401
+Fine-tuning epoch 5
+Validation accuracy for epoch 5: 73.61111111111111
+Early stopping at epoch 5
+Pruning Amount 0, Model Size: 491.72034072875977, Pre-Acc: 65.76612903225806, Post-Acc: 73.62007168458781, Comp Time: 1.419811067127046
+PruningFineTuner object deleted and memory cleared.
+****************************************************************************************************
+Percentage Done: 115.29%
+Pruning amount: 98
+Total Filters to prune: 2696 For Pruning Percentage: 98
+Layers that will be pruned {8: 254, 13: 504, 11: 503, 18: 498, 16: 492, 3: 128, 6: 253, 0: 64}
+Pruning Filters
+Pruned 0 filters
+Pruned 100 filters
+Pruned 200 filters
+Pruned 300 filters
+Pruned 400 filters
+Pruned 500 filters
+Pruned 600 filters
+Pruned 700 filters
+Pruned 800 filters
+Pruned 900 filters
+Pruned 1000 filters
+Pruned 1100 filters
+Pruned 1200 filters
+Pruned 1300 filters
+Pruned 1400 filters
+Pruned 1500 filters
+Pruned 1600 filters
+Pruned 1700 filters
+Pruned 1800 filters
+Pruned 1900 filters
+Pruned 2000 filters
+Pruned 2100 filters
+Pruned 2200 filters
+Pruned 2300 filters
+Pruned 2400 filters
+Pruned 2500 filters
+Pruned 2600 filters
+Total Filters Pruned: 2696
+Model size after 98% pruning: 75.28436660766602 MB
