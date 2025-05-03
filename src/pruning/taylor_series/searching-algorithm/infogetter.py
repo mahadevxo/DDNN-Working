@@ -4,8 +4,8 @@ import time
 import torch
 from torch.utils.data import DataLoader
 import resource
-from MVCNN.tools.ImgDataset import SingleImgDataset
-from MVCNN.models import MVCNN
+from tools.ImgDataset import SingleImgDataset
+from models import MVCNN
 from PFT import PruningFineTuner
 
 soft, hard = resource.getrlimit(resource.RLIMIT_NOFILE)

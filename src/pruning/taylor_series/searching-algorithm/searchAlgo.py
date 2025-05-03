@@ -36,6 +36,7 @@ class GradientDescentSearch:
         # Tracking variables
         self.comp_time_last = None
         self.best_size = float('inf')
+        self.use_eq = True
         
     def _clear_memory(self):
         """
@@ -56,7 +57,7 @@ class GradientDescentSearch:
         if torch.backends.mps.is_available():
             torch.mps.empty_cache()
     
-    def _get_model_stats(self, pruning_amount, get_accuracy=False, get_size=False, get_time=False, get_model = False, all=True):
+    def _get_model_stats(self, pruning_amount, get_accuracy=False, get_size=False, get_time=False, get_model=False, all=True):
         """
         Retrieves statistics about the pruned model with the given pruning amount.
         
@@ -74,6 +75,18 @@ class GradientDescentSearch:
         Returns:
             Dictionary with model metrics or specific metric based on the flags
         """
+                
+        if self.use_eq:
+            x = pruning_amount
+            acc = (9.04 * x**5 - 11.10 * x**4 - 1.86 * x**3 + 4.13 * x**2 - 1.17 * x + 1.05)*75
+            size = -4.3237 * x *100 + 487.15
+            time = -0.0134 * x * 100 + 1.4681
+            return {
+                'model': None,
+                'accuracy': acc,
+                'model_size': size,
+                'computation_time': time
+            }
         infogettr = InfoGetter()
         info = infogettr.getInfo(pruning_amount)
         self._clear_memory()
@@ -633,9 +646,10 @@ class GradientDescentSearch:
         print(f"Best Reward: {best_reward:.4f}")
         
         # Calculate final metrics
-        accuracy = self._get_accuracy(best_pruning_amount)
-        model_size = self._get_model_size(best_pruning_amount)
-        comp_time = self._get_comp_time(best_pruning_amount)
+        info = self._get_model_stats(best_pruning_amount, all=True)
+        accuracy = info['accuracy']
+        model_size = info['model_size']
+        comp_time = info['computation_time']
         
         # Print final stats
         print(f"\n----------Stats at {best_pruning_amount:.4f}----------")
@@ -645,7 +659,7 @@ class GradientDescentSearch:
         print(f"Computation Time: {comp_time:.4f}")
         
         # Check if constraints are satisfied
-        meets, status = self._meets_constraints(best_pruning_amount)
+        meets, status = self._meets_constraints(accuracy, model_size)
         if meets:
             print("✅ All constraints satisfied!")
             print(f"Achieved {100 - model_size/self.max_size*100:.1f}% reduction from maximum allowed model size")

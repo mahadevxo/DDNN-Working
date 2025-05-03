@@ -5,7 +5,7 @@ import random
 import gc
 from FilterPruner import FilterPruner
 from Pruning import Pruning
-from MVCNN.tools.ImgDataset import SingleImgDataset
+from tools.ImgDataset import SingleImgDataset
 
 class PruningFineTuner:
     def __init__(self, model):
@@ -220,7 +220,7 @@ class PruningFineTuner:
         original_filters = self.total_num_filters()
         return self.get_candidates_to_prune(original_filters)
     
-    def prune(self, pruning_percentage, only_model=True, prune_targets=None):
+    def prune(self, pruning_amount, only_model=True, prune_targets=None):
         """
         Prunes the model by removing a specified percentage of filters.
 
@@ -228,7 +228,7 @@ class PruningFineTuner:
         Optionally, a custom list of filters to prune can be provided.
 
         Args:
-            pruning_percentage: Percentage of filters to prune from the model.
+            pruning_amount: Amount of filters to prune from the model. (0.0 - 1.0)
             only_model: If True, returns only the pruned model.
             prune_targets: Optional list of (layer_index, filter_index) tuples to specify which filters to prune.
 
@@ -243,8 +243,8 @@ class PruningFineTuner:
             param.requires_grad = True
             
         original_filters = self.total_num_filters()
-        total_filters_to_prune = int(original_filters * (pruning_percentage / 100.0))
-        print(f"Total Filters to prune: {total_filters_to_prune} For Pruning Percentage: {pruning_percentage}")
+        total_filters_to_prune = int(original_filters * (pruning_amount))
+        print(f"Total Filters to prune: {total_filters_to_prune} For Pruning Amount: {pruning_amount}")
 
         # Rank and get the candidates to prune
         
