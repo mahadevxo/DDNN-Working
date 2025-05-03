@@ -36,7 +36,18 @@ class InfoGetter:
         )
         
     def _clear_memory(self):
-        """Helper method to clear memory efficiently"""
+        """
+        Clears GPU/MPS memory by forcing garbage collection and emptying caches.
+        
+        Helps prevent memory leaks by explicitly freeing unused memory
+        after operations that might create large temporary tensors.
+        
+        Args:
+            None
+            
+        Returns:
+            None
+        """
         gc.collect()
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
@@ -44,6 +55,18 @@ class InfoGetter:
             torch.mps.empty_cache()
     
     def get_model(self):
+        """
+        Loads and returns a pre-trained model.
+        
+        Creates an SVCNN model instance and loads pre-trained weights from a file,
+        then returns a deep copy of the model.
+        
+        Args:
+            None
+            
+        Returns:
+            Deep copy of the loaded model with pre-trained weights
+        """
         model = MVCNN.SVCNN(
             'svcnn'
         )
@@ -53,6 +76,20 @@ class InfoGetter:
         return deepcopy(model)
     
     def get_dataset(self, train_dataset=False, test_dataset=False, comp_time_dataset=False):
+        """
+        Creates appropriate datasets for different evaluation needs.
+        
+        Creates and returns DataLoaders with different configurations based on
+        whether they're needed for training, testing, or computation time evaluation.
+        
+        Args:
+            train_dataset: If True, returns a dataset for training
+            test_dataset: If True, returns a dataset for testing
+            comp_time_dataset: If True, returns a dataset for computation time evaluation
+            
+        Returns:
+            DataLoader configured for the requested purpose
+        """
         # Load dataset
         if train_dataset:
             dataset = SingleImgDataset(
@@ -133,6 +170,18 @@ class InfoGetter:
         return dataloader
     
     def get_accuracy(self, model):
+        """
+        Evaluates the model's accuracy on the test dataset.
+        
+        Runs the model on the test dataset and calculates the percentage
+        of correct predictions.
+        
+        Args:
+            model: The model to evaluate
+            
+        Returns:
+            Float representing the accuracy percentage
+        """
         model.eval()
         
         test_loader = self.get_dataset(test_dataset=True)
@@ -165,6 +214,18 @@ class InfoGetter:
         return accuracy
 
     def get_size(self, model):
+        """
+        Calculates the size of the model in megabytes.
+        
+        Sums the memory usage of all parameters and buffers in the model
+        to determine the total model size in MB.
+        
+        Args:
+            model: The model whose size to calculate
+            
+        Returns:
+            Float representing the model size in MB
+        """
         param_size = sum(
             param.nelement() * param.element_size() for param in model.parameters()
         )
@@ -174,6 +235,18 @@ class InfoGetter:
         return (param_size + buffer_size) / (1024 ** 2)
     
     def get_comp_time(self, model):
+        """
+        Measures the average inference time of the model.
+        
+        Runs the model on a subset of the dataset multiple times and calculates
+        the average computation time per batch.
+        
+        Args:
+            model: The model whose computation time to measure
+            
+        Returns:
+            Float representing average inference time per batch
+        """
         dataset = self.get_dataset(comp_time_dataset=True)
         
         model = model.to('cpu')
@@ -195,6 +268,20 @@ class InfoGetter:
         return total_time
     
     def train_model(self, model, rank_filter=False, pruner=None):
+        """
+        Trains a model on a subset of the training data.
+        
+        If rank_filter is True, uses the pruner to compute filter importance scores
+        during training. Otherwise, performs regular training to update model weights.
+        
+        Args:
+            model: The model to train
+            rank_filter: If True, computes filter rankings instead of regular training
+            pruner: FilterPruner instance for computing rankings (required if rank_filter=True)
+            
+        Returns:
+            The trained model
+        """
         model = model.train()
         model = model.to(self.device)
         
@@ -250,6 +337,18 @@ class InfoGetter:
         return model
     
     def fine_tune(self, model):
+        """
+        Fine-tunes a pruned model to recover accuracy.
+        
+        Performs several epochs of training with adaptive learning rate and
+        early stopping to efficiently fine-tune a pruned model.
+        
+        Args:
+            model: The pruned model to fine-tune
+            
+        Returns:
+            The fine-tuned model
+        """
         print('*' * 25, "Fine-tuning model", '*' * 25)
         model = model.to(self.device)
         
@@ -292,11 +391,24 @@ class InfoGetter:
         return model
     
     def getInfo(self, pruning_amount):
+        """
+        Gets comprehensive information about a model pruned by the specified amount.
+        
+        Prunes the model, fine-tunes it, and evaluates its accuracy, computation time,
+        and size to provide a complete picture of model performance at the given
+        pruning level.
+        
+        Args:
+            pruning_amount: Percentage of filters to prune (0-1)
+            
+        Returns:
+            Tuple containing (model, accuracy, computation_time, size)
+        """
         model = self.get_model()
         model = model.to(self.device)
         
         pruner = PruningFineTuner(model)
-        model = pruner.prune(pruning_amount, True)
+        model = pruner.prune(pruning_amount)
         
         pre_acc = self.get_accuracy(model)
         model = self.fine_tune(model)

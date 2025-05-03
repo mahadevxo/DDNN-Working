@@ -2,12 +2,10 @@ from torch.utils.data import DataLoader, Subset
 from torchvision import transforms
 import torch
 import random
-import time
 import gc
 from FilterPruner import FilterPruner
 from Pruning import Pruning
 from MVCNN.tools.ImgDataset import SingleImgDataset
-from torch import optim
 
 class PruningFineTuner:
     def __init__(self, model):
@@ -20,7 +18,18 @@ class PruningFineTuner:
         self._clear_memory()
         
     def _clear_memory(self):
-        """Helper method to clear memory efficiently"""
+        """
+        Clears GPU/MPS memory by forcing garbage collection and emptying caches.
+        
+        Helps prevent memory leaks during pruning and fine-tuning by explicitly
+        freeing unused memory after operations that might create large temporary tensors.
+        
+        Args:
+            None
+            
+        Returns:
+            None
+        """
         gc.collect()
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
@@ -28,7 +37,19 @@ class PruningFineTuner:
             torch.mps.empty_cache()
         
     def get_images(self, folder_path, num_samples=5000):
+        """
+        Creates a DataLoader for image data with specified transformations.
         
+        Loads images from the provided folder path, applies transformations,
+        and creates a DataLoader with a random subset of the data.
+        
+        Args:
+            folder_path: Path to the image dataset
+            num_samples: Maximum number of samples to include
+            
+        Returns:
+            DataLoader object for the image dataset
+        """
         transform = transforms.Compose([
             transforms.Resize((224,224)),
             transforms.RandomHorizontalFlip(), 
@@ -47,6 +68,21 @@ class PruningFineTuner:
         return DataLoader(data_dataset, batch_size=32, shuffle=True, num_workers=4, pin_memory=True)
     
     def train_batch(self, optimizer, train_loader, rank_filter=False):
+        """
+        Trains the model on a single batch of data.
+        
+        Processes a batch of images through the model, computes loss,
+        and performs backpropagation. If rank_filter is True, uses the
+        pruner's forward method to compute filter importance scores.
+        
+        Args:
+            optimizer: Optimizer for weight updates (None if just computing rankings)
+            train_loader: DataLoader providing training data
+            rank_filter: If True, computes filter rankings instead of regular training
+            
+        Returns:
+            None, but updates model weights and/or filter rankings
+        """
         self.model.train()
         self.model.to(self.device)
         for batch_idx, (label, image, _) in enumerate(train_loader):
@@ -93,70 +129,56 @@ class PruningFineTuner:
                 self._clear_memory()
     
     def train_epoch(self, optimizer=None, rank_filter=False):
+        """
+        Trains the model for one epoch on a subset of training data.
+        
+        Creates a DataLoader for a small subset of training data and
+        runs one training pass through it, either for standard training
+        or for computing filter rankings.
+        
+        Args:
+            optimizer: Optimizer for weight updates (None if just computing rankings)
+            rank_filter: If True, computes filter rankings instead of regular training
+            
+        Returns:
+            None, but updates model weights and/or filter rankings
+        """
         train_loader = self.get_images(self.train_path, num_samples=200)
         self.train_batch(optimizer, train_loader, rank_filter)
         del train_loader
         self._clear_memory()
-        
-    def _get_mean(self, list1: list) -> float:
-        return sum(list1) / len(list1) if list1 else 0.0
-            
-    def test(self, model, final_test=False):
-        model.eval()
-        model.to(self.device)
-        correct_top1 = 0
-        total = 0
-        compute_time = 0
-        accuracies = []
-        computation_times = []
-        
-        tries = 10 if final_test else 1
-        for _ in range(tries):
-            test_loader = self.get_images(self.test_path, num_samples=500)
-            
-            with torch.inference_mode():
-                for labels, images, _ in test_loader:
-                    try:
-                        images = images.to(self.device, non_blocking=True)
-                        labels = labels.to(self.device, non_blocking=True)
-                        
-                        t1 = time.time()
-                        outputs = model(images)
-                        t2 = time.time()
-                        compute_time += t2 - t1
-                        
-                        # Top-1 accuracy
-                        _, predicted = torch.max(outputs, 1)
-                        total += labels.size(0)
-                        correct_top1 += (predicted == labels).sum().item()
-                        
-                    finally:
-                        # Free up memory
-                        del images, labels
-                        if 'outputs' in locals(): 
-                            del outputs
-                        if 'predicted' in locals(): 
-                            del predicted
-                        self._clear_memory()
-            
-            accuracies.append(100.0 * correct_top1 / total if total > 0 else 0)
-            computation_times.append(compute_time)
-            self._clear_memory()
-        
-        # Clean up test loader
-        del test_loader
-        self._clear_memory()
-        
-        return [self._get_mean(accuracies), self._get_mean(computation_times)]
     
     def get_candidates_to_prune(self, num_filter_to_prune):
-        # print("Getting Candidates to Prune")
+        """
+        Identifies the least important filters in the model for pruning.
+        
+        Computes filter importance scores using the pruner's ranking method
+        and returns a list of filters to prune, sorted by importance.
+        
+        Args:
+            num_filter_to_prune: Number of filters to select for pruning
+            
+        Returns:
+            List of (layer_index, filter_index) tuples identifying filters to prune
+        """
         self.pruner.reset()
         self.train_epoch(rank_filter=True)
         self.pruner.normalize_ranks_per_layer()
         return self.pruner.get_pruning_plan(num_filter_to_prune)
     
     def total_num_filters(self):
+        """
+        Counts the total number of filters (output channels) in all convolutional layers.
+        
+        Sums the out_channels attribute of all Conv2d layers in the model
+        to determine the total number of filters that could potentially be pruned.
+        
+        Args:
+            None
+            
+        Returns:
+            Integer representing total number of filters
+        """
         return sum(
             layer.out_channels
             for layer in self.model.net_1
@@ -164,6 +186,18 @@ class PruningFineTuner:
         )
     
     def get_model_size(self, model):
+        """
+        Calculates the size of the model in megabytes.
+        
+        Sums the memory usage of all parameters in the model to determine
+        the total model size in MB.
+        
+        Args:
+            model: The model whose size to calculate
+            
+        Returns:
+            Float representing the model size in MB
+        """
         total_size = sum(
             param.nelement() * param.element_size() for param in model.parameters()
         )
@@ -171,10 +205,37 @@ class PruningFineTuner:
         return total_size / (1024 ** 2)
     
     def get_ranks(self):
+        """
+        Computes importance ranks for all filters in the model.
+        
+        Wrapper function that gets pruning candidates for all filters,
+        effectively computing ranks for every filter in the model.
+        
+        Args:
+            None
+            
+        Returns:
+            List of (layer_index, filter_index) tuples with rank information
+        """
         original_filters = self.total_num_filters()
         return self.get_candidates_to_prune(original_filters)
     
-    def prune(self, pruning_percentage, only_model=False, prune_targets=None):  # sourcery skip: extract-method
+    def prune(self, pruning_percentage, only_model=True, prune_targets=None):
+        """
+        Prunes the model by removing a specified percentage of filters.
+
+        This method ranks filters by importance and removes the least important ones, updating the model in place. 
+        Optionally, a custom list of filters to prune can be provided.
+
+        Args:
+            pruning_percentage: Percentage of filters to prune from the model.
+            only_model: If True, returns only the pruned model.
+            prune_targets: Optional list of (layer_index, filter_index) tuples to specify which filters to prune.
+
+        Returns:
+            The pruned model if only_model is True; otherwise, None.
+        """
+
         self.model.train()
         
         # Enable gradients for pruning
@@ -218,42 +279,21 @@ class PruningFineTuner:
         self.model = model.to(self.device)
         self._clear_memory()
         
-        if only_model:
-            return self.model
-
-        # Test and fine tune model
-        acc_pre_fine_tuning = self.test(model)
-        if pruning_percentage != 0.0:
-            print(f"Accuracy before fine tuning: {acc_pre_fine_tuning[0]:.2f}%")
-            
-            optimizer = optim.SGD(self.model.parameters(), lr=0.001, momentum=0.9)
-            scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='max', factor=0.5, patience=1)
-            best_accuracy = 0.0
-            
-            # Fine-tuning phase
-            num_finetuning_epochs = 5
-            for epoch in range(num_finetuning_epochs):
-                print(f"Fine-tuning epoch {epoch+1}/{num_finetuning_epochs}")
-                self.train_epoch(optimizer, rank_filter=False)
-                val_results = self.test(self.model)
-                print(f"Validation Accuracy: {val_results[0]:.2f}%")
-                scheduler.step(val_results[0])
-                if val_results[0] > best_accuracy:
-                    best_accuracy = val_results[0]
-                self._clear_memory()
-                
-        # Final evaluation
-        acc_time = self.test(self.model)
-        print("Finished Pruning for", pruning_percentage)
-        print(f"Accuracy after fine tuning: {acc_time[0]:.2f}%")
-        print(f"Time taken for inference: {acc_time[1]:.2f} seconds")
-        size_mb = self.get_model_size(self.model)
-        print(f"Model Size after fine tuning: {size_mb:.2f} MB")
-        
-        return [acc_pre_fine_tuning, acc_time[0], acc_time[1], size_mb]
+        return self.model
     
     def reset(self):
-        """Clear memory resources completely"""
+        """
+        Releases memory resources used by the pruner.
+        
+        Explicitly deletes objects and clears caches to free memory,
+        particularly important when processing multiple pruning iterations.
+        
+        Args:
+            None
+            
+        Returns:
+            None
+        """
         if hasattr(self, 'pruner'):
             self.pruner.reset()
             del self.pruner
@@ -271,10 +311,32 @@ class PruningFineTuner:
         self._clear_memory()
         
     def save_model(self, path):
+        """
+        Saves the pruned model's state dictionary to a file.
+        
+        Stores the model weights at the specified path for later loading.
+        
+        Args:
+            path: File path to save the model
+            
+        Returns:
+            None
+        """
         torch.save(self.model.state_dict(), path)
         print(f"Model saved as {path}")
         
     def __del__(self):
-        """Destructor to ensure memory is cleared when the object is deleted"""
+        """
+        Destructor that ensures memory is cleared when the object is deleted.
+        
+        Calls the reset method to free resources when the PruningFineTuner
+        object is garbage collected.
+        
+        Args:
+            None
+            
+        Returns:
+            None
+        """
         self.reset()
         print("PruningFineTuner object deleted and memory cleared.")

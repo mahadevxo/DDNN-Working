@@ -30,15 +30,18 @@ class Reward:
 
     def _get_accuracy_reward(self, acc, peak_reward=5.0):
         """
-        Calculate accuracy reward using a Gaussian curve.
-        Reward peaks at minimum accuracy and gradually decreases on either side.
+        Calculates a reward value for model accuracy using a Gaussian curve.
+        
+        The reward function is designed to peak at the minimum acceptable accuracy
+        and gradually decrease for values both above and below this threshold.
+        Values below the minimum accuracy threshold receive a steeper penalty.
         
         Args:
-            acc: Accuracy value (0.0-1.0)
-            peak_reward: Maximum reward value at the peak
+            acc: Accuracy value between 0.0-1.0
+            peak_reward: Maximum possible reward at the peak of the Gaussian curve
             
         Returns:
-            Gaussian-based reward value for accuracy
+            Float representing the reward value for the given accuracy
         """
         # Parameters for the Gaussian curve
         mu = self.min_acc  # Center at minimum acceptable accuracy
@@ -60,15 +63,18 @@ class Reward:
     
     def _get_model_size_reward(self, model_size_new, max_reward=5.0):
         """
-        Calculate model size reward using a Gaussian curve.
-        Reward peaks at the smallest model size and decreases as size increases.
+        Calculates a reward value for model size using a Gaussian curve.
+        
+        The reward is highest for the smallest possible model and decreases as
+        the model size increases. Models exceeding the maximum size constraint
+        receive a penalty that increases with the degree of violation.
         
         Args:
-            model_size_new: Size of the model
-            max_reward: Maximum possible reward for smallest models
+            model_size_new: Size of the model (in MB)
+            max_reward: Maximum possible reward for the smallest model
             
         Returns:
-            Gaussian-based reward value for model size
+            Float representing the reward value for the given model size
         """
         # Parameters for the Gaussian curve
         mu = 0  # Center at size = 0 (ideal smallest model)
@@ -87,16 +93,19 @@ class Reward:
 
     def _get_comp_time_reward(self, comp_time_new, comp_time_last, max_reward=3.0):
         """
-        Calculate computation time reward using a Gaussian function.
-        Reward peaks at zero computation time and decreases as time increases.
+        Calculates a reward value for computation time using a Gaussian function.
+        
+        The reward is highest for the fastest model (computation time approaching zero)
+        and decreases as computation time increases. Models that improve over the 
+        previous computation time receive an additional bonus.
         
         Args:
-            comp_time_new: New computation time
-            comp_time_last: Previous computation time
-            max_reward: Maximum possible reward
+            comp_time_new: Current computation time
+            comp_time_last: Previous computation time for comparison
+            max_reward: Maximum possible reward for the fastest model
             
         Returns:
-            Gaussian-based reward value for computation time
+            Float representing the reward value for the given computation time
         """
         # Parameters for the Gaussian curve
         mu = 0  # Center at time = 0 (ideal fastest model)
@@ -115,10 +124,16 @@ class Reward:
 
     def plot_reward_functions(self, save_path=None):
         """
-        Plot the reward functions to visualize how they behave across different input values.
+        Creates visualizations of all reward functions to understand their behavior.
+        
+        Generates three plots showing how each component reward function
+        (accuracy, model size, computation time) behaves across its input range.
         
         Args:
             save_path: Path to save the figure (if None, the plot is displayed)
+            
+        Returns:
+            Figure object containing the generated plots
         """
         fig, axs = plt.subplots(1, 3, figsize=(18, 6))
         
@@ -175,18 +190,21 @@ class Reward:
 
     def getReward(self, accuracy, model_size, comp_time, comp_time_last=None, param_reduction=None):
         """
-        Calculate overall reward for a pruned model combining accuracy, 
-        model size and computation time rewards.
+        Calculates the overall reward for a pruned model by combining individual reward components.
+        
+        Combines accuracy, model size, and computation time rewards according to
+        their specified weights. Applies synergy bonuses for solutions that satisfy
+        constraints with a good margin, and applies penalties for constraint violations.
         
         Args:
             accuracy: Model accuracy after pruning (0.0-1.0)
-            model_size: Size of the pruned model
+            model_size: Size of the pruned model (MB)
             comp_time: Computation time of the pruned model
             comp_time_last: Previous computation time (if None, uses stored value)
-            param_reduction: Parameter reduction ratio (optional)
+            param_reduction: Parameter reduction ratio (optional, not used)
             
         Returns:
-            Normalized reward value suitable for optimization
+            Float representing the final combined reward value
         """
         if comp_time_last is not None:
             self.comp_time_last = comp_time_last
