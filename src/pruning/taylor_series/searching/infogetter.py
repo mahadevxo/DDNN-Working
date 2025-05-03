@@ -1,47 +1,169 @@
-import time
-import numpy as np
-from MVCNN.models import MVCNN
-from MVCNN.tools.ImgDataset import SingleImgDataset
-import gc
-import torch
 from copy import deepcopy
-from PFT import PruningFineTuner
-import os
+import gc
+import time
+import torch
+from torch.utils.data import DataLoader
 import resource
+from MVCNN.tools.ImgDataset import SingleImgDataset
+from MVCNN.models import MVCNN
+from PFT import PruningFineTuner
 
 soft, hard = resource.getrlimit(resource.RLIMIT_NOFILE)
 resource.setrlimit(resource.RLIMIT_NOFILE, (hard, hard))
 print(f"File descriptor limit increased from {soft} to {hard}")
 
-class Testing:
+class InfoGetter:
     def __init__(self):
-        self.device = 'mps' if torch.backends.mps.is_available() else 'cuda' if torch.cuda.is_available() else 'cpu'
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu")
+        self.train_path = 'ModelNet40-12View/*/train'
+        self.test_path = 'ModelNet40-12View/*/test'
+        self.criterion = torch.nn.CrossEntropyLoss()
+        self._clear_memory()
         
         test_dataset = SingleImgDataset(
-            root_dir='ModelNet40-12View/*/test',
+            root_dir=self.test_path,
             scale_aug=False,
             rot_aug=False,
             num_models=1000,
-            num_views=12
+            num_views=12,
         )
-        self.test_loader = torch.utils.data.DataLoader(
-            test_dataset,
+        self.test_loader = DataLoader(
+            dataset=test_dataset,
             batch_size=8,
             shuffle=False,
             num_workers=4,
             pin_memory=True,
         )
         
-        
-    def get_model(self) -> torch.nn.Module:
+    def _clear_memory(self):
+        """Helper method to clear memory efficiently"""
+        gc.collect()
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+        elif torch.backends.mps.is_available():
+            torch.mps.empty_cache()
+    
+    def get_model(self):
         model = MVCNN.SVCNN(
-            'svcnn',
+            'svcnn'
         )
         model.load_state_dict(torch.load('model-00030.pth', map_location=self.device))
         model = model.to(self.device)
-
+        
         return deepcopy(model)
     
+    def get_dataset(self, train_dataset=False, test_dataset=False, comp_time_dataset=False):
+        # Load dataset
+        if train_dataset:
+            dataset = SingleImgDataset(
+                root_dir=self.train_path,
+                scale_aug=False,
+                rot_aug=False,
+                num_models=1000,
+                num_views=12,
+            )
+        elif comp_time_dataset:
+            dataset = SingleImgDataset(
+                root_dir=self.test_path,
+                scale_aug=False,
+                rot_aug=False,
+                num_models=1000,
+                num_views=12,
+            )
+        elif test_dataset:
+            return self.test_loader
+        else:
+            raise ValueError("Invalid dataset type specified.")
+        
+        total_models = len(dataset) // 12
+        
+        subset_size = 0.1 if train_dataset else 0.03 if comp_time_dataset else None
+        
+        if subset_size is None:
+            raise ValueError("Invalid subset size specified.")
+        
+        subset_size = int(total_models * subset_size)
+        
+        if train_dataset:
+            class_filepaths = {}
+            for filepath in dataset.filepaths:
+                class_name = filepath.split('/')[1]
+                if class_name not in class_filepaths:
+                    class_filepaths[class_name] = []
+                class_filepaths[class_name].append(filepath)
+            
+            if len(class_filepaths) < 33:
+                print(f"Not enough classes in the dataset, got {len(class_filepaths)} classes")
+                return False
+
+            models_per_class = max(1, subset_size // len(class_filepaths))
+            new_filepaths = []
+            
+            for filepaths in class_filepaths.values():
+                models = [filepaths[i:i+12] for i in range(0, len(filepaths), 12)]
+                
+                with torch.random.fork_rng():
+                    selected_models = models[:models_per_class]
+
+                for model_views in selected_models:
+                    new_filepaths.extend(model_views)
+        
+        elif comp_time_dataset:
+            model_indices = list(range(total_models))[:subset_size]
+            
+            new_filepaths = []
+            for idx in model_indices:
+                start = idx * 12
+                end = (idx+1) * 12
+                new_filepaths.extend(dataset.filepaths[start:end])
+        
+        dataset.filepaths = new_filepaths
+        
+        dataloader = DataLoader(
+            dataset=dataset,
+            batch_size=8,
+            shuffle=train_dataset,
+            num_workers=4,
+            pin_memory=True,
+            persistent_workers=False,
+            prefetch_factor=2
+        )
+        
+        self._clear_memory()
+        return dataloader
+    
+    def get_accuracy(self, model):
+        model.eval()
+        
+        test_loader = self.get_dataset(test_dataset=True)
+        
+        if test_loader is False:
+            raise RuntimeError("Not enough classes in the dataset")
+        
+        correct = 0
+        total = 0
+        
+        model = model.to(self.device)
+        model.eval()
+        with torch.inference_mode():
+            for data in test_loader:
+                input = data[1].to(self.device)
+                labels = data[0].to(self.device)
+                
+                outputs = model(input)
+                
+                predicted = torch.max(outputs, 1)[1]
+                
+                results = (predicted == labels)
+                
+                correct += results.sum().item()
+                
+                total += len(labels)
+        
+        accuracy = float((correct/total)*100) # accuracy in percentage
+        self._clear_memory()
+        return accuracy
+
     def get_size(self, model):
         param_size = sum(
             param.nelement() * param.element_size() for param in model.parameters()
@@ -49,140 +171,10 @@ class Testing:
         buffer_size = sum(
             buffer.nelement() * buffer.element_size() for buffer in model.buffers()
         )
-        return (param_size + buffer_size) / 1024**2
-
-    def _clear_memory(self) -> None:
-        if self.device == 'cuda':
-            torch.cuda.empty_cache()
-        elif self.device == 'mps':
-            torch.mps.empty_cache()
-        gc.collect()
+        return (param_size + buffer_size) / (1024 ** 2)
     
-
-    def get_dataset(self, train_dataset=True, test_dataset=False, comp_time_dataset=False) -> torch.utils.data.DataLoader:
-        # Load dataset
-        if train_dataset:
-            dataset = SingleImgDataset(
-                root_dir='ModelNet40-12View/*/train',
-                scale_aug=False,
-                rot_aug=True,
-                num_models=1000,
-                num_views=12,
-            )
-        elif test_dataset or comp_time_dataset:
-            dataset = SingleImgDataset(
-                root_dir='ModelNet40-12View/*/test',
-                scale_aug=False,
-                rot_aug=False,
-                num_models=1000,
-                num_views=12,
-            )
-
-        total_models = len(dataset.filepaths) // 12
-
-        # Use deterministic sampling instead of random
-        subset_size = 0.1 if train_dataset else 1.0 if test_dataset else 0.03 if comp_time_dataset else None
-
-        if subset_size is None:
-            raise ValueError("Invalid subset size")
-
-        subset_size = int(total_models * subset_size)
-
-        # Use stratified sampling to ensure class representation
-        if train_dataset:
-            # Group filepaths by class
-            class_filepaths = {}
-            for filepath in dataset.filepaths:
-                class_name = filepath.split('/')[1]
-                if class_name not in class_filepaths:
-                    class_filepaths[class_name] = []
-                class_filepaths[class_name].append(filepath)
-
-            # Ensure we have all 33 classes
-            if len(class_filepaths) < 33:
-                print(f"Warning: Only {len(class_filepaths)} classes found in dataset")
-                return False
-
-            # Take equal samples from each class
-            models_per_class = max(1, subset_size // len(class_filepaths))
-            new_filepaths = []
-
-            for filepaths in class_filepaths.values():
-                # Group by model (every 12 views is one model)
-                models = [filepaths[i:i+12] for i in range(0, len(filepaths), 12)]
-                # Take deterministic subset using fixed seed
-                with torch.random.fork_rng():
-                    torch.manual_seed(42)  # Fixed seed for reproducibility
-                    selected_models = models[:models_per_class]
-
-                # Flatten the list of selected models
-                for model_views in selected_models:
-                    new_filepaths.extend(model_views)
-        else:
-            # For test/comp datasets, use deterministic subset
-            model_indices = list(range(total_models))[:subset_size]
-
-            new_filepaths = []
-            for idx in model_indices:
-                start = idx * 12
-                end = (idx + 1) * 12
-                new_filepaths.extend(dataset.filepaths[start:end])
-
-        # Update dataset with new filepaths
-        dataset.filepaths = new_filepaths
-
-        # Create and cache the dataloader
-        dataloader = torch.utils.data.DataLoader(
-            dataset,
-            batch_size=32,
-            shuffle=train_dataset,
-            num_workers=4,
-            pin_memory=True,
-            persistent_workers=False,
-            prefetch_factor=2,
-        )
-
-        self._clear_memory()
-        return dataloader
-
-    def validate_model(self, model) -> float:
-        # dataset = self.get_dataset(train_dataset=False, test_dataset=True)
-
-        dataset = self.test_loader
-        
-        if dataset is False:
-            raise RuntimeError("Dataset not enough, cannot validate model")
-
-        all_correct = 0
-        all_points = 0
-
-        model = model.to(self.device)
-        model.eval()
-        with torch.inference_mode():
-            for data in dataset:
-                input = data[1].to(self.device)
-                labels = data[0].to(self.device)
-
-                output = model(input)
-
-                aaaaah = torch.max(output, 1)
-                # print(len(aaaaah))
-                predicted = aaaaah[1]
-
-                results = predicted==labels
-                
-                all_correct += results.sum().item()
-                all_points += len(labels)
-
-        self._clear_memory()
-
-        return float((all_correct / all_points)*100)
-    
-    def get_comp_time(self, model) -> float:
-        dataset = self.get_dataset(train_dataset=False, comp_time_dataset=True)
-        
-        if dataset is False:
-            raise RuntimeError("Dataset not enough, cannot validate model")
+    def get_comp_time(self, model):
+        dataset = self.get_dataset(comp_time_dataset=True)
         
         model = model.to('cpu')
         # print("Model moved to CPU for inference time calculation")
@@ -201,9 +193,8 @@ class Testing:
         # print(f"Average inference time: {total_time} seconds")
         self._clear_memory()
         return total_time
-
-
-    def train_model(self, model, rank_filter=False, pruner=None) -> torch.nn.Module:
+    
+    def train_model(self, model, rank_filter=False, pruner=None):
         model = model.train()
         model = model.to(self.device)
         
@@ -246,9 +237,8 @@ class Testing:
 
                 running_loss += loss.item()
                 
-                aaaaah = torch.max(outputs, 1)
-                # print(len(aaaaah))
-                predicted = aaaaah[1]
+                predicted = torch.max(outputs, 1)[1]
+                
                 running_acc += (predicted == labels).sum().item()
                 total_steps += len(labels)
                 if batch_idx % 100 == 0:
@@ -301,61 +291,19 @@ class Testing:
         
         return model
     
-    def _get_pruning_amounts(self, start, end, step):
-        pruning_amounts = np.arange(start, end, step)
-        center = np.mean(pruning_amounts)
-
-        sigma = 15  # controls how "tight" around center you prefer; adjust if needed
-        probabilities = np.exp(-0.5 * ((pruning_amounts - center) / sigma) ** 2)
-        probabilities /= probabilities.sum()  # normalize to sum to 1
-
-        pruning_amounts = np.random.choice(
-            pruning_amounts,
-            size=len(pruning_amounts),
-            replace=False,
-            p=probabilities,
-        )
+    def getInfo(self, pruning_amount):
+        model = self.get_model()
+        model = model.to(self.device)
         
-        done = [80, 43, 58, 41, 66, 17, 61, 60, 27, 34, 50, 26, 29, 81, 52]
+        pruner = PruningFineTuner(model)
+        model = pruner.prune(pruning_amount, True)
         
-        pruning_amounts = [amount for amount in pruning_amounts if amount not in done]
-        return pruning_amounts
-            
+        pre_acc = self.get_accuracy(model)
+        model = self.fine_tune(model)
+        post_acc = self.get_accuracy(model)
+        comp_time = self.get_comp_time(model)
+        size = self.get_size(model)
         
-    def write_to_file(self, pruning_amount, pre_acc, post_acc, comp_time, size):
-        if 'test_results.txt' not in os.listdir():
-            with open('test_results.txt', 'w') as f:
-                f.write("Pruning Amount,Pre-Acc,Post-Acc,Comp Time,Model Size\n")
-        with open('test_results.txt', 'a') as f:
-            f.write(f"{pruning_amount},{pre_acc},{post_acc},{comp_time},{size}\n")
+        print(f"Pruning Amount {pruning_amount}, Model Size: {size}, Pre-Acc: {pre_acc}, Post-Acc: {post_acc}, Comp Time: {comp_time}")
         
-    def main(self):        
-        pruning_amounts = self._get_pruning_amounts(start=0, end=100, step=1)
-        print(pruning_amounts)
-        for pruning_amount in pruning_amounts:
-            model = self.get_model()
-            print('*'*100)
-            print(f"Percentage Done: {((pruning_amounts.index(pruning_amount)+15)/len(pruning_amounts))*100:.2f}%")
-            print(f"Pruning amount: {pruning_amount}")
-            pruner = PruningFineTuner(model)
-            model = pruner.prune(pruning_amount, True)
-            
-            model_size = self.get_size(model)
-            
-            print(f"Model size after {pruning_amount}% pruning: {model_size} MB")
-            
-            pre_acc = self.validate_model(model)
-            model = self.fine_tune(model)
-            post_acc = self.validate_model(model)
-            comp_time = self.get_comp_time(model)
-            
-            print(f"Pruning Amount {pruning_amount}, Model Size: {model_size}, Pre-Acc: {pre_acc}, Post-Acc: {post_acc}, Comp Time: {comp_time}")
-            self.write_to_file(pruning_amount, pre_acc, post_acc, comp_time, model_size)
-            self._clear_memory()
-            del model
-            del pruner
-
-if __name__ == "__main__":
-    testing = Testing()
-    testing.main()
-    
+        return model, post_acc, comp_time, size

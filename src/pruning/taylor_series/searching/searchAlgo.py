@@ -1,41 +1,30 @@
-"""
-Gradient-based search algorithm for finding optimal network pruning parameters.
-This module implements a search strategy that combines grid search and gradient descent
-to find the best pruning amount that satisfies model size and accuracy constraints.
-"""
-
 from datetime import datetime
 import gc
 import torch
 import numpy as np
 from Rewards import Reward
 import matplotlib.pyplot as plt
+from infogetter import InfoGetter
 
 # Device configuration
 device = 'mps' if torch.backends.mps.is_available() else 'cpu'
 
 class GradientDescentSearch:
     """
-    Gradient-based search algorithm to find the optimal pruning amount
-    that balances accuracy, model size, and computation time.
+    Implements a gradient-based search algorithm to optimize model pruning under accuracy and size constraints.
+
+    This class manages the search process, including grid search, gradient ascent, and fine-tuning, 
+    to find the optimal pruning amount that maximizes a custom reward function while satisfying user-defined constraints.
     """
-    
-    def __init__(self, min_acc=60, max_size=300):
-        """
-        Initialize the search algorithm.
-        
-        Args:
-            min_acc: Minimum acceptable accuracy in percentage (default: 60)
-            max_size: Maximum acceptable model size (default: 300)
-        """
+    def __init__(self):
         # Constraint parameters
-        self.min_acc = min_acc
-        self.max_size = max_size
+        self.min_acc = float(input("Enter minimum accuracy (default 60): ") or 60)
+        self.max_size = float(input("Enter maximum model size (default 300): ") or 300)
         
         # Component weights for the reward function
-        self.x = 0.35  # Weight for accuracy
-        self.y = 0.50  # Weight for model size
-        self.z = 0.15  # Weight for computation time
+        self.x = float(input("Enter weight for accuracy (default 0.35): ") or 0.35)        # Weight for accuracy
+        self.y = float(input("Enter weight for model size (default 0.50): ") or 0.50)      # Weight for model size
+        self.z = float(input("Enter weight for computation time (default 0.15): ") or 0.15)# Weight for computation time 
         
         # Initialize reward function
         self.rewardfn = Reward(
@@ -49,66 +38,35 @@ class GradientDescentSearch:
         self.best_size = float('inf')
         
     def _clear_memory(self):
-        """Release unused memory"""
         gc.collect()
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
         if torch.backends.mps.is_available():
             torch.mps.empty_cache()
     
-    def _get_accuracy(self, pruning_amount):
-        """
-        Calculate predicted accuracy for a given pruning amount.
+    def _get_model_stats(self, pruning_amount, get_accuracy=False, get_size=False, get_time=False, get_model = False, all=True):
+        infogettr = InfoGetter()
+        info = infogettr.getInfo(pruning_amount)
+        self._clear_memory()
         
-        Args:
-            pruning_amount: Amount of pruning (0.0-1.0)
-            
-        Returns:
-            Predicted accuracy
-        """
-        x = pruning_amount
-        y = 9.04 * x**5 - 11.10 * x**4 - 1.86 * x**3 + 4.13 * x**2 - 1.17 * x + 1.05
-        return y * 75
-    
-    def _get_model_size(self, pruning_amount):
-        """
-        Calculate predicted model size for a given pruning amount.
+        if all:
+            model, acc, size, time = info[0], info[1], info[3], info[2]
+            return {
+                'model': model,
+                'accuracy': acc,
+                'model_size': size,
+                'computation_time': time
+            }
+        if get_model:
+            return info[0]
+        if get_accuracy:
+            return info[1]
+        if get_time:
+            return info[2]
+        if get_size:
+            return info[3]
         
-        Args:
-            pruning_amount: Amount of pruning (0.0-1.0)
-            
-        Returns:
-            Predicted model size
-        """
-        x = pruning_amount * 100
-        return -4.3237 * x + 487.15
-    
-    def _get_comp_time(self, pruning_amount):
-        """
-        Calculate predicted computation time for a given pruning amount.
-        
-        Args:
-            pruning_amount: Amount of pruning (0.0-1.0)
-            
-        Returns:
-            Predicted computation time
-        """
-        x = pruning_amount * 100
-        return -0.0134 * x + 1.4681
-        
-    def meets_constraints(self, pruning_amount):
-        """
-        Check if a pruning amount meets all constraints.
-        
-        Args:
-            pruning_amount: Amount of pruning (0.0-1.0)
-            
-        Returns:
-            (bool, str): Tuple of (satisfies_constraints, status_message)
-        """
-        accuracy = self._get_accuracy(pruning_amount)
-        model_size = self._get_model_size(pruning_amount)
-        
+    def meets_constraints(self, accuracy, model_size):
         satisfies_accuracy = accuracy >= self.min_acc
         satisfies_size = model_size <= self.max_size
         
@@ -124,12 +82,6 @@ class GradientDescentSearch:
         return False, "Constraints violated: " + ", ".join(violations)
     
     def calculate_required_pruning(self):
-        """
-        Calculate the minimum pruning required to meet the model size constraint.
-        
-        Returns:
-            Minimum pruning amount needed
-        """
         # Using the model_size equation: -4.3237*x + 487.15 = max_size
         # Solve for x: x = (487.15 - max_size) / 4.3237
         min_pruning = (487.15 - self.max_size) / 4.3237 / 100
@@ -137,33 +89,25 @@ class GradientDescentSearch:
         return min_pruning
     
     def getReward(self, pruning_amount):
-        """
-        Calculate the reward for a given pruning amount.
-        
-        Args:
-            pruning_amount: Amount of pruning (0.0-1.0)
-            
-        Returns:
-            Calculated reward value
-        """
         # Check pruning amount bounds
         if pruning_amount < 0.01 or pruning_amount > 0.85:
             print(f"Pruning amount {pruning_amount:.4f} out of bounds [0.01, 0.85]")
             return -100
-            
+        
         # Calculate metrics based on pruning amount
-        accuracy = self._get_accuracy(pruning_amount)
-        model_size = self._get_model_size(pruning_amount)
-        comp_time = self._get_comp_time(pruning_amount)
+        info = self._get_model_stats(pruning_amount, all=True)
+        accuracy = info['accuracy']
+        model_size = info['model_size']
+        comp_time = info['computation_time']
         comp_time_last = self.comp_time_last if self.comp_time_last is not None else comp_time
 
         # Display predicted metrics
         print(f"\nEvaluating pruning amount: {pruning_amount:.4f}")
-        print(f"Predicted accuracy: {accuracy:.2f}%, model size: {model_size:.2f} "
+        print(f"Accuracy: {accuracy:.2f}%, model size: {model_size:.2f} "
               f"({model_size/self.max_size:.1%} of max), computation time: {comp_time:.4f}")
         
         # Check constraint satisfaction
-        meets_constraints, status = self.meets_constraints(pruning_amount)
+        meets_constraints, status = self.meets_constraints(accuracy, model_size)
         print(status)
         
         # Track best model size for valid solutions
@@ -189,16 +133,6 @@ class GradientDescentSearch:
         return reward
     
     def numerical_gradient(self, pruning_amount, epsilon=0.005):
-        """
-        Calculate numerical gradient of the reward function at a given point.
-        
-        Args:
-            pruning_amount: Amount of pruning (0.0-1.0)
-            epsilon: Small step size for finite difference (default: 0.005)
-            
-        Returns:
-            Gradient value
-        """
         # Evaluate reward at current point
         reward_center = self.getReward(pruning_amount)
         
@@ -212,36 +146,27 @@ class GradientDescentSearch:
         return gradient
     
     def _run_grid_search(self, min_required_pruning, history):
-        """
-        Run initial grid search to find good starting points.
-        
-        Args:
-            min_required_pruning: Minimum pruning required for constraints
-            history: Dictionary of search history to update
-            
-        Returns:
-            Tuple of (best_reward, best_pruning_amount, best_valid_reward, 
-                     best_valid_pruning, best_grid_points)
-        """
         print("Phase 1: Grid Search to Find Starting Points")
-        
+
         # Create a grid of pruning values to evaluate
         pruning_grid = np.linspace(max(0.3, min_required_pruning), 0.72, 12)
-        
+
         # Track best solutions
         best_reward = float('-inf')
         best_pruning_amount = None
         best_valid_reward = float('-inf')
         best_valid_pruning = None
         best_grid_points = []
-        
+
         # Evaluate each grid point
         for point in pruning_grid:
             reward = self.getReward(point)
-            accuracy = self._get_accuracy(point)
-            model_size = self._get_model_size(point)
-            meets, _ = self.meets_constraints(point)
             
+            info = self._get_model_stats(point, all=True)
+            accuracy = info['accuracy']
+            model_size = info['model_size']
+            meets, _ = self.meets_constraints(accuracy, model_size)
+
             # Update history
             history['pruning'].append(point)
             history['rewards'].append(reward)
@@ -249,41 +174,25 @@ class GradientDescentSearch:
             history['model_size'].append(model_size)
             history['valid'].append(meets)
             history['gradients'].append(0)  # No gradient for grid search
-            
+
             # Update best overall solution
             if reward > best_reward:
                 best_reward = reward
                 best_pruning_amount = point
-                
+
             # Update best valid solution
             if meets and reward > best_valid_reward:
                 best_valid_reward = reward
                 best_valid_pruning = point
-                best_grid_points.append((point, reward))
-        
+                best_grid_points.append((best_valid_pruning, best_valid_reward))
         # Sort grid points by reward
         best_grid_points.sort(key=lambda x: x[1], reverse=True)
-        
+
         return (best_reward, best_pruning_amount, best_valid_reward, 
                 best_valid_pruning, best_grid_points)
     
     def _fine_tune_search(self, best_local_point, min_required_pruning, history,
                          best_reward, best_pruning_amount, best_valid_reward, best_valid_pruning):
-        """
-        Perform fine-tuning around a good solution point.
-        
-        Args:
-            best_local_point: Best point found in gradient search
-            min_required_pruning: Minimum pruning required for constraints
-            history: Dictionary of search history to update
-            best_reward: Current best reward
-            best_pruning_amount: Current best pruning amount
-            best_valid_reward: Current best valid reward
-            best_valid_pruning: Current best valid pruning amount
-            
-        Returns:
-            Updated (best_reward, best_pruning_amount, best_valid_reward, best_valid_pruning)
-        """
         print("\nPhase 3: Fine-tuning around best point")
         
         # Define grid of points around best local point
@@ -295,9 +204,10 @@ class GradientDescentSearch:
         
         for point in fine_grid:
             reward = self.getReward(point)
-            accuracy = self._get_accuracy(point)
-            model_size = self._get_model_size(point)
-            meets, _ = self.meets_constraints(point)
+            info = self._get_model_stats(point, all=True)
+            accuracy = info['accuracy']
+            model_size = info['model_size']
+            meets, _ = self.meets_constraints(accuracy, model_size)
             
             # Update history
             history['pruning'].append(point)
@@ -322,12 +232,6 @@ class GradientDescentSearch:
         return best_reward, best_pruning_amount, best_valid_reward, best_valid_pruning
     
     def search(self):
-        """
-        Perform the complete search for optimal pruning amount.
-        
-        Returns:
-            Tuple of (best_pruning_amount, best_reward, history)
-        """
         print("Starting Gradient Ascent Search")
         
         # Calculate minimum pruning needed for size constraint
@@ -357,9 +261,7 @@ class GradientDescentSearch:
         min_gradient = 0.001
         
         # Start from best grid points
-        starting_points = [point for point, _ in best_grid_points[:2]]
-        if not starting_points:  # If no valid points found, use best overall point
-            starting_points = [best_pruning_amount]
+        starting_points = [point for point, _ in best_grid_points[:2]] or [best_pruning_amount]
         
         # Try gradient descent from up to 2 starting points
         for start_point in starting_points[:2]:
@@ -371,9 +273,10 @@ class GradientDescentSearch:
             patience_counter = 0
             
             # Store initial point in history
-            accuracy = self._get_accuracy(current)
-            model_size = self._get_model_size(current)
-            meets, _ = self.meets_constraints(current)
+            info = self._get_model_stats(current, all=True)
+            accuracy = info['accuracy']
+            model_size = info['model_size']
+            meets, _ = self.meets_constraints(accuracy, model_size)
             
             history['pruning'].append(current)
             history['rewards'].append(prev_reward)
@@ -402,9 +305,10 @@ class GradientDescentSearch:
                 next_reward = self.getReward(next_pruning)
                 
                 # Record history
-                accuracy = self._get_accuracy(next_pruning)
-                model_size = self._get_model_size(next_pruning)
-                meets, _ = self.meets_constraints(next_pruning)
+                info = self._get_model_stats(next_pruning, all=True)
+                accuracy = info['accuracy']
+                model_size = info['model_size']
+                meets, _ = self.meets_constraints(accuracy, model_size)
                 
                 history['pruning'].append(next_pruning)
                 history['rewards'].append(next_reward)
@@ -464,19 +368,12 @@ class GradientDescentSearch:
             return best_pruning_amount, best_reward, history
     
     def visualize_results(self, best_pruning_amount, history):
-        """
-        Create visualizations of the search results.
-        
-        Args:
-            best_pruning_amount: Best pruning amount found
-            history: Dictionary containing search history
-        """
         # Create a colormap based on constraint satisfaction
-        colors = ['red' if not valid else 'green' for valid in history['valid']]
-        
+        colors = ['green' if valid else 'red' for valid in history['valid']]
+
         # Create figure with subplots
         plt.figure(figsize=(15, 10))
-        
+
         # Reward vs Pruning Amount plot
         plt.subplot(2, 2, 1)
         plt.scatter(history['pruning'], history['rewards'], c=colors, alpha=0.7)
@@ -487,7 +384,7 @@ class GradientDescentSearch:
                    label=f'Best: {best_pruning_amount:.4f}')
         plt.grid(True)
         plt.legend()
-        
+
         # Accuracy vs Pruning Amount plot
         plt.subplot(2, 2, 2)
         plt.scatter(history['pruning'], history['accuracy'], c=colors, alpha=0.7)
@@ -497,7 +394,7 @@ class GradientDescentSearch:
         plt.title('Accuracy vs Pruning Amount')
         plt.grid(True)
         plt.legend()
-        
+
         # Model Size vs Pruning Amount plot
         plt.subplot(2, 2, 3)
         plt.scatter(history['pruning'], history['model_size'], c=colors, alpha=0.7)
@@ -507,11 +404,10 @@ class GradientDescentSearch:
         plt.title('Model Size vs Pruning Amount')
         plt.grid(True)
         plt.legend()
-        
+
         # Gradient magnitudes or Accuracy vs Model Size
         plt.subplot(2, 2, 4)
-        valid_gradients = [g for i, g in enumerate(history['gradients']) if g != 0]
-        if valid_gradients:  # Only plot if we have gradients
+        if valid_gradients := [g for g in history['gradients'] if g != 0]:
             plt.plot(range(len(valid_gradients)), valid_gradients)
             plt.xlabel('Gradient Calculation Step')
             plt.ylabel('Gradient Magnitude')
@@ -527,16 +423,38 @@ class GradientDescentSearch:
             plt.title('Model Size vs Accuracy')
             plt.grid(True)
             plt.legend()
-        
+
         plt.tight_layout()
-        
+
         # Save the figure with timestamp
         timenow = datetime.now().strftime("%d-%m-%Y-%H-%M-%S")
         plt.savefig(f'res/pruning_search_results_{timenow}.png')
         plt.close()
     
+    def visualize_reward_functions(self):
+        """
+        Visualize the reward functions used in the search algorithm.
+        
+        Returns:
+            Path to the saved reward functions plot
+        """
+        print("Plotting reward functions...")
+        
+        # Create save path
+        timenow = datetime.now().strftime("%d-%m-%Y-%H-%M-%S")
+        save_path = f'res/reward_functions_{timenow}.png'
+        
+        # Plot and save the reward functions
+        self.rewardfn.plot_reward_functions(save_path)
+        
+        print(f"Reward functions plot saved to {save_path}")
+        return save_path
+    
     def main(self):
         """Run the complete search process and report results."""
+        # Visualize the reward functions
+        self.visualize_reward_functions()
+        
         # Run the search
         best_pruning_amount, best_reward, history = self.search()
         

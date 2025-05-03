@@ -1,4 +1,5 @@
 import numpy as np
+import matplotlib.pyplot as plt
 
 class Reward:
     def __init__(self, min_acc, max_size, x=0.33, y=0.33, z=0.33, smooth_factor=0.1):
@@ -27,74 +28,150 @@ class Reward:
         
         self.comp_time_last = None
 
-    def _get_accuracy_reward(self, acc):
+    def _get_accuracy_reward(self, acc, peak_reward=5.0):
         """
-        Calculate accuracy reward with a Gaussian peak and penalties for deviation.
-        Strongly penalizes accuracy below minimum threshold.
+        Calculate accuracy reward using a Gaussian curve.
+        Reward peaks at minimum accuracy and gradually decreases on either side.
+        
+        Args:
+            acc: Accuracy value (0.0-1.0)
+            peak_reward: Maximum reward value at the peak
+            
+        Returns:
+            Gaussian-based reward value for accuracy
         """
-        # Hard constraint for minimum accuracy
+        # Parameters for the Gaussian curve
+        mu = self.min_acc  # Center at minimum acceptable accuracy
+        sigma_below = 0.05  # Standard deviation for below min_acc
+        sigma_above = 0.10  # Standard deviation for above min_acc
+        
+        # Use different sigmas depending on whether accuracy is below or above the minimum
+        sigma = sigma_below if acc < self.min_acc else sigma_above
+        
+        # Gaussian function: f(x) = a * exp(-(x - mu)^2 / (2 * sigma^2))
+        gaussian_reward = peak_reward * np.exp(-((acc - mu) ** 2) / (2 * sigma ** 2))
+        
+        # Apply penalty for accuracies below minimum
         if acc < self.min_acc:
-            # Exponential penalty for falling below minimum accuracy
-            deficit = self.min_acc - acc
-            return -10.0 * np.exp(20 * deficit)
+            penalty_factor = 1 - 5 * (self.min_acc - acc)  # Linear penalty increases as acc decreases
+            return gaussian_reward * penalty_factor
         
-        # Reward for being close to or slightly above minimum accuracy
-        delta = acc - self.min_acc
-        if delta <= 0.03:  # Very close to minimum - ideal zone
-            return 3.0 - delta * 15  # Max reward at exactly min_acc
-        elif delta <= 0.06:  # Slightly above minimum - good zone
-            return 2.0 - (delta - 0.03) * 10
-        else:  # Too much above minimum - wasting capacity
-            return 1.5 - (delta - 0.06) * 5
+        return gaussian_reward
     
-    def _get_model_size_reward(self, model_size_new, size_width=1.0,
-                              penalty_scale=5.0, penalty_sharpness=2.0,
-                              param_reduction=None):
+    def _get_model_size_reward(self, model_size_new, max_reward=5.0):
         """
-        Calculate model size reward that strongly favors smaller models.
-        Rewards decrease in size even significantly below maximum size.
+        Calculate model size reward using a Gaussian curve.
+        Reward peaks at the smallest model size and decreases as size increases.
+        
+        Args:
+            model_size_new: Size of the model
+            max_reward: Maximum possible reward for smallest models
+            
+        Returns:
+            Gaussian-based reward value for model size
         """
-        # Hard constraint for maximum model size
+        # Parameters for the Gaussian curve
+        mu = 0  # Center at size = 0 (ideal smallest model)
+        sigma = self.max_size * 0.5  # Standard deviation, allowing good rewards for models well below max_size
+        
+        # Gaussian function: f(x) = a * exp(-(x - mu)^2 / (2 * sigma^2))
+        gaussian_reward = max_reward * np.exp(-((model_size_new - mu) ** 2) / (2 * sigma ** 2))
+        
+        # Apply penalty for exceeding maximum size
         if model_size_new > self.max_size:
-            # Strong exponential penalty for exceeding max size
-            excess = model_size_new - self.max_size
-            return -8.0 * np.exp(0.05 * excess)
+            excess_ratio = model_size_new / self.max_size - 1.0
+            penalty = 4.0 * np.tanh(3.0 * excess_ratio)
+            return gaussian_reward - penalty
         
-        # Calculate how much smaller than max_size the model is (as a ratio)
-        size_ratio = model_size_new / self.max_size
-        
-        # Reward function that increases as model gets smaller
-        # Hyperbolic reward: approaches 5.0 as size approaches 0
-        # 1.0 at max_size, 2.0 at 50% of max_size, 3.33 at 30% of max_size
-        base_reward = 1.0 / size_ratio
-        
-        # Cap the reward to avoid extreme values
-        capped_reward = min(5.0, base_reward)
-        
-        # Add bonus for very small models (less than 30% of max size)
-        if size_ratio < 0.3:
-            small_bonus = (0.3 - size_ratio) * 10
-            return capped_reward + small_bonus
-        
-        return capped_reward
+        return gaussian_reward
 
-    def _get_comp_time_reward(self, comp_time_new, comp_time_last,
-                              left_width=0.2, right_width=0.05, central_scale=1.0):
+    def _get_comp_time_reward(self, comp_time_new, comp_time_last, max_reward=3.0):
         """
-        Calculate computation time reward that favors speed improvements.
-        Returns a value between 0.0 and 1.0.
+        Calculate computation time reward using a Gaussian function.
+        Reward peaks at zero computation time and decreases as time increases.
+        
+        Args:
+            comp_time_new: New computation time
+            comp_time_last: Previous computation time
+            max_reward: Maximum possible reward
+            
+        Returns:
+            Gaussian-based reward value for computation time
         """
-        # Avoid division by zero
-        comp_time_last = max(comp_time_last, 1e-6)
+        # Parameters for the Gaussian curve
+        mu = 0  # Center at time = 0 (ideal fastest model)
+        sigma = comp_time_last * 0.7  # Scale sigma relative to previous computation time
         
-        # Calculate improvement ratio
-        improvement_ratio = (comp_time_last - comp_time_new) / comp_time_last
+        # Gaussian function: f(x) = a * exp(-(x - mu)^2 / (2 * sigma^2))
+        gaussian_reward = max_reward * np.exp(-((comp_time_new - mu) ** 2) / (2 * sigma ** 2))
         
-        # Higher reward for faster models (lower computation time)
-        if improvement_ratio >= 0:  # Improved or same speed
-            return 1.0 * np.tanh(3 * improvement_ratio) + 0.5
-        else:  # Slower than before
-            return -2.0 * np.tanh(-3 * improvement_ratio)  # Penalty for slower models
+        # Add bonus for improvement over last time
+        if comp_time_new < comp_time_last:
+            improvement_ratio = (comp_time_last - comp_time_new) / comp_time_last
+            bonus = 2.0 * np.tanh(3.0 * improvement_ratio)
+            return gaussian_reward + bonus
+        
+        return gaussian_reward
+
+    def plot_reward_functions(self, save_path=None):
+        """
+        Plot the reward functions to visualize how they behave across different input values.
+        
+        Args:
+            save_path: Path to save the figure (if None, the plot is displayed)
+        """
+        fig, axs = plt.subplots(1, 3, figsize=(18, 6))
+        
+        # Plot accuracy reward function
+        acc_values = np.linspace(0.5, 1.0, 100)  # Accuracy from 50% to 100%
+        acc_rewards = [self._get_accuracy_reward(acc) for acc in acc_values]
+        
+        axs[0].plot(acc_values * 100, acc_rewards)  # Convert to percentage for readability
+        axs[0].axvline(x=self.min_acc * 100, color='r', linestyle='--', 
+                      label=f'Min Acc: {self.min_acc*100:.1f}%')
+        axs[0].set_title('Accuracy Reward Function')
+        axs[0].set_xlabel('Accuracy (%)')
+        axs[0].set_ylabel('Reward')
+        axs[0].legend()
+        axs[0].grid(True)
+        
+        # Plot model size reward function
+        size_values = np.linspace(0, self.max_size * 1.5, 100)  # Include values above max_size
+        size_rewards = [self._get_model_size_reward(size) for size in size_values]
+        
+        axs[1].plot(size_values, size_rewards)
+        axs[1].axvline(x=self.max_size, color='r', linestyle='--', 
+                      label=f'Max Size: {self.max_size}')
+        axs[1].set_title('Model Size Reward Function')
+        axs[1].set_xlabel('Model Size')
+        axs[1].set_ylabel('Reward')
+        axs[1].legend()
+        axs[1].grid(True)
+        
+        # Plot computation time reward function
+        # Assume a reference comp_time_last of 1.0
+        reference_time = 1.0
+        time_values = np.linspace(0, 2.0, 100)  # From 0 to 2x the reference time
+        time_rewards = [self._get_comp_time_reward(t, reference_time) for t in time_values]
+        
+        axs[2].plot(time_values, time_rewards)
+        axs[2].axvline(x=reference_time, color='r', linestyle='--', 
+                      label=f'Reference Time: {reference_time}')
+        axs[2].set_title('Computation Time Reward Function')
+        axs[2].set_xlabel('Computation Time')
+        axs[2].set_ylabel('Reward')
+        axs[2].legend()
+        axs[2].grid(True)
+        
+        plt.tight_layout()
+        
+        if save_path:
+            plt.savefig(save_path)
+            plt.close()
+        else:
+            plt.show()
+            
+        return fig
 
     def getReward(self, accuracy, model_size, comp_time, comp_time_last=None, param_reduction=None):
         """
@@ -121,7 +198,7 @@ class Reward:
 
         # Calculate individual reward components
         acc_r = self._get_accuracy_reward(acc=accuracy)
-        size_r = self._get_model_size_reward(model_size_new=model_size, param_reduction=param_reduction)
+        size_r = self._get_model_size_reward(model_size_new=model_size)
         time_r = self._get_comp_time_reward(comp_time_new=comp_time, comp_time_last=self.comp_time_last)
         
         # Print component rewards for debugging
@@ -130,30 +207,36 @@ class Reward:
         # Store current computation time for next iteration
         self.comp_time_last = comp_time
 
-        # Hard constraints: heavily penalize violations
+        # Signal constraint violations, but avoid harsh penalties that disrupt convergence
         if accuracy < self.min_acc:
             print(f"CONSTRAINT VIOLATION: Accuracy {accuracy:.2f} below minimum {self.min_acc*100:.2f}")
-            # Already penalized in _get_accuracy_reward
             
         if model_size > self.max_size:
             print(f"CONSTRAINT VIOLATION: Model size {model_size:.2f} exceeds maximum {self.max_size:.2f}")
-            # Already penalized in _get_model_size_reward
         
-        # Add special bonus for achieving both small size AND meeting accuracy requirements
-        if accuracy >= self.min_acc and model_size < self.max_size * 0.8:
+        # Add smooth synergy bonus for solutions that are both accurate and small
+        # Use continuous functions rather than hard thresholds
+        if accuracy >= self.min_acc:
+            # Smooth bonus that increases as model gets smaller (relative to max size)
             size_ratio = model_size / self.max_size
-            combo_bonus = (1.0 - size_ratio) * 5.0
-            print(f"Adding small-but-accurate bonus: +{combo_bonus:.2f}")
-            acc_r += combo_bonus * 0.5  # Apply half to accuracy
-            size_r += combo_bonus * 0.5  # Apply half to size
+            if size_ratio < 1.0:
+                # Bonus proportional to how much smaller than max_size
+                synergy_factor = 1.0 - size_ratio
+                synergy_bonus = 2.0 * synergy_factor * (1.0 - np.exp(-(accuracy - self.min_acc) * 50))
+                print(f"Adding synergy bonus: +{synergy_bonus:.2f}")
+                
+                # Apply bonus smoothly to both components
+                acc_r += synergy_bonus * 0.4
+                size_r += synergy_bonus * 0.6
 
         # Calculate weighted sum of rewards
         raw_reward = (self.x * acc_r) + (self.y * size_r) + (self.z * time_r)
         
-        # Clip reward to prevent extreme values
-        clipped_reward = np.clip(raw_reward, -10.0, 10.0)
+        # Apply smoother clipping using tanh instead of hard boundaries
+        # This prevents abrupt gradient changes at the boundaries
+        clipped_reward = 8.0 * np.tanh(raw_reward / 8.0)
         
-        # Apply smoothing for stability
+        # Apply smoothing for stability across iterations
         self.reward = (1 - self.smooth_factor) * clipped_reward + self.smooth_factor * self.prev_reward
         self.prev_reward = self.reward
         
