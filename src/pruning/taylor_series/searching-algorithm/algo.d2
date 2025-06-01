@@ -1,0 +1,547 @@
+direction: down
+
+# Define the main components
+GradientDescentSearch: {
+  shape: rectangle
+  label: "GradientDescentSearch\n\nOrchestrates pruning optimization\n• Manages search algorithm\n• Interfaces with other components\n• Evaluates solutions"
+  style: {
+    fill: "#E3F2FD"
+    stroke: "#1565C0"
+    border-radius: 8
+    shadow: true
+  }
+}
+
+Reward: {
+  shape: rectangle
+  label: "Reward\n\nEvaluates model quality\n• Accuracy reward function\n• Size reward function\n• Computation time reward"
+  style: {
+    fill: "#FFF3E0" 
+    stroke: "#E65100"
+    border-radius: 8
+    shadow: true
+  }
+}
+
+FilterPruner: {
+  shape: rectangle
+  label: "FilterPruner\n\nRanks filters by importance\n• Taylor criterion computation\n• Activation/gradient storage\n• Filter ranking normalization"
+  style: {
+    fill: "#E0F2F1"
+    stroke: "#00695C"
+    border-radius: 8
+    shadow: true
+  }
+}
+
+Pruning: {
+  shape: rectangle
+  label: "Pruning\n\nModifies model structure\n• Layer replacement\n• Weight transfer\n• Channel dimension adjustment"
+  style: {
+    fill: "#F3E5F5"
+    stroke: "#6A1B9A"
+    border-radius: 8
+    shadow: true
+  }
+}
+
+PruningFineTuner: {
+  shape: rectangle
+  label: "PruningFineTuner\n\nCoordinates pruning process\n• Gets pruning candidates\n• Applies pruning to model\n• Fine-tunes pruned model"
+  style: {
+    fill: "#E8F5E9"
+    stroke: "#2E7D32" 
+    border-radius: 8
+    shadow: true
+  }
+}
+
+InfoGetter: {
+  shape: rectangle
+  label: "InfoGetter\n\nProvides model metrics\n• Accuracy measurement\n• Model size calculation\n• Computation time profiling"
+  style: {
+    fill: "#EDE7F6"
+    stroke: "#4527A0"
+    border-radius: 8
+    shadow: true
+  }
+}
+
+# Main search workflow
+search_workflow: {
+  title: "Neural Network Pruning Optimization Flow"
+  style: {
+    fill: "#FAFAFA"
+    stroke: "#212121"
+    border-radius: 8
+    font-size: 18
+  }
+  
+  initialize: {
+    shape: rectangle
+    label: "Initialize Search\nSet constraints & component weights"
+    style: {
+      fill: "#E3F2FD"
+      stroke: "#1565C0"
+      border-radius: 4
+    }
+    tooltip: "User sets min_acc, max_size, and x,y,z weights"
+  }
+  
+  grid_search: {
+    shape: rectangle
+    label: "Phase 1: Grid Search\nEvaluate evenly spaced pruning amounts"
+    style: {
+      fill: "#E3F2FD"
+      stroke: "#1565C0"
+      border-radius: 4
+    }
+    tooltip: "Tests 8-12 different pruning amounts to find promising regions"
+  }
+  
+  gradient_search: {
+    shape: rectangle
+    label: "Phase 2: Gradient Ascent\nFollow reward gradient to optimize"
+    style: {
+      fill: "#E3F2FD"
+      stroke: "#1565C0"
+      border-radius: 4
+    }
+    tooltip: "Uses numerical gradient to find local optima"
+  }
+  
+  fine_tuning: {
+    shape: rectangle
+    label: "Phase 3: Fine-Tuning Search\nRefine around best solution"
+    style: {
+      fill: "#E3F2FD"
+      stroke: "#1565C0"
+      border-radius: 4
+    }
+    tooltip: "Creates finer grid around best point"
+  }
+  
+  best_solution: {
+    shape: rectangle
+    label: "Return Best Solution\nOptimal pruning amount & metrics"
+    style: {
+      fill: "#E3F2FD"
+      stroke: "#1565C0"
+      border-radius: 4
+    }
+  }
+  
+  visualize: {
+    shape: rectangle
+    label: "Visualize Results\nCreate plots and save results"
+    style: {
+      fill: "#E3F2FD"
+      stroke: "#1565C0"
+      border-radius: 4
+    }
+  }
+  
+  initialize -> grid_search
+  grid_search -> gradient_search: "Best starting points"
+  gradient_search -> fine_tuning: "Best local optima"
+  fine_tuning -> best_solution: "Refined solution"
+  best_solution -> visualize
+}
+
+# Detailed evaluation process
+evaluation_workflow: {
+  title: "Model Pruning and Evaluation Process"
+  style: {
+    fill: "#FAFAFA"
+    stroke: "#212121"
+    border-radius: 8
+    font-size: 18
+  }
+  
+  load_model: {
+    shape: rectangle
+    label: "Load Pre-trained Model\nInfoGetter.get_model()"
+    style: {
+      fill: "#EDE7F6"
+      stroke: "#4527A0"
+      border-radius: 4
+    }
+  }
+  
+  rank_filters: {
+    shape: rectangle
+    label: "Rank Filters by Importance\nFilterPruner.get_pruning_plan()"
+    style: {
+      fill: "#E0F2F1"
+      stroke: "#00695C"
+      border-radius: 4
+    }
+    tooltip: "Uses Taylor criterion to identify least important filters"
+  }
+  
+  prune_model: {
+    shape: rectangle
+    label: "Prune Model\nPruningFineTuner.prune()"
+    style: {
+      fill: "#E8F5E9"
+      stroke: "#2E7D32"
+      border-radius: 4
+    }
+    tooltip: "Removes specified percentage of filters"
+  }
+  
+  fine_tune_model: {
+    shape: rectangle
+    label: "Fine-tune Model\nInfoGetter.fine_tune()"
+    style: {
+      fill: "#EDE7F6"
+      stroke: "#4527A0"
+      border-radius: 4
+    }
+    tooltip: "Trains pruned model to recover accuracy"
+  }
+  
+  get_metrics: {
+    shape: rectangle
+    label: "Collect Metrics\nAccuracy, Size, Computation Time"
+    style: {
+      fill: "#EDE7F6"
+      stroke: "#4527A0"
+      border-radius: 4
+    }
+  }
+  
+  calculate_reward: {
+    shape: rectangle
+    label: "Calculate Reward\nReward.getReward()"
+    style: {
+      fill: "#FFF3E0"
+      stroke: "#E65100"
+      border-radius: 4
+    }
+    tooltip: "Combines accuracy, size, and time rewards"
+  }
+  
+  check_constraints: {
+    shape: diamond
+    label: "Check Constraints\nAccuracy ≥ min_acc\nSize ≤ max_size"
+    style: {
+      fill: "#E3F2FD"
+      stroke: "#1565C0"
+      border-radius: 4
+    }
+  }
+  
+  valid_solution: {
+    shape: rectangle
+    label: "Valid Solution"
+    style: {
+      fill: "#C8E6C9"
+      stroke: "#2E7D32"
+      border-radius: 4
+    }
+  }
+  
+  invalid_solution: {
+    shape: rectangle
+    label: "Invalid Solution"
+    style: {
+      fill: "#FFCDD2"
+      stroke: "#B71C1C" 
+      border-radius: 4
+    }
+  }
+  
+  update_search: {
+    shape: rectangle
+    label: "Update Search Direction\nBased on gradient"
+    style: {
+      fill: "#E3F2FD"
+      stroke: "#1565C0"
+      border-radius: 4
+    }
+  }
+  
+  load_model -> rank_filters
+  rank_filters -> prune_model
+  prune_model -> fine_tune_model
+  fine_tune_model -> get_metrics
+  get_metrics -> calculate_reward
+  calculate_reward -> check_constraints
+  check_constraints -> valid_solution: "Yes"
+  check_constraints -> invalid_solution: "No"
+  valid_solution -> update_search
+  invalid_solution -> update_search
+}
+
+# Filter ranking process
+ranking_process: {
+  title: "Filter Importance Ranking Process"
+  style: {
+    fill: "#FAFAFA"
+    stroke: "#212121"
+    border-radius: 8
+    font-size: 18
+  }
+  
+  register_hooks: {
+    shape: rectangle
+    label: "Register Hooks\nOn convolutional layer outputs"
+    style: {
+      fill: "#E0F2F1"
+      stroke: "#00695C"
+      border-radius: 4
+    }
+  }
+  
+  forward_pass: {
+    shape: rectangle
+    label: "Forward Pass\nStore activations"
+    style: {
+      fill: "#E0F2F1"
+      stroke: "#00695C"
+      border-radius: 4
+    }
+  }
+  
+  backward_pass: {
+    shape: rectangle
+    label: "Backward Pass\nCompute Taylor criterion"
+    style: {
+      fill: "#E0F2F1"
+      stroke: "#00695C"
+      border-radius: 4
+    }
+    tooltip: "Taylor criterion = |activation * gradient|"
+  }
+  
+  normalize_ranks: {
+    shape: rectangle
+    label: "Normalize Ranks\nMake comparable across layers"
+    style: {
+      fill: "#E0F2F1"
+      stroke: "#00695C"
+      border-radius: 4
+    }
+  }
+  
+  sort_filters: {
+    shape: rectangle
+    label: "Sort Filters\nBy importance score"
+    style: {
+      fill: "#E0F2F1"
+      stroke: "#00695C"
+      border-radius: 4
+    }
+  }
+  
+  create_pruning_plan: {
+    shape: rectangle
+    label: "Create Pruning Plan\nList of (layer_idx, filter_idx) tuples"
+    style: {
+      fill: "#E0F2F1"
+      stroke: "#00695C"
+      border-radius: 4
+    }
+  }
+  
+  register_hooks -> forward_pass
+  forward_pass -> backward_pass
+  backward_pass -> normalize_ranks
+  normalize_ranks -> sort_filters
+  sort_filters -> create_pruning_plan
+}
+
+# Pruning implementation
+pruning_process: {
+  title: "Filter Pruning Implementation"
+  style: {
+    fill: "#FAFAFA"
+    stroke: "#212121"
+    border-radius: 8
+    font-size: 18
+  }
+  
+  select_layer: {
+    shape: rectangle
+    label: "Select Convolutional Layer\nFrom pruning plan"
+    style: {
+      fill: "#F3E5F5"
+      stroke: "#6A1B9A"
+      border-radius: 4
+    }
+  }
+  
+  select_filter: {
+    shape: rectangle
+    label: "Select Filter to Remove\nFrom pruning plan"
+    style: {
+      fill: "#F3E5F5"
+      stroke: "#6A1B9A"
+      border-radius: 4
+    }
+  }
+  
+  create_new_conv: {
+    shape: rectangle
+    label: "Create New Conv Layer\nWith one fewer filter"
+    style: {
+      fill: "#F3E5F5"
+      stroke: "#6A1B9A"
+      border-radius: 4
+    }
+  }
+  
+  copy_weights: {
+    shape: rectangle
+    label: "Copy Weights\nSkipping pruned filter"
+    style: {
+      fill: "#F3E5F5"
+      stroke: "#6A1B9A"
+      border-radius: 4
+    }
+  }
+  
+  is_last_conv: {
+    shape: diamond
+    label: "Is Last\nConv Layer?"
+    style: {
+      fill: "#F3E5F5"
+      stroke: "#6A1B9A"
+      border-radius: 4
+    }
+  }
+  
+  adjust_next_conv: {
+    shape: rectangle
+    label: "Adjust Next Conv Layer\nRemove input channel"
+    style: {
+      fill: "#F3E5F5"
+      stroke: "#6A1B9A"
+      border-radius: 4
+    }
+  }
+  
+  adjust_fc_layer: {
+    shape: rectangle
+    label: "Adjust Fully Connected Layer\nReduce input features"
+    style: {
+      fill: "#F3E5F5"
+      stroke: "#6A1B9A"
+      border-radius: 4
+    }
+  }
+  
+  replace_in_model: {
+    shape: rectangle
+    label: "Replace Layers in Model\nUpdate network structure"
+    style: {
+      fill: "#F3E5F5"
+      stroke: "#6A1B9A"
+      border-radius: 4
+    }
+  }
+  
+  select_layer -> select_filter
+  select_filter -> create_new_conv
+  create_new_conv -> copy_weights
+  copy_weights -> is_last_conv
+  is_last_conv -> adjust_next_conv: "No"
+  is_last_conv -> adjust_fc_layer: "Yes"
+  adjust_next_conv -> replace_in_model
+  adjust_fc_layer -> replace_in_model
+}
+
+# Reward calculation
+reward_calculation: {
+  title: "Reward Function Calculation"
+  style: {
+    fill: "#FAFAFA"
+    stroke: "#212121"
+    border-radius: 8
+    font-size: 18
+  }
+  
+  accuracy_reward: {
+    shape: rectangle
+    label: "Accuracy Reward\nGaussian peaked at min_acc"
+    style: {
+      fill: "#FFF3E0"
+      stroke: "#E65100"
+      border-radius: 4
+    }
+    tooltip: "Higher reward near min_acc, penalties below it"
+  }
+  
+  size_reward: {
+    shape: rectangle
+    label: "Size Reward\nGaussian favoring smaller models"
+    style: {
+      fill: "#FFF3E0"
+      stroke: "#E65100"
+      border-radius: 4
+    }
+    tooltip: "Higher reward for smaller models, penalties above max_size"
+  }
+  
+  time_reward: {
+    shape: rectangle
+    label: "Time Reward\nGaussian favoring faster models"
+    style: {
+      fill: "#FFF3E0"
+      stroke: "#E65100"
+      border-radius: 4
+    }
+    tooltip: "Higher reward for faster models"
+  }
+  
+  weighted_sum: {
+    shape: rectangle
+    label: "Weighted Sum\nx*acc + y*size + z*time"
+    style: {
+      fill: "#FFF3E0"
+      stroke: "#E65100"
+      border-radius: 4
+    }
+  }
+  
+  synergy_bonus: {
+    shape: rectangle
+    label: "Synergy Bonus\nFor exceeding constraints"
+    style: {
+      fill: "#FFF3E0"
+      stroke: "#E65100"
+      border-radius: 4
+    }
+  }
+  
+  final_reward: {
+    shape: rectangle
+    label: "Final Reward\nWith smoothing"
+    style: {
+      fill: "#FFF3E0"
+      stroke: "#E65100"
+      border-radius: 4
+    }
+  }
+  
+  accuracy_reward -> weighted_sum
+  size_reward -> weighted_sum
+  time_reward -> weighted_sum
+  weighted_sum -> synergy_bonus
+  synergy_bonus -> final_reward
+}
+
+# Main class relationships
+GradientDescentSearch -> Reward: "Creates and uses"
+GradientDescentSearch -> InfoGetter: "Calls for model metrics"
+InfoGetter -> PruningFineTuner: "Uses to prune models"
+PruningFineTuner -> FilterPruner: "Uses to rank filters"
+PruningFineTuner -> Pruning: "Uses to modify model"
+
+# Connect major flows
+search_workflow.grid_search -> evaluation_workflow: "For each grid point"
+search_workflow.gradient_search -> evaluation_workflow: "For each gradient step"
+evaluation_workflow.rank_filters -> ranking_process: "Implementation"
+evaluation_workflow.prune_model -> pruning_process: "Implementation" 
+evaluation_workflow.calculate_reward -> reward_calculation: "Implementation"

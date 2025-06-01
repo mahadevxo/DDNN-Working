@@ -22,9 +22,9 @@ class GradientDescentSearch:
         self.max_size = float(input("Enter maximum model size (default 300): ") or 300)
         
         # Component weights for the reward function
-        self.x = float(input("Enter weight for accuracy (default 0.35): ") or 0.35)        # Weight for accuracy
-        self.y = float(input("Enter weight for model size (default 0.50): ") or 0.50)      # Weight for model size
-        self.z = float(input("Enter weight for computation time (default 0.15): ") or 0.15)# Weight for computation time 
+        self.x = float(input("Enter weight for accuracy (default 0.35): ") or 0.35)         # Weight for accuracy
+        self.y = float(input("Enter weight for model size (default 0.50): ") or 0.50)       # Weight for model size
+        self.z = float(input("Enter weight for computation time (default 0.15): ") or 0.15) # Weight for computation time 
         
         # Initialize reward function
         self.rewardfn = Reward(
@@ -362,7 +362,7 @@ class GradientDescentSearch:
         # Start with a conservative minimum pruning of 30%
         # The actual required pruning will be found during search
         min_pruning = 0.05
-        print(f"Using estimated minimum pruning of {min_pruning:.4f} (30%)")
+        print(f"Using estimated minimum pruning of {min_pruning:.4f} (05%)")
         return min_pruning
 
     def search(self):  # sourcery skip: low-code-quality
@@ -449,7 +449,7 @@ class GradientDescentSearch:
                 next_pruning = current + adaptive_lr * gradient
                 
                 # Ensure we stay within bounds
-                next_pruning = np.clip(next_pruning, max(0.01, min_required_pruning), 0.8)
+                next_pruning = np.clip(next_pruning, max(0.01, min_required_pruning), 0.95)
                 
                 # Calculate reward at new point
                 next_reward = self.getReward(next_pruning)
@@ -637,39 +637,47 @@ class GradientDescentSearch:
         """
         # Visualize the reward functions
         self.visualize_reward_functions()
-        
+
         # Run the search
         best_pruning_amount, best_reward, history = self.search()
-        
+
         # Print final results
         print(f"\nBest Pruning Amount: {best_pruning_amount:.4f}")
         print(f"Best Reward: {best_reward:.4f}")
-        
+
         # Calculate final metrics
         info = self._get_model_stats(best_pruning_amount, all=True)
         accuracy = info['accuracy']
         model_size = info['model_size']
         comp_time = info['computation_time']
-        
+
         # Print final stats
         print(f"\n----------Stats at {best_pruning_amount:.4f}----------")
         print(f"Accuracy: {accuracy:.2f}, Minimum Accuracy: {self.min_acc}")
         print(f"Model Size: {model_size:.2f} ({model_size/self.max_size:.1%} of max), "
               f"Maximum Model Size: {self.max_size}")
         print(f"Computation Time: {comp_time:.4f}")
-        
+
         # Check if constraints are satisfied
         meets, status = self._meets_constraints(accuracy, model_size)
         if meets:
-            print("✅ All constraints satisfied!")
-            print(f"Achieved {100 - model_size/self.max_size*100:.1f}% reduction from maximum allowed model size")
+            self._final_outputs(
+                model_size, accuracy, best_pruning_amount, comp_time
+            )
         else:
             print(f"❌ {status}")
-        
+
         # Create visualizations
         self.visualize_results(best_pruning_amount, history)
-        
+
         return best_pruning_amount, best_reward
+    def _final_outputs(self, model_size, accuracy, best_pruning_amount, comp_time):
+        print("✅  All constraints satisfied!")
+        print(f"Achieved {100 - model_size/self.max_size*100:.1f}% reduction from maximum allowed model size")
+        print(f"Achieved {accuracy:.2f}% accuracy with pruning amount {best_pruning_amount:.4f}")
+        print(f"Computation time: {comp_time:.4f} seconds")
+        print(f"Component weights:x={self.x}, y={self.y}, z={self.z}")
+        print(f"Min Acc: {self.min_acc}, Max Size: {self.max_size}")
 
 
 if __name__ == "__main__":
