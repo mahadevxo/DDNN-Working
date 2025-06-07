@@ -122,6 +122,7 @@ class PruningFineTuner:
                 del image, label
                 self._clear_memory()
         end_time = time.time()
+        model = model.to(self.device)  # Move back to original device
         return end_time - start_time
     
     def get_candidates_to_prune(self, num_filter_to_prune):

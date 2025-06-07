@@ -1,7 +1,6 @@
 import numpy as np
 from models.MVCNN import SVCNN
 import torch
-import random
 
 def get_exp_curve(total_sum) -> list[float]:
     if total_sum == 0:
@@ -78,7 +77,7 @@ def fine_tune_model(model, curve_value):
 
 def main() -> None:
     pruning_amounts = np.arange(0, 1, 0.05)
-    random.shuffle(list(pruning_amounts))
+    np.random.shuffle(pruning_amounts)
     print(f"Testing {len(pruning_amounts)} pruning amounts")
     print(f"Pruning amounts: {pruning_amounts}")
     
@@ -93,7 +92,7 @@ def main() -> None:
         
         if pruning_amount == 0.0:
             final_acc, model_size, comp_time = fine_tune_model(model, 0.0)
-            with open('results.txt', 'a') as f:
+            with open('results.csv', 'a') as f:
                 f.write(f"Pruning amount: {pruning_amount}, Final accuracy: {final_acc}, Model size: {model_size} MB, Computation time: {comp_time} seconds\n")
             continue
         
@@ -115,7 +114,7 @@ def main() -> None:
             model_size = model_size
             comp_time = comp_time
             
-        with open('results.txt', 'a') as f:
+        with open('results.csv', 'a') as f:
             f.write(f"Pruning amount: {pruning_amount}, Final accuracy: {final_acc}, Model size: {model_size} MB, Computation time: {comp_time} seconds\n")
     print("All pruning amounts processed successfully.")
 
