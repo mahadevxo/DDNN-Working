@@ -26,6 +26,15 @@ def fine_tune_model(model, curve_value):
 
     from PFT import PruningFineTuner as pft
     pruner = pft(model)
+    
+    if curve_value == 0.0:
+        print("No Pruning Required")
+        accuracy = pft.test_model(model=model) # type: ignore
+        model_size = pft.get_model_size(model=model) # type: ignore
+        comp_time = pft.get_comp_time(model=model) # type: ignore
+        return accuracy, model_size, comp_time
+    
+    print("Pruning model with pruning amount:", curve_value)
 
     model = pruner.prune(
         pruning_amount=curve_value,
@@ -80,6 +89,12 @@ def main() -> None:
     model.load_state_dict(weights)
     
     for pruning_amount in pruning_amounts:
+        
+        if pruning_amount == 0.0:
+            final_acc, model_size, comp_time = fine_tune_model(model, 0.0)
+            with open('results.txt', 'a') as f:
+                f.write(f"Pruning amount: {pruning_amount}, Final accuracy: {final_acc}, Model size: {model_size} MB, Computation time: {comp_time} seconds\n")
+        
         curve = get_exp_curve(pruning_amount)
         print(f"Pruning amount: {pruning_amount}, Curve: {curve}")
         if not curve:
