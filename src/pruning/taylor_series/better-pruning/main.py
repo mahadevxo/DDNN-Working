@@ -80,7 +80,7 @@ def main() -> None:
     print(f"Testing {len(pruning_amounts)} pruning amounts")
     print(f"Pruning amounts: {pruning_amounts}")
     
-    with open('results.txt', 'w') as f:
+    with open('results.csv', 'w') as f:
         f.write("Pruning Amount, Curve Value, Final Accuracy, Model Size (MB), Computation Time (seconds)\n")
     
     model = SVCNN(name='SVCNN')
@@ -88,33 +88,39 @@ def main() -> None:
     model.load_state_dict(weights)
     
     for pruning_amount in pruning_amounts:
-        
-        if pruning_amount == 0.0:
-            final_acc, model_size, comp_time = fine_tune_model(model, 0.0)
-            with open('results.csv', 'a') as f:
-                f.write(f"{pruning_amount}, {final_acc}, {model_size}, {comp_time}\n")
-            continue
-        
-        curve = get_exp_curve(pruning_amount)
-        
-        print(f"Pruning amount: {pruning_amount}, Curve: {curve}")
-        if not curve:
-            print(f"Skipping pruning amount {pruning_amount} as the curve is empty.")
-            continue
-        final_acc, model_size, comp_time = 0, 0, 0
-        for curve_value in curve:
-            if curve_value == 0:
-                print(f"Skipping curve value {curve_value} as it is zero.")
+        try:
+            if pruning_amount == 0.0:
+                final_acc, model_size, comp_time = fine_tune_model(model, 0.0)
+                with open('results.csv', 'a') as f:
+                    f.write(f"{pruning_amount}, {final_acc}, {model_size}, {comp_time}\n")
                 continue
             
-            accuracy, model_size, comp_time = fine_tune_model(model, curve_value)
-            print(f"Final accuracy: {accuracy}, model size: {model_size} MB, computation time: {comp_time} seconds for pruning amount {pruning_amount} and curve value {curve_value}")
-            final_acc = accuracy
-            model_size = model_size
-            comp_time = comp_time
+            curve = get_exp_curve(pruning_amount)
             
-        with open('results.csv', 'a') as f:
-            f.write(f"{pruning_amount}, {final_acc}, {model_size}, {comp_time}\n")
+            print(f"Pruning amount: {pruning_amount}, Curve: {curve}")
+            if not curve:
+                print(f"Skipping pruning amount {pruning_amount} as the curve is empty.")
+                continue
+            final_acc, model_size, comp_time = 0, 0, 0
+            for curve_value in curve:
+                if curve_value == 0:
+                    print(f"Skipping curve value {curve_value} as it is zero.")
+                    continue
+                
+                accuracy, model_size, comp_time = fine_tune_model(model, curve_value)
+                print(f"Final accuracy: {accuracy}, model size: {model_size} MB, computation time: {comp_time} seconds for pruning amount {pruning_amount} and curve value {curve_value}")
+                final_acc = accuracy
+                model_size = model_size
+                comp_time = comp_time
+                
+            with open('results.csv', 'a') as f:
+                f.write(f"{pruning_amount}, {final_acc}, {model_size}, {comp_time}\n")
+        except Exception as e:
+            print(f"An error occurred while processing pruning amount {pruning_amount}: {e}")
+            with open('results.csv', 'a') as f:
+                f.write(f"{pruning_amount}, Error: {str(e)}\n")
+            continue
+    # Final message after processing all pruning amounts
     print("All pruning amounts processed successfully.")
 
 if __name__ == "__main__":
