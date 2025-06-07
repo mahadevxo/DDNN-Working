@@ -29,7 +29,7 @@ def fine_tune_model(model, curve_value):
     
     if curve_value == 0.0:
         print("No Pruning Required")
-        accuracy = pruner.test_model(model=model)
+        accuracy = pruner.get_val_accuracy(model=model)
         model_size = pruner.get_model_size(model=model)
         comp_time = pruner.get_comp_time(model=model)
         return accuracy, model_size, comp_time
@@ -49,7 +49,7 @@ def fine_tune_model(model, curve_value):
     while True:
         try:
             model = pruner.train_epoch()
-            accuracy = pruner.test_model(model=model)
+            accuracy = pruner.get_val_accuracy(model=model)
             model_size = pruner.get_model_size(model=model)
             comp_time = pruner.get_comp_time(model=model)
 
@@ -70,7 +70,7 @@ def fine_tune_model(model, curve_value):
     
     print("Fine tuning completed successfully")
 
-    accuracy = pruner.test_model(model=model)
+    accuracy = pruner.get_val_accuracy(model=model)
     model_size = pruner.get_model_size(model=model)
     comp_time = pruner.get_comp_time(model=model)
 
@@ -95,8 +95,10 @@ def main() -> None:
             final_acc, model_size, comp_time = fine_tune_model(model, 0.0)
             with open('results.txt', 'a') as f:
                 f.write(f"Pruning amount: {pruning_amount}, Final accuracy: {final_acc}, Model size: {model_size} MB, Computation time: {comp_time} seconds\n")
+            continue
         
         curve = get_exp_curve(pruning_amount)
+        
         print(f"Pruning amount: {pruning_amount}, Curve: {curve}")
         if not curve:
             print(f"Skipping pruning amount {pruning_amount} as the curve is empty.")

@@ -91,7 +91,7 @@ class PruningFineTuner:
         self._clear_memory()
         return self.model
     
-    def test_model(self, model):
+    def get_val_accuracy(self, model):
         test_loader = self.get_images(self.test_path, num_samples=1000)
         
         model.eval()
@@ -112,17 +112,17 @@ class PruningFineTuner:
     def get_comp_time(self, model):
         import time
         start_time = time.time()
-        dummy_input = torch.randn(128, 3, 224, 224).to('cpu')
         model.eval()
         model.to('cpu')
+        test_loader = self.get_images(self.test_path, num_samples=100)
         with torch.no_grad():
-            model(dummy_input)
+            for label, image, _ in test_loader:
+                image = image.to('cpu', non_blocking=False)
+                _ = model(image)
+                del image, label
+                self._clear_memory()
         end_time = time.time()
-        comp_time = end_time - start_time
-        print(f"Computation time for a single forward pass: {comp_time:.4f} seconds")
-        print("torch.randn(128, 3, 224, 224).to('cpu')' is used to create a dummy input tensor.")
-        model.to(self.device)
-        return comp_time
+        return end_time - start_time
     
     def get_candidates_to_prune(self, num_filter_to_prune):
         self.pruner.reset()
