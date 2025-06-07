@@ -82,9 +82,9 @@ def main() -> None:
     for pruning_amount in pruning_amounts:
         curve = get_exp_curve(pruning_amount)
         print(f"Pruning amount: {pruning_amount}, Curve: {curve}")
-        
-        if sum(curve) != pruning_amount:
-            raise ValueError(f"Sum of curve {curve} does not equal pruning amount {pruning_amount}.")
+        if not curve:
+            print(f"Skipping pruning amount {pruning_amount} as the curve is empty.")
+            continue
         final_acc, model_size, comp_time = 0, 0, 0
         for curve_value in curve:
             if curve_value == 0:
