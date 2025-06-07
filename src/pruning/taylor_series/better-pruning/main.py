@@ -29,9 +29,9 @@ def fine_tune_model(model, curve_value):
     
     if curve_value == 0.0:
         print("No Pruning Required")
-        accuracy = pft.test_model(model=model) # type: ignore
-        model_size = pft.get_model_size(model=model) # type: ignore
-        comp_time = pft.get_comp_time(model=model) # type: ignore
+        accuracy = pruner.test_model(model=model)
+        model_size = pruner.get_model_size(model=model)
+        comp_time = pruner.get_comp_time(model=model)
         return accuracy, model_size, comp_time
     
     print("Pruning model with pruning amount:", curve_value)
@@ -48,10 +48,10 @@ def fine_tune_model(model, curve_value):
 
     while True:
         try:
-            model = pft.train_epoch() # type: ignore
-            accuracy = pft.test_model(model=model) # type: ignore
-            model_size = pft.get_model_size(model=model) # type: ignore
-            comp_time = pft.get_comp_time(model=model) # type: ignore
+            model = pruner.train_epoch()
+            accuracy = pruner.test_model(model=model)
+            model_size = pruner.get_model_size(model=model)
+            comp_time = pruner.get_comp_time(model=model)
 
             accuracy_previous.append(accuracy)
             if len(accuracy_previous) > 4:
@@ -70,9 +70,9 @@ def fine_tune_model(model, curve_value):
     
     print("Fine tuning completed successfully")
 
-    accuracy = pft.test_model(model=model) # type: ignore
-    model_size = pft.get_model_size(model=model) # type: ignore
-    comp_time = pft.get_comp_time(model=model) # type: ignore
+    accuracy = pruner.test_model(model=model)
+    model_size = pruner.get_model_size(model=model)
+    comp_time = pruner.get_comp_time(model=model)
 
     return accuracy, model_size, comp_time
 
@@ -80,6 +80,7 @@ def main() -> None:
     pruning_amounts = np.arange(0, 1, 0.05)
     random.shuffle(list(pruning_amounts))
     print(f"Testing {len(pruning_amounts)} pruning amounts")
+    print(f"Pruning amounts: {pruning_amounts}")
     
     with open('results.txt', 'w') as f:
         f.write("Pruning Amount, Curve Value, Final Accuracy, Model Size (MB), Computation Time (seconds)\n")
