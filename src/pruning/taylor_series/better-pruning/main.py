@@ -1,6 +1,7 @@
 import numpy as np
 from models.MVCNN import SVCNN
 import torch
+import random
 
 def get_exp_curve(total_sum) -> list[float]:
     if total_sum == 0:
@@ -68,6 +69,7 @@ def fine_tune_model(model, curve_value):
 
 def main() -> None:
     pruning_amounts = np.arange(0, 1, 0.05)
+    random.shuffle(list(pruning_amounts))
     print(f"Testing {len(pruning_amounts)} pruning amounts")
     
     with open('results.txt', 'w') as f:
