@@ -99,3 +99,8 @@ def main() -> None:
             
         with open('results.txt', 'a') as f:
             f.write(f"Pruning amount: {pruning_amount}, Final accuracy: {final_acc}, Model size: {model_size} MB, Computation time: {comp_time} seconds\n")
+    print("All pruning amounts processed successfully.")
+
+if __name__ == "__main__":
+    main()
+    print("Main function executed successfully.")
