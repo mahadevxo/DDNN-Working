@@ -92,8 +92,8 @@ def main() -> None:
     
     model.net_1 = model.features
     model.net_2 = model.classifier
-    del model.classifier
-    del model.features
+    # del model.classifier
+    # del model.features
     print(model)
     for pruning_amount in pruning_amounts:
         try:
