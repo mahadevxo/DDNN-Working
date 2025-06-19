@@ -120,7 +120,7 @@ class PruningFineTuner:
         correct = 0
         total = 0
         with torch.no_grad():
-            for label, image, _ in test_loader:
+            for label, image in test_loader:
                 image = image.to(self.device, non_blocking=False)
                 label = label.to(self.device, non_blocking=False)
                 output = model(image)
