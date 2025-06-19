@@ -1,5 +1,5 @@
 from torch.utils.data import DataLoader, Subset
-from torchvision import transforms
+from torchvision import transforms, datasets
 import torch
 import random
 import gc
@@ -9,8 +9,10 @@ from tools.ImgDataset import SingleImgDataset
 
 class PruningFineTuner:
     def __init__(self, model):
-        self.train_path = 'ModelNet40-12View/*/train'
-        self.test_path = 'ModelNet40-12View/*/test'
+        # self.train_path = 'ModelNet40-12View/*/train'
+        # self.test_path = 'ModelNet40-12View/*/test'
+        self.train_path = 'places365/train'
+        self.test_path = 'places365/val'
         self.device = 'mps' if torch.backends.mps.is_available() else 'cuda' if torch.cuda.is_available() else 'cpu'
         self.model = model.to(self.device)
         self.criterion = torch.nn.CrossEntropyLoss()
@@ -41,6 +43,24 @@ class PruningFineTuner:
         
         data_dataset.transform = transform  # type: ignore
         return DataLoader(data_dataset, batch_size=32, shuffle=True, num_workers=4, pin_memory=True)
+    
+    def get_places365_images(self, test_or_train, num_samples=5000):
+        transform = transforms.Compose([
+            transforms.Resize((224,224)),
+            transforms.RandomHorizontalFlip(), 
+            transforms.RandomRotation(15),
+            transforms.ToTensor(),
+            transforms.Normalize(mean=[0.485, 0.456, 0.406], 
+                                std=[0.229, 0.224, 0.225]),
+        ])
+        
+        dataset = datasets.ImageFolder(root=self.train_path if test_or_train == 'train' else self.test_path, transform=transform)
+        
+        indices = random.sample(range(len(dataset)), min(num_samples, len(dataset)))
+        dataset = Subset(dataset, indices)
+        print(f"Number of samples in {test_or_train} dataset: {len(dataset)}")
+        
+        return DataLoader(dataset, batch_size=32, shuffle=True, num_workers=4, pin_memory=True)
     
     def train_batch(self, optimizer, train_loader, rank_filter=False):
         self.model.train()
@@ -85,14 +105,16 @@ class PruningFineTuner:
                 self._clear_memory()
     
     def train_epoch(self, optimizer=None, rank_filter=False):
-        train_loader = self.get_images(self.train_path, num_samples=2000)
+        # train_loader = self.get_images(self.train_path, num_samples=2000)
+        train_loader = self.get_places365_images('train', num_samples=2000)
         self.train_batch(optimizer, train_loader, rank_filter)
         del train_loader
         self._clear_memory()
         return self.model
     
     def get_val_accuracy(self, model):
-        test_loader = self.get_images(self.test_path, num_samples=1000)
+        # test_loader = self.get_images(self.test_path, num_samples=1000)
+        test_loader = self.get_places365_images('val', num_samples=1000)
         
         model.eval()
         correct = 0
@@ -114,7 +136,8 @@ class PruningFineTuner:
         start_time = time.time()
         model.eval()
         model.to('cpu')
-        test_loader = self.get_images(self.test_path, num_samples=100)
+        # test_loader = self.get_images(self.test_path, num_samples=100)
+        test_loader = self.get_places365_images('val', num_samples=100)
         with torch.no_grad():
             for label, image, _ in test_loader:
                 image = image.to('cpu', non_blocking=False)

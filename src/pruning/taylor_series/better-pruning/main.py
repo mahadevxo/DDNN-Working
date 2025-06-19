@@ -1,5 +1,6 @@
 import numpy as np
-from models.MVCNN import SVCNN
+# from models.MVCNN import SVCNN
+from torchvision.models import vgg16
 import torch
 
 def get_exp_curve(total_sum) -> list[float]:
@@ -83,7 +84,8 @@ def main() -> None:
     with open('results.csv', 'w') as f:
         f.write("Pruning Amount, Curve Value, Final Accuracy, Model Size (MB), Computation Time (seconds)\n")
     
-    model = SVCNN(name='SVCNN')
+    # model = SVCNN(name='SVCNN')
+    model = vgg16(weights=None)
     weights = torch.load('model.pth', map_location='cuda' if torch.cuda.is_available() else 'mps' if torch.backends.mps.is_available() else 'cpu')
     model.load_state_dict(weights)
     

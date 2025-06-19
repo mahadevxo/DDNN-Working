@@ -5,7 +5,6 @@ from collections import defaultdict
 def verify_places365_structure(dataset_root='places365'):
     required_splits = ['train', 'val']
     valid_exts = {'.jpg', '.jpeg', '.png'}
-    issues = []
 
     for split in required_splits:
         split_path = Path(dataset_root) / split
@@ -35,7 +34,7 @@ def verify_places365_structure(dataset_root='places365'):
             print(f"🚫 Empty class folders in '{split}':", empty_folders)
 
         if ext_errors:
-            print(f"⚠️ Non-image files or bad extensions found:")
+            print("⚠️ Non-image files or bad extensions found:")
             for cls, bad_files in ext_errors.items():
                 print(f"  - {cls}: {len(bad_files)} file(s)")
 
