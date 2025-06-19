@@ -95,7 +95,8 @@ def main() -> None:
     
     # model = SVCNN(name='SVCNN')
     model = vgg16(weights=None)
-    model.classifier[-1] = torch.nn.Linear(4096, 365)
+    # model.classifier[-1] = torch.nn.Linear(4096, 365)  # Places365 has 365 classes
+    model.classifier[-1] = torch.nn.Linear(4096, 1000)  # Imagenet-mini has 1000 classes
     weights = torch.load('model.pth', map_location='cuda' if torch.cuda.is_available() else 'mps' if torch.backends.mps.is_available() else 'cpu')
     model.load_state_dict(weights)
     

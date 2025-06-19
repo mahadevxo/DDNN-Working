@@ -11,8 +11,11 @@ class PruningFineTuner:
     def __init__(self, model):
         # self.train_path = 'ModelNet40-12View/*/train'
         # self.test_path = 'ModelNet40-12View/*/test'
-        self.train_path = 'places365/train'
-        self.test_path = 'places365/val'
+        # self.train_path = 'places365/train'
+        # self.test_path = 'places365/val'
+        # New paths for Imagenet-mini
+        self.train_path = 'imagenet-mini/train'
+        self.test_path = 'imagenet-mini/val'
         self.device = 'mps' if torch.backends.mps.is_available() else 'cuda' if torch.cuda.is_available() else 'cpu'
         self.model = model.to(self.device)
         self.criterion = torch.nn.CrossEntropyLoss()
@@ -62,6 +65,25 @@ class PruningFineTuner:
         
         return DataLoader(dataset, batch_size=32, shuffle=True, num_workers=4, pin_memory=True)
     
+    # New method for Imagenet-mini
+    def get_imagenet_mini_images(self, test_or_train, num_samples=5000):
+        transform = transforms.Compose([
+            transforms.Resize(256),
+            transforms.CenterCrop(224),
+            transforms.RandomHorizontalFlip() if test_or_train == 'train' else transforms.Lambda(lambda x: x),
+            transforms.ToTensor(),
+            transforms.Normalize(mean=[0.485, 0.456, 0.406], 
+                                std=[0.229, 0.224, 0.225]),
+        ])
+        
+        dataset = datasets.ImageFolder(root=self.train_path if test_or_train == 'train' else self.test_path, transform=transform)
+        
+        indices = random.sample(range(len(dataset)), min(num_samples, len(dataset)))
+        dataset = Subset(dataset, indices)
+        print(f"Number of samples in {test_or_train} Imagenet-mini dataset: {len(dataset)}")
+        
+        return DataLoader(dataset, batch_size=32, shuffle=True, num_workers=4, pin_memory=True)
+    
     def train_batch(self, optimizer, train_loader, rank_filter=False):
         self.model.train()
         self.model.to(self.device)
@@ -106,7 +128,8 @@ class PruningFineTuner:
     
     def train_epoch(self, optimizer=None, rank_filter=False):
         # train_loader = self.get_images(self.train_path, num_samples=2000)
-        train_loader = self.get_places365_images('train', num_samples=2000)
+        # train_loader = self.get_places365_images('train', num_samples=2000)
+        train_loader = self.get_imagenet_mini_images('train', num_samples=2000)
         self.train_batch(optimizer, train_loader, rank_filter)
         del train_loader
         self._clear_memory()
@@ -114,7 +137,8 @@ class PruningFineTuner:
     
     def get_val_accuracy(self, model):
         # test_loader = self.get_images(self.test_path, num_samples=1000)
-        test_loader = self.get_places365_images('val', num_samples=1000)
+        # test_loader = self.get_places365_images('val', num_samples=1000)
+        test_loader = self.get_imagenet_mini_images('val', num_samples=1000)
         model.eval()
         correct = 0
         total = 0
@@ -136,7 +160,8 @@ class PruningFineTuner:
         model.eval()
         model.to('cpu')
         # test_loader = self.get_images(self.test_path, num_samples=100)
-        test_loader = self.get_places365_images('val', num_samples=100)
+        # test_loader = self.get_places365_images('val', num_samples=100)
+        test_loader = self.get_imagenet_mini_images('val', num_samples=100)
         with torch.no_grad():
             for image, label in test_loader: #make it label, image, _ if using SingleImgDataset
                 image = image.to('cpu', non_blocking=False)
