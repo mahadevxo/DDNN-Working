@@ -15,3 +15,8 @@ src/MVCNN_org/MVCNN-Jetson_stage_2
 **/data
 **/trained-models
 /src/pruning/taylor_series/tests/outputs
+**/*.tar
+**/*.tar.gz
+**/*.zip
+**/*.tar.bz2
+**/*.tar.xz

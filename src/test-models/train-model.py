@@ -14,7 +14,7 @@ class TrainPlaces365:
         self.criterion = nn.CrossEntropyLoss()
         self.optimizer = torch.optim.Adam(self.model.parameters(), lr=0.0001)
         self.scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
-            self.optimizer, mode='max', factor=0.1, patience=2, verbose=True
+            self.optimizer, mode='max', factor=0.1, patience=2,
         )
         self.device = 'cuda' if torch.cuda.is_available() else 'mps' if torch.backends.mps.is_available() else 'cpu'
         self.model.to(self.device)
