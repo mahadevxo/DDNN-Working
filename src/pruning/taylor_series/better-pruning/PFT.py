@@ -6,6 +6,7 @@ import gc
 from FilterPruner import FilterPruner
 from Pruning import Pruning
 from tools.ImgDataset import SingleImgDataset
+from tqdm import tqdm
 
 class PruningFineTuner:
     def __init__(self, model):
@@ -80,14 +81,15 @@ class PruningFineTuner:
         
         indices = random.sample(range(len(dataset)), min(num_samples, len(dataset)))
         dataset = Subset(dataset, indices)
-        print(f"Number of samples in {test_or_train} Imagenet-mini dataset: {len(dataset)}")
-        
+        print(f"Imagenet-mini {test_or_train}: {len(dataset)} samples")
         return DataLoader(dataset, batch_size=32, shuffle=True, num_workers=4, pin_memory=True)
     
     def train_batch(self, optimizer, train_loader, rank_filter=False):
         self.model.train()
         self.model.to(self.device)
-        for batch_idx, (image, label) in enumerate(train_loader):  #make it label, image, _ if using SingleImgDataset
+        
+        pbar = tqdm(train_loader, desc="Training batch", leave=False)
+        for batch_idx, (image, label) in enumerate(pbar):
             try:
                 with torch.autograd.set_grad_enabled(True):
                     image = image.to(self.device, non_blocking=False)
@@ -114,17 +116,16 @@ class PruningFineTuner:
                     if optimizer is not None:
                         optimizer.step()
                         
+                    pbar.set_postfix({"loss": f"{loss.item():.4f}"})
+                        
             except Exception as e:
-                print(f"Error during training batch {batch_idx}: {str(e)}")
+                print(f"Error in batch {batch_idx}: {str(e)}")
                 continue
             finally:
                 # Explicitly delete tensors to free memory
                 del image, label
-                self._clear_memory()
-            
-            # Periodically clear cache during training
-            if batch_idx % 10 == 0:
-                self._clear_memory()
+                if batch_idx % 10 == 0:
+                    self._clear_memory()
     
     def train_epoch(self, optimizer=None, rank_filter=False):
         # train_loader = self.get_images(self.train_path, num_samples=2000)
@@ -136,22 +137,23 @@ class PruningFineTuner:
         return self.model
     
     def get_val_accuracy(self, model):
-        # test_loader = self.get_images(self.test_path, num_samples=1000)
-        # test_loader = self.get_places365_images('val', num_samples=1000)
         test_loader = self.get_imagenet_mini_images('val', num_samples=1000)
         model.eval()
         correct = 0
         total = 0
+        
         with torch.no_grad():
-            for image, label in test_loader: #make it label, image, _ if using SingleImgDataset
+            pbar = tqdm(test_loader, desc="Validation", leave=False)
+            for image, label in pbar:
                 image = image.to(self.device, non_blocking=False)
                 label = label.to(self.device, non_blocking=False)
                 output = model(image)
                 _, predicted = torch.max(output.data, 1)
                 total += label.size(0)
                 correct += (predicted == label).sum().item()
-        accuracy = 100 * correct / total
-        print(f'Accuracy of the model on the test set: {accuracy:.2f}%')
+                accuracy = 100 * correct / total
+                pbar.set_postfix({"acc": f"{accuracy:.2f}%"})
+                
         return accuracy
     
     def get_comp_time(self, model):
@@ -205,7 +207,7 @@ class PruningFineTuner:
             
         original_filters = self.total_num_filters()
         total_filters_to_prune = int(original_filters * (pruning_amount))
-        print(f"Total Filters to prune: {total_filters_to_prune} For Pruning Amount: {pruning_amount}")
+        print(f"Pruning {total_filters_to_prune} filters ({pruning_amount:.2f})")
 
         # Rank and get the candidates to prune
         if prune_targets is None:
@@ -214,21 +216,17 @@ class PruningFineTuner:
         layers_pruned = {}
         for layer_index, filter_index in prune_targets:
             layers_pruned[layer_index] = layers_pruned.get(layer_index, 0) + 1
-        print("Layers that will be pruned", layers_pruned)
-        print("Pruning Filters")
+        
         model = self.model
         pruner = Pruning(model)
         
         # Prune one filter at a time with memory cleanup after each
-        for idx, (layer_index, filter_index) in enumerate(prune_targets):
+        pbar = tqdm(enumerate(prune_targets), total=len(prune_targets), desc="Pruning filters", leave=False)
+        for idx, (layer_index, filter_index) in pbar:
             model = pruner.prune_vgg_conv_layer(model, layer_index, filter_index)
-            if idx % 100 == 0:  # Clean up every few iterations
-                print(f"Pruned {idx} filters")
+            if idx % 100 == 0:
                 self._clear_memory()
                 
-        print("Finished Pruning Filters")
-        print(f"Total Filters Pruned: {len(prune_targets)}")
-
         # Convert model weights to float32 for training stability
         for layer in model.modules():
             if isinstance(layer, (torch.nn.Conv2d, torch.nn.Linear)):
