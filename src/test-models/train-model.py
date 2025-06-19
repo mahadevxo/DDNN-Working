@@ -1,6 +1,5 @@
 import torch
 import torch.nn as nn
-import numpy as np
 from torchvision import models
 from torchvision import datasets, transforms
 from torch.utils.data import DataLoader
@@ -84,7 +83,7 @@ class TrainOtherModels():
                     self.optimizer.step()
                     
                 epoch_accuracy = self.validate(train_loader)
-                print(f"Epoch [{epoch+1}/{num_epochs}], Train Accuracy: {epoch_accuracy:.2f}%, Loss: {loss.item():.4f}")
+                print(f"Epoch [{epoch+1}/{num_epochs}], Train Accuracy: {epoch_accuracy:.2f}%, Loss: {loss.item():.4f}") # type: ignore
             
             if self.save_model:
                 model_path = 'vgg16_trained.pth'
@@ -99,7 +98,7 @@ class TrainOtherModels():
     
     def main(self, batch_size=32, num_epochs=100):
         train_loader, val_loader = self.load_data(batch_size)
-        print(f"Training on {len(train_loader.dataset)} samples, validating on {len(val_loader.dataset)} samples.")
+        print(f"Training on {len(train_loader.dataset)} samples, validating on {len(val_loader.dataset)} samples.") # type: ignore
         self.train(train_loader, num_epochs)
         self.validate(val_loader)
 
