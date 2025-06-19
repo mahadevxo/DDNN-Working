@@ -115,7 +115,7 @@ class PruningFineTuner:
     def get_val_accuracy(self, model):
         # test_loader = self.get_images(self.test_path, num_samples=1000)
         test_loader = self.get_places365_images('val', num_samples=1000)
-        
+        print("We here?")
         model.eval()
         correct = 0
         total = 0
