@@ -87,6 +87,11 @@ def main() -> None:
     # model = SVCNN(name='SVCNN')
     model = vgg16(weights=None)
     model.classifier[-1] = torch.nn.Linear(4096, 365)
+    model.net_1 = model.features
+    model.net_2 = model.classifier
+    del model.classifier
+    del model.features
+    print(model)
     weights = torch.load('model.pth', map_location='cuda' if torch.cuda.is_available() else 'mps' if torch.backends.mps.is_available() else 'cpu')
     model.load_state_dict(weights)
     
