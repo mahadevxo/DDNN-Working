@@ -2,6 +2,15 @@ import numpy as np
 # from models.MVCNN import SVCNN
 from torchvision.models import vgg16
 import torch
+import types
+
+def forward_override(self, x):
+    if not isinstance(x, torch.Tensor):
+        raise TypeError(f"Expected input to be a torch.Tensor, got {type(x)} instead.")
+    x = self.net_1(x)
+    x = x.view(x.size(0), -1)
+    x = self.net_2(x)
+    return x
 
 def get_exp_curve(total_sum) -> list[float]:
     if total_sum == 0:
@@ -92,8 +101,9 @@ def main() -> None:
     
     model.net_1 = model.features
     model.net_2 = model.classifier
-    # del model.classifier
-    # del model.features
+    del model.classifier
+    del model.features
+    model.forward = types.MethodType(forward_override, model)
     print(model)
     for pruning_amount in pruning_amounts:
         try:

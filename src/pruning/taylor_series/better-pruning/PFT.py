@@ -65,7 +65,7 @@ class PruningFineTuner:
     def train_batch(self, optimizer, train_loader, rank_filter=False):
         self.model.train()
         self.model.to(self.device)
-        for batch_idx, (label, image) in enumerate(train_loader):  #make it label, image, _ if using SingleImgDataset
+        for batch_idx, (image, label) in enumerate(train_loader):  #make it label, image, _ if using SingleImgDataset
             try:
                 with torch.autograd.set_grad_enabled(True):
                     image = image.to(self.device, non_blocking=False)
@@ -119,7 +119,7 @@ class PruningFineTuner:
         correct = 0
         total = 0
         with torch.no_grad():
-            for label, image in test_loader: #make it label, image, _ if using SingleImgDataset
+            for image, label in test_loader: #make it label, image, _ if using SingleImgDataset
                 image = image.to(self.device, non_blocking=False)
                 label = label.to(self.device, non_blocking=False)
                 output = model(image)
@@ -138,7 +138,7 @@ class PruningFineTuner:
         # test_loader = self.get_images(self.test_path, num_samples=100)
         test_loader = self.get_places365_images('val', num_samples=100)
         with torch.no_grad():
-            for label, image in test_loader: #make it label, image, _ if using SingleImgDataset
+            for image, label in test_loader: #make it label, image, _ if using SingleImgDataset
                 image = image.to('cpu', non_blocking=False)
                 _ = model(image)
                 del image, label
