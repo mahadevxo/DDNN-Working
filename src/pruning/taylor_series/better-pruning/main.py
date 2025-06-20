@@ -137,11 +137,13 @@ def main() -> None:
     result_path = f"results/pruning_results-{current_time_str}.csv"
     
     # Define pruning range
-    pruning_amounts = np.arange(0, 1, 0.05)
+    pruning_amounts = np.arange((0, 1, 0.05), 2)
     
-    done_amounts = {0.30, 0.25, 0.60, 0.45, 0.20, 0.15, 0.50,}
+    done_amounts = {0.30, 0.25, 0.60, 0.45, 0.20, 0.15, 0.50, 0.00}
     
     pruning_amounts = [p for p in pruning_amounts if p not in done_amounts]
+    
+    pruning_amounts.insert(0, 0.00)
     
     print(f"Pruning amounts to be tested: {pruning_amounts}")
     
