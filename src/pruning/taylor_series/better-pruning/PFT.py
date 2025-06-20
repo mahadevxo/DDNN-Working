@@ -66,7 +66,7 @@ class PruningFineTuner:
             
         return DataLoader(
             dataset, 
-            batch_size=8, 
+            batch_size=32, 
             shuffle=True, 
             num_workers=4, 
             pin_memory=True
