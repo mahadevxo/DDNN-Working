@@ -138,6 +138,13 @@ def main() -> None:
     
     # Define pruning range
     pruning_amounts = np.arange(0, 1, 0.05)
+    
+    done_amounts = {0.30, 0.25, 0.60, 0.45, 0.20, 0.15, 0.50,}
+    
+    pruning_amounts = [p for p in pruning_amounts if p not in done_amounts]
+    
+    print(f"Pruning amounts to be tested: {pruning_amounts}")
+    
     logger.info(f"Starting pruning experiment with {len(pruning_amounts)} pruning ratios")
     np.random.shuffle(pruning_amounts)
     
