@@ -118,7 +118,7 @@ class FilterPruner:
             self.filter_ranks[i] += noise
             
     def get_pruning_plan(self, num_filters_to_prune):
-    # Apply smoothing before ranking
+        # Apply smoothing before ranking
         self.smooth_distributions()
         
         # Apply normalization
@@ -127,21 +127,43 @@ class FilterPruner:
         # Get the lowest ranking filters
         filters_to_prune = self.lowest_ranking_filters(num_filters_to_prune)
         
+        # If no filters can be pruned, return empty list
+        if not filters_to_prune:
+            print("Warning: No more filters can be pruned safely.")
+            return []
+        
+        # Group by layer without index shifting (we'll handle that at pruning time)
         filters_to_prune_per_layer = {}
         for (layer_n, f, _) in filters_to_prune:
             if layer_n not in filters_to_prune_per_layer:
                 filters_to_prune_per_layer[layer_n] = []
             filters_to_prune_per_layer[layer_n].append(f)
         
+        # Check if any layer would be left with no filters
         for layer_n in filters_to_prune_per_layer:
-            filters_to_prune_per_layer[layer_n] = sorted(filters_to_prune_per_layer[layer_n])
-            for i in range(len(filters_to_prune_per_layer[layer_n])):
-                filters_to_prune_per_layer[layer_n][i] = filters_to_prune_per_layer[layer_n][i] - i
+            # Find the total number of filters in this layer
+            layer_found = False
+            total_filters = 0
+            for layer_idx, layer in enumerate(self.model.net_1):
+                if layer_idx == layer_n and isinstance(layer, torch.nn.Conv2d):
+                    total_filters = layer.out_channels
+                    layer_found = True
+                    break
+            
+            # If we found the layer, ensure we don't prune all filters
+            if layer_found and len(filters_to_prune_per_layer[layer_n]) >= total_filters:
+                filters_to_prune_per_layer[layer_n] = filters_to_prune_per_layer[layer_n][:total_filters-1]
+                print(f"Warning: Had to reduce pruning for layer {layer_n} to keep at least one filter")
         
+        # Flatten the pruning plan
         filters_to_prune = []
         for layer_n in filters_to_prune_per_layer:
-            for i in filters_to_prune_per_layer[layer_n]:
-                filters_to_prune.append((layer_n, i))
+            for f in sorted(filters_to_prune_per_layer[layer_n]):
+                filters_to_prune.append((layer_n, f))
+        
+        # Check if we ended up with no filters to prune
+        if not filters_to_prune:
+            print("Warning: After safety checks, no filters can be pruned.")
         
         # Clean up after pruning plan is created
         self.reset()

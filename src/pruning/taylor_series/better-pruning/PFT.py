@@ -225,15 +225,25 @@ class PruningFineTuner:
             filters_to_prune = self.get_candidates_to_prune(num_filters_to_prune)
         else:
             filters_to_prune = prune_targets
-        
+    
         if not only_model:
             no_filters = self.total_num_filters()
             self._log(f"Pruning {len(filters_to_prune)} filters out of {no_filters} ({100 * len(filters_to_prune) / no_filters:.1f}%)")
-        
+    
+        # Handle case where no filters can be pruned
+        if len(filters_to_prune) == 0:
+            model_size = self.get_model_size(self.model)
+            comp_time = self.get_comp_time(self.model)
+            
+            self._log(f"No more filters can be pruned at pruning amount {pruning_amount:.3f}")
+            self._log(f"Current metrics - Accuracy: 0.0%, Model size: {model_size:.2f}M, Comp time: {comp_time:.2f}ms")
+            
+            return self.model
+    
         # Use batch pruning for better performance
         pruner = Pruning(self.model)
         model = pruner.batch_prune_filters(self.model, filters_to_prune)
-        
+    
         self._clear_memory()
         return model
     

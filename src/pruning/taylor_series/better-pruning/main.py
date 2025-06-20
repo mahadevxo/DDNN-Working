@@ -30,6 +30,9 @@ def get_exp_curve(total_sum) -> list[float]:
     if total_sum == 0:
         return [0.0] * 10
     
+    # Limit total_sum to a reasonable range to avoid excessive pruning in one step
+    total_sum = min(total_sum, 0.7)  # Never prune more than 70% in a single curve
+    
     x = np.arange(10)
     decay_target_ratio = 0.01
     
@@ -41,26 +44,39 @@ def get_exp_curve(total_sum) -> list[float]:
     scaling_factor = total_sum / sum_of_shifted
     final_curve = curve_shifted * scaling_factor
     final_curve[-1] = 0.0
+    
+    # Ensure no step has more than 15% pruning
+    max_step_prune = 0.15
+    final_curve = np.array([min(v, max_step_prune) for v in final_curve])
+    
     return final_curve.tolist()
 
 def fine_tune_model(model, curve_value) -> tuple[float, float, float]:
     if curve_value < 0:
-        raise ValueError(f"Curve value {curve_value} is negative, which is not allowed.")
+        return 0, 0, 0
 
     from PFT import PruningFineTuner as pft
     pruner = pft(model, quiet=False)
     
     if curve_value == 0.0:
-        logger.info("Baseline evaluation (no pruning)")
-        accuracy = pruner.get_val_accuracy(model=model)
-        model_size = pruner.get_model_size(model=model)
-        comp_time = pruner.get_comp_time(model=model)
+        accuracy = pruner.get_val_accuracy(model)
+        model_size = pruner.get_model_size(model)
+        comp_time = pruner.get_comp_time(model)
         return accuracy, model_size, comp_time
     
     # Prune the model
     logger.info(f"Pruning model with ratio {curve_value:.3f}")
+    prev_filter_count = pruner.total_num_filters()
     model = pruner.prune(pruning_amount=curve_value)
-
+    current_filter_count = pruner.total_num_filters()
+    
+    # Check if any filters were pruned
+    if current_filter_count == prev_filter_count and curve_value > 0:
+        logger.info(f"No more filters can be pruned at ratio {curve_value:.3f}")
+        model_size = pruner.get_model_size(model)
+        comp_time = pruner.get_comp_time(model)
+        return 0.0, model_size, comp_time
+    
     # Fine-tune the pruned model
     logger.info(f"Fine-tuning pruned model ({curve_value:.3f})")
     

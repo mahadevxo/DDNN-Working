@@ -1,7 +1,5 @@
 import torch
 import gc
-import time
-import numpy as np
 
 class Pruning:
     def __init__(self, model):
@@ -32,23 +30,21 @@ class Pruning:
         """
         self.layer_info = {}
         modules = list(model.net_1)
-        
+
         for i, module in enumerate(modules):
             if isinstance(module, torch.nn.Conv2d):
-                # Find next conv layer
-                next_conv_index = None
-                for j in range(i+1, len(modules)):
-                    if isinstance(modules[j], torch.nn.Conv2d):
-                        next_conv_index = j
-                        break
-                
-                # Check if it's the last conv layer
-                is_last_conv = True
-                for j in range(i+1, len(modules)):
-                    if isinstance(modules[j], torch.nn.Conv2d):
-                        is_last_conv = False
-                        break
-                
+                next_conv_index = next(
+                    (
+                        j
+                        for j in range(i + 1, len(modules))
+                        if isinstance(modules[j], torch.nn.Conv2d)
+                    ),
+                    None,
+                )
+                is_last_conv = not any(
+                    isinstance(modules[j], torch.nn.Conv2d)
+                    for j in range(i + 1, len(modules))
+                )
                 self.layer_info[i] = {
                     "next_conv_index": next_conv_index,
                     "is_last_conv": is_last_conv
@@ -83,22 +79,20 @@ class Pruning:
         """
         if in_channels is None:
             in_channels = conv.in_channels
-            
+
         if out_channels is None:
             out_channels = conv.out_channels
-            
-        new_conv = torch.nn.Conv2d(
-            in_channels=in_channels, 
+
+        return torch.nn.Conv2d(
+            in_channels=in_channels,
             out_channels=out_channels,
             kernel_size=conv.kernel_size,
             stride=conv.stride,
             padding=conv.padding,
             dilation=conv.dilation,
             groups=conv.groups,
-            bias=conv.bias is not None
+            bias=conv.bias is not None,
         ).to(self.device)
-            
-        return new_conv
 
     def _prune_conv_layer(self, conv, new_conv, filter_indices):
         """
