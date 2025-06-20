@@ -43,7 +43,7 @@ def get_exp_curve(total_sum) -> list[float]:
     final_curve[-1] = 0.0
     return final_curve.tolist()
 
-def fine_tune_model(model, curve_value):
+def fine_tune_model(model, curve_value) -> tuple[float, float, float]:
     if curve_value < 0:
         raise ValueError(f"Curve value {curve_value} is negative, which is not allowed.")
 

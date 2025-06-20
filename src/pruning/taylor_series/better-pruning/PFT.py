@@ -217,54 +217,25 @@ class PruningFineTuner:
         return total_size / (1024 ** 2)  # Convert to MB
     
     def prune(self, pruning_amount, only_model=True, prune_targets=None):
-        """Prune filters based on Taylor criterion"""
-        self.model.train()
-        
-        # Enable gradients for pruning
-        for param in self.model.net_1.parameters():
-            param.requires_grad = True
-            
-        # Calculate pruning targets
-        original_filters = self.total_num_filters()
-        total_filters_to_prune = int(original_filters * pruning_amount)
-        self._log(f"Pruning {total_filters_to_prune} filters ({pruning_amount:.2f})")
-
-        # Identify filters to remove
+        """Prune the model by removing filters with lowest Taylor scores"""
+        # Initialize or use provided pruning targets
         if prune_targets is None:
-            prune_targets = self.get_candidates_to_prune(total_filters_to_prune)
+            # Calculate number of filters to prune
+            num_filters_to_prune = int(pruning_amount * self.total_num_filters())
+            filters_to_prune = self.get_candidates_to_prune(num_filters_to_prune)
+        else:
+            filters_to_prune = prune_targets
         
-        # Perform pruning
-        model = self.model
-        pruner = Pruning(model)
+        if not only_model:
+            no_filters = self.total_num_filters()
+            self._log(f"Pruning {len(filters_to_prune)} filters out of {no_filters} ({100 * len(filters_to_prune) / no_filters:.1f}%)")
         
-        # Use tqdm for progress tracking
-        pbar = tqdm(
-            enumerate(prune_targets), 
-            total=len(prune_targets), 
-            desc="Pruning", 
-            leave=False,
-            disable=self.quiet,
-            ncols=80
-        )
+        # Use batch pruning for better performance
+        pruner = Pruning(self.model)
+        model = pruner.batch_prune_filters(self.model, filters_to_prune)
         
-        for idx, (layer_index, filter_index) in pbar:
-            model = pruner.prune_vgg_conv_layer(model, layer_index, filter_index)
-            if idx % 100 == 0:
-                self._clear_memory()
-                
-        # Ensure weights are float32 for training stability
-        for layer in model.modules():
-            if isinstance(layer, (torch.nn.Conv2d, torch.nn.Linear)):
-                if layer.weight is not None:
-                    layer.weight.data = layer.weight.data.float()
-                if layer.bias is not None:
-                    layer.bias.data = layer.bias.data.float()
-
-        # Update model and clean memory
-        self.model = model.to(self.device)
         self._clear_memory()
-        
-        return self.model
+        return model
     
     def reset(self):
         """Clean up resources"""
