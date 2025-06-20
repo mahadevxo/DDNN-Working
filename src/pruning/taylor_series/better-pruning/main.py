@@ -7,6 +7,7 @@ from tqdm import tqdm
 import logging
 import os
 import sys
+import time
 
 # Configure logging for cleaner output
 logging.basicConfig(
@@ -101,8 +102,10 @@ def get_model() -> torch.nn.Module:
 
 def main() -> None:
     # Create results directory
+    current_time_str = time.strftime("%Y%m%d-%H%M%S")
+    logger.info(f"Experiment started at {current_time_str}")
     os.makedirs("results", exist_ok=True)
-    result_path = "results/pruning_results.csv"
+    result_path = f"results/pruning_results-{current_time_str}.csv"
     
     # Define pruning range
     pruning_amounts = np.arange(0, 1, 0.05)
