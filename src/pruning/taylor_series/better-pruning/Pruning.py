@@ -135,28 +135,30 @@ class Pruning:
         Returns:
             None, but modifies new_conv in-place
         """
-        old_weights = conv.weight.data.cpu().numpy()
-        new_weights = new_conv.weight.data.cpu().numpy()
-        
-        new_weights[:filter_index, :, :, :] = old_weights[:filter_index, :, :, :]
-        new_weights[filter_index:, :, :, :] = old_weights[filter_index+1:, :, :, :]
-        
-        new_conv.weight.data = torch.from_numpy(new_weights).to(self.device)
-        bias_numpy = conv.bias.data.cpu().numpy()
-        
-        bias = np.zeros(shape=(bias_numpy.shape[0] - 1), dtype=np.float32)
-        bias[:filter_index] = bias_numpy[:filter_index]
-        bias[filter_index:] = bias_numpy[filter_index+1:]
-        
-        new_conv.bias.data = torch.from_numpy(bias).to(self.device)
-    
+        with torch.no_grad():
+            # Copy weights before the filter_index
+            if filter_index > 0:
+                new_conv.weight.data[:filter_index] = conv.weight.data[:filter_index]
+            
+            # Copy weights after the filter_index
+            if filter_index < conv.weight.data.size(0) - 1:
+                new_conv.weight.data[filter_index:] = conv.weight.data[filter_index+1:]
+            
+            # Copy biases before the filter_index
+            if filter_index > 0:
+                new_conv.bias.data[:filter_index] = conv.bias.data[:filter_index]
+            
+            # Copy biases after the filter_index
+            if filter_index < conv.bias.data.size(0) - 1:
+                new_conv.bias.data[filter_index:] = conv.bias.data[filter_index+1:]
+
     def _prune_next_conv_layer(self, next_conv, new_next_conv, filter_index):
         """
         Adjusts the next convolutional layer to account for removed input channels.
         
         When a filter is removed from one layer, the next layer must be adjusted
         to expect one fewer input channel. This function modifies the weights
-        of the next layer accordingly.
+        of the next layer accordingly, keeping all operations on the device.
         
         Args:
             next_conv: Original next convolutional layer
@@ -166,22 +168,25 @@ class Pruning:
         Returns:
             None, but modifies new_next_conv in-place
         """
-        old_weights = next_conv.weight.data.cpu().numpy()
-        new_weights = new_next_conv.weight.data.cpu().numpy()
-        
-        new_weights[:, :filter_index, :, :] = old_weights[:, :filter_index, :, :]
-        new_weights[:, filter_index:, :, :] = old_weights[:, filter_index+1:, :, :]
-        
-        new_next_conv.weight.data = torch.from_numpy(new_weights).to(self.device)
-        new_next_conv.bias.data = next_conv.bias.data.to(self.device)
-    
+        with torch.no_grad():
+            # Copy weights for input channels before filter_index
+            if filter_index > 0:
+                new_next_conv.weight.data[:, :filter_index] = next_conv.weight.data[:, :filter_index]
+            
+            # Copy weights for input channels after filter_index
+            if filter_index < next_conv.weight.data.size(1) - 1:
+                new_next_conv.weight.data[:, filter_index:] = next_conv.weight.data[:, filter_index+1:]
+            
+            # Copy biases directly (not affected by input channel pruning)
+            new_next_conv.bias.data = next_conv.bias.data
+
     def _prune_last_conv_layer(self, model, conv, new_conv, layer_index, filter_index):
         """
         Prunes the last convolutional layer and adjusts the first fully connected layer.
         
         When pruning the last convolutional layer, the first fully connected layer
         also needs to be modified to account for the reduced feature map dimensions.
-        This function handles that special case.
+        This function handles that special case with optimized tensor operations.
         
         Args:
             model: The model being pruned
@@ -217,22 +222,27 @@ class Pruning:
         new_linear_layer = torch.nn.Linear(
             old_linear_layer.in_features - params_per_input_channel,
             old_linear_layer.out_features
-        )
+        ).to(self.device)
         
-        old_weights = old_linear_layer.weight.data.cpu().numpy()
-        new_weights = new_linear_layer.weight.data.cpu().numpy()
-        
-        new_weights[:, :filter_index * params_per_input_channel] = \
-            old_weights[:, :filter_index * params_per_input_channel]
-        new_weights[:, filter_index * params_per_input_channel:] = \
-            old_weights[:, (filter_index + 1) * params_per_input_channel:]
+        with torch.no_grad():
+            # Copy weights before the pruned filter
+            if filter_index > 0:
+                filter_start = 0
+                filter_end = filter_index * params_per_input_channel
+                new_linear_layer.weight.data[:, filter_start:filter_end] = old_linear_layer.weight.data[:, filter_start:filter_end]
             
-        new_linear_layer.weight.data = torch.from_numpy(new_weights).to(self.device)
-        new_linear_layer.bias.data = old_linear_layer.bias.data.to(self.device)
+            # Copy weights after the pruned filter
+            if filter_index < conv.out_channels - 1:
+                old_start = (filter_index + 1) * params_per_input_channel
+                new_start = filter_index * params_per_input_channel
+                new_linear_layer.weight.data[:, new_start:] = old_linear_layer.weight.data[:, old_start:]
+            
+            # Copy biases directly
+            new_linear_layer.bias.data = old_linear_layer.bias.data
         
         model.net_2 = torch.nn.Sequential(
-            *(self._replace_layers(model.net_2, i, [layer_index], \
-                [new_linear_layer]) for i, _ in enumerate(model.net_2)))
+            *(self._replace_layers(model.net_2, i, [layer_index], [new_linear_layer]) 
+              for i, _ in enumerate(model.net_2)))
         
         self._clear_memory()
         return model
