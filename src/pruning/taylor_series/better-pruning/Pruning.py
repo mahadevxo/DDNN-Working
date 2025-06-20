@@ -112,8 +112,16 @@ class Pruning:
         Returns:
             None, but modifies new_conv in-place
         """
+        # Bounds checking
+        max_idx = conv.weight.data.size(0) - 1
+        filter_indices = [idx for idx in filter_indices if idx <= max_idx]
+        
         # Sort filter indices in descending order to avoid shifting problems
         filter_indices = sorted(filter_indices, reverse=True)
+        
+        # Ensure we don't prune too many filters
+        if len(filter_indices) >= conv.out_channels:
+            filter_indices = filter_indices[:conv.out_channels-1]
         
         # Keep track of what source indices map to what target indices
         source_to_target = {}
@@ -241,30 +249,40 @@ class Pruning:
     def batch_prune_filters(self, model, prune_targets):
         """
         Prune multiple filters at once per layer to reduce reconstruction.
-        
-        Args:
-            model: The model to prune
-            prune_targets: List of (layer_idx, filter_idx) tuples to prune
-            
-        Returns:
-            Pruned model
         """
-        # Group filters by layer
+        # Group filters by layer and remove duplicates
         filters_by_layer = {}
         for layer_idx, filter_idx in prune_targets:
             if layer_idx not in filters_by_layer:
-                filters_by_layer[layer_idx] = []
-            filters_by_layer[layer_idx].append(filter_idx)
+                filters_by_layer[layer_idx] = set()  # Use a set to avoid duplicates
+            filters_by_layer[layer_idx].add(filter_idx)
         
         # Process layers in reverse order to avoid index shifting issues
         for layer_idx in sorted(filters_by_layer.keys(), reverse=True):
-            filter_indices = filters_by_layer[layer_idx]
+            filter_indices = sorted(list(filters_by_layer[layer_idx]), reverse=True)  # Convert to sorted list
             modules = list(model.net_1)
-            conv = modules[layer_idx]
             
-            # Skip if not a convolutional layer
-            if not isinstance(conv, torch.nn.Conv2d):
+            # Safety check: ensure we don't prune too many filters
+            if layer_idx >= len(modules):
+                print(f"Warning: Layer index {layer_idx} out of bounds, skipping")
                 continue
+                
+            conv = modules[layer_idx]
+            if not isinstance(conv, torch.nn.Conv2d):
+                print(f"Warning: Layer {layer_idx} is not Conv2d, skipping")
+                continue
+                
+            # Safety check: ensure we don't prune all filters
+            if len(filter_indices) >= conv.out_channels:
+                print(f"Warning: Trying to prune {len(filter_indices)} filters from layer {layer_idx} with only {conv.out_channels} filters")
+                # Limit pruning to leave at least one filter
+                filter_indices = filter_indices[:conv.out_channels-1]
+                
+            # Verify indices are in bounds
+            valid_indices = [idx for idx in filter_indices if idx < conv.out_channels]
+            if len(valid_indices) < len(filter_indices):
+                print(f"Warning: Some filter indices for layer {layer_idx} are out of bounds. Max index should be < {conv.out_channels}")
+                filter_indices = valid_indices
                 
             # Create new conv with reduced output channels
             new_conv = self._create_new_conv(
