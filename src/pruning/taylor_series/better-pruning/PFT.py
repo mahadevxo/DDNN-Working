@@ -128,7 +128,7 @@ class PruningFineTuner:
     
     def train_epoch(self, optimizer=None, rank_filter=False):
         """Train model for one epoch"""
-        train_loader = self.get_imagenet_mini_images('train', num_samples=16000)
+        train_loader = self.get_imagenet_mini_images('train', num_samples=8000 if rank_filter else 2000)
         self.train_batch(optimizer, train_loader, rank_filter)
         del train_loader
         self._clear_memory()
