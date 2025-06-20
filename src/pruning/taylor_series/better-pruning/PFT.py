@@ -155,7 +155,7 @@ class PruningFineTuner:
     
     def get_val_accuracy(self, model):
         """Calculate validation accuracy"""
-        test_loader = self.get_imagenet_mini_images('val', num_samples=2000)
+        test_loader = self.get_imagenet_mini_images('val', num_samples=10000)
         model.eval()
         correct = 0
         total = 0
