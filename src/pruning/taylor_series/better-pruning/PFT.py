@@ -8,6 +8,7 @@ from FilterPruner import FilterPruner
 from Pruning import Pruning
 # from tools.ImgDataset import SingleImgDataset
 from tqdm import tqdm
+import torch.nn.functional as F
 
 class PruningFineTuner:
     def __init__(self, model, quiet=False):
@@ -43,13 +44,23 @@ class PruningFineTuner:
     # New method for Imagenet-mini with standard preprocessing
     def get_imagenet_mini_images(self, test_or_train, num_samples=2000):
         """Create data loader for Imagenet-mini dataset"""
-        transform = transforms.Compose([
-            transforms.Resize(256),
-            transforms.CenterCrop(224),
-            transforms.RandomHorizontalFlip() if test_or_train == 'train' else transforms.Lambda(lambda x: x),
-            transforms.ToTensor(),
-            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
-        ])
+        # Add proper ImageNet normalization
+        if test_or_train == 'train':
+            transform = transforms.Compose([
+                transforms.Resize(256),
+                transforms.CenterCrop(224),
+                transforms.ToTensor(),
+                transforms.Normalize(mean=[0.485, 0.456, 0.406], 
+                                    std=[0.229, 0.224, 0.225])
+            ])
+        else:  # 'test'
+            transform = transforms.Compose([
+                transforms.Resize(256),
+                transforms.CenterCrop(224),
+                transforms.ToTensor(),
+                transforms.Normalize(mean=[0.485, 0.456, 0.406], 
+                                    std=[0.229, 0.224, 0.225])
+            ])
         
         dataset = datasets.ImageFolder(
             root=self.train_path if test_or_train == 'train' else self.test_path, 
@@ -74,8 +85,11 @@ class PruningFineTuner:
     
     def train_batch(self, optimizer, train_loader, rank_filter=False):
         """Train for a single batch"""
-        self.model.train()
-        self.model.to(self.device)
+        self.model.train()  # Set model to training mode!
+        
+        total_loss = 0
+        correct = 0
+        total = 0
         
         # Wrap with tqdm for progress visualization
         pbar = tqdm(
@@ -112,8 +126,16 @@ class PruningFineTuner:
                     
                     # Update weights if optimizer provided
                     if optimizer is not None:
+                        # Add gradient clipping for stability
+                        torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_norm=1.0)
                         optimizer.step()
                         
+                    # Track accuracy during training
+                    _, predicted = torch.max(output.data, 1)
+                    total += label.size(0)
+                    correct += (predicted == label).sum().item()
+                    total_loss += loss.item()
+    
                     # Update progress bar
                     if not self.quiet:
                         pbar.set_postfix({"loss": f"{loss.item():.4f}"})
@@ -126,6 +148,13 @@ class PruningFineTuner:
                 del image, label
                 if batch_idx % 10 == 0:
                     self._clear_memory()
+    
+        # Report training progress
+        train_acc = 100 * correct / total
+        train_loss = total_loss / len(train_loader)
+        self._log(f"Training - Loss: {train_loss:.4f}, Accuracy: {train_acc:.2f}%")
+        
+        return self.model
     
     def train_epoch(self, optimizer=None, rank_filter=False):
         """Train model for one epoch"""

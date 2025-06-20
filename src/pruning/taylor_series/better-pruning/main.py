@@ -82,13 +82,22 @@ def fine_tune_model(model, curve_value) -> tuple[float, float, float]:
     
     accuracy_previous = []
     epochs = 15
-    optimizer = torch.optim.SGD(model.parameters(), lr=0.01, momentum=0.9, weight_decay=1e-4)
-    # scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=5, gamma=0.1)
+    optimizer = torch.optim.SGD(model.parameters(), lr=0.001, momentum=0.9, weight_decay=1e-4)
+    # Learning rate scheduler with warmup
+    scheduler = torch.optim.lr_scheduler.OneCycleLR(
+        optimizer, max_lr=0.005, 
+        steps_per_epoch=1, epochs=epochs,
+        pct_start=0.3  # Warmup for 30% of training
+    )
     
     with tqdm(range(epochs), desc="Training", ncols=100, colour="green") as pbar:
         for epoch in pbar:
+            # Pass the optimizer to train_epoch
+            model = pruner.train_epoch(optimizer=optimizer)
             
-            model = pruner.train_epoch(optimizer=optimizer, rank_filter=False)
+            # Step the scheduler
+            scheduler.step()
+            
             accuracy = pruner.get_val_accuracy(model=model)
             
             accuracy_previous.append(accuracy)
