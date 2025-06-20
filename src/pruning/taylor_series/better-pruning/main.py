@@ -58,6 +58,7 @@ def fine_tune_model(model, curve_value):
         return accuracy, model_size, comp_time
     
     # Prune the model
+    logger.info(f"Pruning model with ratio {curve_value:.3f}")
     model = pruner.prune(pruning_amount=curve_value)
 
     # Fine-tune the pruned model
