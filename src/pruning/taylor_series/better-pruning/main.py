@@ -153,7 +153,7 @@ def main() -> None:
         f.write("Pruning_Amount,Accuracy,Model_Size_MB,Computation_Time\n")
     
     # Main pruning loop
-    with tqdm(pruning_amounts, desc="Pruning Ratios", ncols=100) as pbar_outer:
+    with tqdm(pruning_amounts, desc="Pruning Ratios", ncols=150) as pbar_outer:
         for pruning_amount in pbar_outer:
             try:
                 model = get_model()
@@ -163,8 +163,9 @@ def main() -> None:
                 if pruning_amount == 0.0:
                     # Baseline (unpruned) evaluation
                     final_acc, model_size, comp_time = fine_tune_model(model, 0.0)
+                    print(f"Baseline model size: {model_size:.4f} MB, Accuracy: {final_acc:.4f}, Computation Time: {comp_time:.4f} seconds")
                     with open(result_path, 'a') as f:
-                        f.write(f"{pruning_amount:.2f},0.0,{final_acc:.4f},{model_size:.4f},{comp_time:.4f}\n")
+                        f.write(f"{pruning_amount:.2f},{final_acc:.4f},{model_size:.4f},{comp_time:.4f}\n")
                     continue
                 
                 # Get exponential curve values for progressive pruning
