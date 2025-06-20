@@ -110,6 +110,7 @@ def main() -> None:
     # Define pruning range
     pruning_amounts = np.arange(0, 1, 0.05)
     logger.info(f"Starting pruning experiment with {len(pruning_amounts)} pruning ratios")
+    np.random.shuffle(pruning_amounts)
     
     # Initialize results file
     with open(result_path, 'w') as f:
