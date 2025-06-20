@@ -110,7 +110,7 @@ def main() -> None:
     
     # Initialize results file
     with open(result_path, 'w') as f:
-        f.write("Pruning_Amount,Curve_Value,Accuracy,Model_Size_MB,Computation_Time\n")
+        f.write("Pruning_Amount,Accuracy,Model_Size_MB,Computation_Time\n")
     
     # Main pruning loop
     with tqdm(pruning_amounts, desc="Pruning Ratios", ncols=100) as pbar_outer:
@@ -139,13 +139,13 @@ def main() -> None:
                 for i, curve_value in enumerate(curve):
                     logger.info(f"\nStep {i+1}/{len(curve)}: Pruning ratio = {curve_value:.3f}")
                     accuracy, model_size, comp_time = fine_tune_model(model, curve_value)
-                    final_metrics = (pruning_amount, curve_value, accuracy, model_size, comp_time)
+                    final_metrics = (pruning_amount, accuracy, model_size, comp_time)
                 
                 # Save results
                 if final_metrics:
                     with open(result_path, 'a') as f:
                         f.write(f"{final_metrics[0]:.2f},{final_metrics[1]:.4f},{final_metrics[2]:.4f},"
-                                f"{final_metrics[3]:.4f},{final_metrics[4]:.4f}\n")
+                                f"{final_metrics[3]:.4f}\n")
                     
             except Exception as e:
                 logger.error(f"Error at pruning_amount={pruning_amount}: {str(e)}")
