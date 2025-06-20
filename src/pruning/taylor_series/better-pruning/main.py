@@ -107,7 +107,7 @@ def fine_tune_model(model, curve_value) -> tuple[float, float, float]:
             pbar.set_postfix({"val acc": f"{accuracy:.2f}%"})
             
             # Early stopping check (convergence)
-            if len(accuracy_previous) >= 3 and accuracy-1.0 <= np.mean(accuracy_previous) <= accuracy+1.0:
+            if len(accuracy_previous) >= 3 and accuracy-1e-1 <= np.mean(accuracy_previous) <= accuracy+1e1:
                 logger.info(f"Converged at epoch {epoch+1}/{epochs}")
                 break
                 
