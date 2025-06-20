@@ -48,7 +48,7 @@ def fine_tune_model(model, curve_value):
         raise ValueError(f"Curve value {curve_value} is negative, which is not allowed.")
 
     from PFT import PruningFineTuner as pft
-    pruner = pft(model, quiet=True)
+    pruner = pft(model, quiet=False)
     
     if curve_value == 0.0:
         logger.info("Baseline evaluation (no pruning)")
