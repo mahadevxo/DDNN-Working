@@ -121,84 +121,36 @@ class Pruning:
         )
         
     def _prune_conv_layer(self, conv, new_conv, filter_index):
-        """
-        Transfers weights from original conv layer to new layer, removing the specified filter.
-        
-        Copies weights and biases from the original conv layer to the new one,
-        skipping the filter at filter_index to effectively remove it.
-        
-        Args:
-            conv: Original convolutional layer
-            new_conv: New convolutional layer with one fewer filter
-            filter_index: Index of the filter to remove
-            
-        Returns:
-            None, but modifies new_conv in-place
-        """
-        old_weights = conv.weight.data.cpu().numpy()
-        new_weights = new_conv.weight.data.cpu().numpy()
-        
-        new_weights[:filter_index, :, :, :] = old_weights[:filter_index, :, :, :]
-        new_weights[filter_index:, :, :, :] = old_weights[filter_index+1:, :, :, :]
-        
-        new_conv.weight.data = torch.from_numpy(new_weights).to(self.device)
-        bias_numpy = conv.bias.data.cpu().numpy()
-        
-        bias = np.zeros(shape=(bias_numpy.shape[0] - 1), dtype=np.float32)
-        bias[:filter_index] = bias_numpy[:filter_index]
-        bias[filter_index:] = bias_numpy[filter_index+1:]
-        
-        new_conv.bias.data = torch.from_numpy(bias).to(self.device)
+        old_weights = conv.weight.data
+        new_weights = new_conv.weight.data
+
+        new_weights[:filter_index] = old_weights[:filter_index]
+        new_weights[filter_index:] = old_weights[filter_index + 1:]
+
+        new_conv.weight.data = new_weights.clone()
+
+        if conv.bias is not None:
+            old_bias = conv.bias.data
+            new_bias = torch.cat((old_bias[:filter_index], old_bias[filter_index + 1:]))
+            new_conv.bias.data = new_bias.clone()
     
     def _prune_next_conv_layer(self, next_conv, new_next_conv, filter_index):
-        """
-        Adjusts the next convolutional layer to account for removed input channels.
-        
-        When a filter is removed from one layer, the next layer must be adjusted
-        to expect one fewer input channel. This function modifies the weights
-        of the next layer accordingly.
-        
-        Args:
-            next_conv: Original next convolutional layer
-            new_next_conv: New next convolutional layer with one fewer input channel
-            filter_index: Index of the filter/channel that was removed
-            
-        Returns:
-            None, but modifies new_next_conv in-place
-        """
-        old_weights = next_conv.weight.data.cpu().numpy()
-        new_weights = new_next_conv.weight.data.cpu().numpy()
-        
-        new_weights[:, :filter_index, :, :] = old_weights[:, :filter_index, :, :]
-        new_weights[:, filter_index:, :, :] = old_weights[:, filter_index+1:, :, :]
-        
-        new_next_conv.weight.data = torch.from_numpy(new_weights).to(self.device)
-        new_next_conv.bias.data = next_conv.bias.data.to(self.device)
+        old_weights = next_conv.weight.data
+        new_weights = new_next_conv.weight.data
+
+        new_weights[:, :filter_index] = old_weights[:, :filter_index]
+        new_weights[:, filter_index:] = old_weights[:, filter_index + 1:]
+
+        new_next_conv.weight.data = new_weights.clone()
+        new_next_conv.bias.data = next_conv.bias.data.clone()
     
     def _prune_last_conv_layer(self, model, conv, new_conv, layer_index, filter_index):
-        """
-        Prunes the last convolutional layer and adjusts the first fully connected layer.
-        
-        When pruning the last convolutional layer, the first fully connected layer
-        also needs to be modified to account for the reduced feature map dimensions.
-        This function handles that special case.
-        
-        Args:
-            model: The model being pruned
-            conv: Original last convolutional layer
-            new_conv: New convolutional layer with one fewer filter
-            layer_index: Index of the layer in the model
-            filter_index: Index of the filter to remove
-            
-        Returns:
-            Modified model with updated layers
-        """
-        # Replace conv layer in model
+        # Replace conv layer
         modules = list(model.net_1)
         modules[layer_index] = new_conv
         model.net_1 = torch.nn.Sequential(*modules)
-        
-        # Find the first fully connected layer
+
+        # Find first linear layer
         layer_index = 0
         old_linear_layer = None
         for _, module in model.net_2._modules.items():
@@ -206,34 +158,31 @@ class Pruning:
                 old_linear_layer = module
                 break
             layer_index += 1
-        
+
         if old_linear_layer is None:
             raise ValueError(f"No linear layer found in classifier, Model: {model}")
-        
-        # Calculate parameters per input channel
+
         params_per_input_channel = old_linear_layer.in_features // conv.out_channels
-        
-        # Create new linear layer
+
         new_linear_layer = torch.nn.Linear(
             old_linear_layer.in_features - params_per_input_channel,
             old_linear_layer.out_features
-        )
-        
-        old_weights = old_linear_layer.weight.data.cpu().numpy()
-        new_weights = new_linear_layer.weight.data.cpu().numpy()
-        
-        new_weights[:, :filter_index * params_per_input_channel] = \
-            old_weights[:, :filter_index * params_per_input_channel]
-        new_weights[:, filter_index * params_per_input_channel:] = \
-            old_weights[:, (filter_index + 1) * params_per_input_channel:]
-            
-        new_linear_layer.weight.data = torch.from_numpy(new_weights).to(self.device)
-        new_linear_layer.bias.data = old_linear_layer.bias.data.to(self.device)
-        
+        ).to(self.device)
+
+        # Replace weights using slicing
+        old_weights = old_linear_layer.weight.data
+        part1 = old_weights[:, :filter_index * params_per_input_channel]
+        part2 = old_weights[:, (filter_index + 1) * params_per_input_channel:]
+        new_linear_layer.weight.data = torch.cat((part1, part2), dim=1).clone()
+
+        # Bias is unchanged
+        new_linear_layer.bias.data = old_linear_layer.bias.data.clone()
+
         model.net_2 = torch.nn.Sequential(
-            *(self._replace_layers(model.net_2, i, [layer_index], \
-                [new_linear_layer]) for i, _ in enumerate(model.net_2)))
-        
+            *(self._replace_layers(model.net_2, i, [layer_index], [new_linear_layer])
+            for i, _ in enumerate(model.net_2))
+        )
+
         self._clear_memory()
         return model
     
