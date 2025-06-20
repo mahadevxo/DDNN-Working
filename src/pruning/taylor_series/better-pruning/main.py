@@ -118,7 +118,7 @@ def main() -> None:
             try:
                 model = get_model()
                 pbar_outer.set_postfix({"ratio": f"{pruning_amount:.2f}"})
-                logger.info(f"\n{'='*50}\nProcessing pruning ratio: {pruning_amount:.2f}\n{'='*50}\nFilters in model: {sum(p.numel() for p in model.parameters() if p.requires_grad)}")
+                logger.info(f"\n{'='*50}\nProcessing pruning ratio: {pruning_amount:.2f}\nTrainable Params: {sum(p.numel() for p in model.parameters() if p.requires_grad)}\n{'='*50}")
                 
                 if pruning_amount == 0.0:
                     # Baseline (unpruned) evaluation
