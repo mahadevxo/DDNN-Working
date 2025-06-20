@@ -8,7 +8,6 @@ from FilterPruner import FilterPruner
 from Pruning import Pruning
 # from tools.ImgDataset import SingleImgDataset
 from tqdm import tqdm
-import torch.nn.functional as F
 
 class PruningFineTuner:
     def __init__(self, model, quiet=False):
@@ -45,23 +44,13 @@ class PruningFineTuner:
     def get_imagenet_mini_images(self, test_or_train, num_samples=2000):
         """Create data loader for Imagenet-mini dataset"""
         # Add proper ImageNet normalization
-        if test_or_train == 'train':
-            transform = transforms.Compose([
-                transforms.Resize(256),
-                transforms.CenterCrop(224),
-                transforms.ToTensor(),
-                transforms.Normalize(mean=[0.485, 0.456, 0.406], 
-                                    std=[0.229, 0.224, 0.225])
-            ])
-        else:  # 'test'
-            transform = transforms.Compose([
-                transforms.Resize(256),
-                transforms.CenterCrop(224),
-                transforms.ToTensor(),
-                transforms.Normalize(mean=[0.485, 0.456, 0.406], 
-                                    std=[0.229, 0.224, 0.225])
-            ])
-        
+        transform = transforms.Compose([
+            transforms.Resize(256),
+            transforms.CenterCrop(224),
+            transforms.ToTensor(),
+            transforms.Normalize(mean=[0.485, 0.456, 0.406], 
+                                std=[0.229, 0.224, 0.225])
+        ])        
         dataset = datasets.ImageFolder(
             root=self.train_path if test_or_train == 'train' else self.test_path, 
             transform=transform
@@ -158,7 +147,7 @@ class PruningFineTuner:
     
     def train_epoch(self, optimizer=None, rank_filter=False):
         """Train model for one epoch"""
-        train_loader = self.get_imagenet_mini_images('train', num_samples=1000 if rank_filter else 8000)
+        train_loader = self.get_imagenet_mini_images('train', num_samples=4000 if rank_filter else 24000)
         self.train_batch(optimizer, train_loader, rank_filter)
         del train_loader
         self._clear_memory()

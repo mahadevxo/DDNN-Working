@@ -47,9 +47,9 @@ def get_exp_curve(total_sum) -> list[float]:
     
     # Ensure no step has more than 15% pruning
     max_step_prune = 0.15
-    final_curve = np.array([min(v, max_step_prune) for v in final_curve])
+    final_curve: list[float] = np.array([min(v, max_step_prune) for v in final_curve]).tolist() # type: ignore
     
-    return final_curve.tolist()
+    return final_curve
 
 def fine_tune_model(model, curve_value) -> tuple[float, float, float]:
     if curve_value < 0:
@@ -104,7 +104,7 @@ def fine_tune_model(model, curve_value) -> tuple[float, float, float]:
             if len(accuracy_previous) > 4:
                 accuracy_previous.pop(0)
                 
-            pbar.set_postfix({"acc": f"{accuracy:.2f}%"})
+            pbar.set_postfix({"val acc": f"{accuracy:.2f}%"})
             
             # Early stopping check (convergence)
             if len(accuracy_previous) >= 3 and accuracy-1e-2 <= np.mean(accuracy_previous) <= accuracy+1e-2:

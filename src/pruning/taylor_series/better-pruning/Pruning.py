@@ -109,28 +109,22 @@ class Pruning:
         # Bounds checking
         max_idx = conv.weight.data.size(0) - 1
         filter_indices = [idx for idx in filter_indices if idx <= max_idx]
-        
+
         # Sort filter indices in descending order to avoid shifting problems
         filter_indices = sorted(filter_indices, reverse=True)
-        
+
         # Ensure we don't prune too many filters
         if len(filter_indices) >= conv.out_channels:
             filter_indices = filter_indices[:conv.out_channels-1]
-        
-        # Keep track of what source indices map to what target indices
-        source_to_target = {}
-        target_idx = 0
-        
-        for source_idx in range(conv.weight.data.size(0)):
-            if source_idx not in filter_indices:
-                source_to_target[source_idx] = target_idx
-                target_idx += 1
-        
+
+        source_to_target = self._map_indices(
+            conv, 0, filter_indices
+        )
         with torch.no_grad():
             # Copy weights for filters not being pruned
             for source_idx, target_idx in source_to_target.items():
                 new_conv.weight.data[target_idx] = conv.weight.data[source_idx]
-                
+
                 # Copy biases if present
                 if conv.bias is not None and new_conv.bias is not None:
                     new_conv.bias.data[target_idx] = conv.bias.data[source_idx]
@@ -149,25 +143,28 @@ class Pruning:
         """
         # Sort filter indices in descending order to avoid shifting problems
         filter_indices = sorted(filter_indices, reverse=True)
-        
-        # Create mapping from source to target indices
-        source_to_target = {}
-        target_idx = 0
-        
-        for source_idx in range(next_conv.weight.data.size(1)):
-            if source_idx not in filter_indices:
-                source_to_target[source_idx] = target_idx
-                target_idx += 1
-        
+
+        source_to_target = self._map_indices(
+            next_conv, 1, filter_indices
+        )
         with torch.no_grad():
             # Copy weights for all output filters, skipping pruned input channels
             for out_idx in range(next_conv.weight.data.size(0)):
                 for source_in_idx, target_in_idx in source_to_target.items():
                     new_next_conv.weight.data[out_idx, target_in_idx] = next_conv.weight.data[out_idx, source_in_idx]
-            
+
             # Copy biases directly (not affected by input channel pruning)
             if next_conv.bias is not None and new_next_conv.bias is not None:
                 new_next_conv.bias.data = next_conv.bias.data
+
+    def _map_indices(self, arg0, arg1, filter_indices):
+        result = {}
+        target_idx = 0
+        for source_idx in range(arg0.weight.data.size(arg1)):
+            if source_idx not in filter_indices:
+                result[source_idx] = target_idx
+                target_idx += 1
+        return result
 
     def _prune_last_conv_layer(self, model, conv, new_conv, layer_index, filter_indices):
         """
