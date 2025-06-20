@@ -89,6 +89,16 @@ def fine_tune_model(model, curve_value):
     logger.info(f"Results: Acc={accuracy:.2f}%, Size={model_size:.2f}MB, Time={comp_time:.3f}s")
     return accuracy, model_size, comp_time
 
+
+def get_model() -> torch.nn.Module:
+    model = vgg16(weights=torchvision.models.VGG16_Weights.IMAGENET1K_V1)
+    model.net_1 = model.features
+    model.net_2 = model.classifier
+    del model.classifier
+    del model.features
+    model.forward = types.MethodType(forward_override, model)
+    return model
+
 def main() -> None:
     # Create results directory
     os.makedirs("results", exist_ok=True)
@@ -102,18 +112,11 @@ def main() -> None:
     with open(result_path, 'w') as f:
         f.write("Pruning_Amount,Curve_Value,Accuracy,Model_Size_MB,Computation_Time\n")
     
-    # Load pre-trained model
-    model = vgg16(weights=torchvision.models.VGG16_Weights.IMAGENET1K_V1)
-    model.net_1 = model.features
-    model.net_2 = model.classifier
-    del model.classifier
-    del model.features
-    model.forward = types.MethodType(forward_override, model)
-    
     # Main pruning loop
     with tqdm(pruning_amounts, desc="Pruning Ratios", ncols=100) as pbar_outer:
         for pruning_amount in pbar_outer:
             try:
+                model = get_model()
                 pbar_outer.set_postfix({"ratio": f"{pruning_amount:.2f}"})
                 logger.info(f"\n{'='*50}\nProcessing pruning ratio: {pruning_amount:.2f}\n{'='*50}")
                 

@@ -6,7 +6,7 @@ import gc
 import time
 from FilterPruner import FilterPruner
 from Pruning import Pruning
-from tools.ImgDataset import SingleImgDataset
+# from tools.ImgDataset import SingleImgDataset
 from tqdm import tqdm
 
 class PruningFineTuner:
@@ -140,7 +140,7 @@ class PruningFineTuner:
         model.eval()
         correct = 0
         total = 0
-        
+
         with torch.no_grad():
             pbar = tqdm(
                 test_loader, 
@@ -154,28 +154,25 @@ class PruningFineTuner:
                 image = image.to(self.device, non_blocking=False)
                 label = label.to(self.device, non_blocking=False)
                 output = model(image)
-                
+
                 # Calculate accuracy
                 _, predicted = torch.max(output.data, 1)
                 total += label.size(0)
                 correct += (predicted == label).sum().item()
-                
+
                 # Update progress
                 accuracy = 100 * correct / total
                 if not self.quiet:
                     pbar.set_postfix({"acc": f"{accuracy:.2f}%"})
-        
-        # Clean up and return
-        del test_loader
-        self._clear_memory()
-        return accuracy
+
+        return self._clean_up(test_loader, accuracy) # type: ignore
     
     def get_comp_time(self, model):
         """Measure computation time"""
         start_time = time.time()
         model.eval()
         model.to('cpu')
-        
+
         # Run inference on CPU for fair comparison
         test_loader = self.get_imagenet_mini_images('val', num_samples=100)
         with torch.no_grad():
@@ -183,13 +180,16 @@ class PruningFineTuner:
                 image = image.to('cpu', non_blocking=False)
                 _ = model(image)
                 del image, label
-                
+
         elapsed = time.time() - start_time
         model = model.to(self.device)  # Move back to original device
-        
+
+        return self._clean_up(test_loader, elapsed)
+
+    def _clean_up(self, test_loader, arg1):
         del test_loader
         self._clear_memory()
-        return elapsed
+        return arg1
     
     def get_candidates_to_prune(self, num_filter_to_prune):
         """Identify filters to prune based on importance ranking"""
