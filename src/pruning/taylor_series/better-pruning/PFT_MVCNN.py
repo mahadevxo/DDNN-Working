@@ -268,10 +268,10 @@ class PruningFineTuner:
     
         # Use batch pruning for better performance
         pruner = Pruning(self.model)
-        model = pruner.batch_prune_filters(self.model, filters_to_prune)
+        self.model = pruner.batch_prune_filters(self.model, filters_to_prune)
     
         self._clear_memory()
-        return model
+        return self.model
     
     def reset(self):
         """Clean up resources"""
