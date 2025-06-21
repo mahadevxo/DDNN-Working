@@ -1,14 +1,13 @@
 import numpy as np
-import torchvision
-from torchvision.models import vgg16
+from models import MVCNN
 import torch
-import types
 from tqdm import tqdm
 import logging
 import os
 import sys
 import time
 
+device = 'mps' if torch.backends.mps.is_available() else 'cuda' if torch.cuda.is_available() else 'cpu'
 # Configure logging for cleaner output
 logging.basicConfig(
     level=logging.INFO,
@@ -17,14 +16,6 @@ logging.basicConfig(
     stream=sys.stdout
 )
 logger = logging.getLogger(__name__)
-
-def forward_override(self, x):
-    if not isinstance(x, torch.Tensor):
-        raise TypeError(f"Expected input to be a torch.Tensor, got {type(x)} instead.")
-    x = self.net_1(x)
-    x = x.view(x.size(0), -1)
-    x = self.net_2(x)
-    return x
 
 def get_exp_curve(total_sum) -> list[float]:
     if total_sum == 0:
@@ -55,7 +46,7 @@ def fine_tune_model(model, curve_value) -> tuple[float, float, float]:
     if curve_value < 0:
         return 0, 0, 0
 
-    from PFT import PruningFineTuner as pft
+    from PFT_MVCNN import PruningFineTuner as pft
     pruner = pft(model, quiet=False)
     
     if curve_value == 0.0:
@@ -121,12 +112,14 @@ def fine_tune_model(model, curve_value) -> tuple[float, float, float]:
 
 
 def get_model() -> torch.nn.Module:
-    model = vgg16(weights=torchvision.models.VGG16_Weights.IMAGENET1K_V1)
-    model.net_1 = model.features
-    model.net_2 = model.classifier
-    del model.classifier
-    del model.features
-    model.forward = types.MethodType(forward_override, model)
+    model = MVCNN.SVCNN(
+        name="svcnn",
+        nclasses=33,
+        cnn_name="vgg11"
+    )
+    weights = torch.load("svcnn.pth", map_location=device)
+    model.load_state_dict(weights, strict=False)
+    model = model.to(device)
     return model
 
 def main() -> None:
@@ -134,16 +127,12 @@ def main() -> None:
     current_time_str = time.strftime("%Y%m%d-%H%M%S")
     logger.info(f"Experiment started at {current_time_str}")
     os.makedirs("results", exist_ok=True)
-    result_path = f"results/pruning_results-{current_time_str}.csv"
+    result_path = f"results/pruning_results_mvcnn-{current_time_str}.csv"
     
     # Define pruning range
-    pruning_amounts = np.arange(0, 1, 0.05)
-    
-    done_amounts = {0.30, 0.25, 0.60, 0.45, 0.20, 0.15, 0.50, 0.00}
-    
-    pruning_amounts = [p for p in pruning_amounts if not any(np.isclose(p, d) for d in done_amounts)]
-    
-    pruning_amounts.insert(0, 0.00) # type: ignore
+    pruning_amounts = [
+        0.00, 0.20, 0.40, 0.60, 0.80, 0.90, 0.10, 0.30, 0.50, 0.70, 0.05, 0.15, 0.25, 0.35, 0.45, 0.55, 0.65, 0.75, 0.85, 0.95
+    ]
     
     print(f"Pruning amounts to be tested: {pruning_amounts}")
     
