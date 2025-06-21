@@ -51,22 +51,12 @@ class PruningFineTuner:
         ])
         if test_or_train == 'train':
             dataset = SingleImgDataset(
-                root_dir=self.train_path, 
-                scale_aug=True, 
-                rot_aug=True, 
-                test_mode=False, 
-                num_views=12, 
-                num_models=num_samples
+                root_dir=self.train_path,
             )
             
         else:
             dataset = SingleImgDataset(
-                root_dir=self.test_path, 
-                scale_aug=False, 
-                rot_aug=False, 
-                test_mode=True, 
-                num_views=12, 
-                num_models=num_samples
+                root_dir=self.test_path,
             )
         print(f"Total samples in ModelNet33 {test_or_train}: {len(dataset)}")
         indices = random.sample(range(len(dataset)), min(num_samples, len(dataset)))
@@ -76,7 +66,7 @@ class PruningFineTuner:
         return DataLoader(
             dataset,
             batch_size=32,
-            shuffle=False,
+            shuffle=True,
             num_workers=4,
             pin_memory=True
         )
@@ -164,7 +154,7 @@ class PruningFineTuner:
     
     def get_val_accuracy(self, model):
         """Calculate validation accuracy"""
-        test_loader = self.get_modelnet33_images('val', num_samples=10000)
+        test_loader = self.get_modelnet33_images('val', num_samples=1000)
         model.eval()
         correct = 0
         total = 0
