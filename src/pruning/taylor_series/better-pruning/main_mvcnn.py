@@ -133,10 +133,11 @@ def main() -> None:
     
     # Define pruning range
     pruning_amounts = [
-        0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.95, 0.99,
+        0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.95, 0.99,
     ]
     # sort in descending order for better convergence
     pruning_amounts.sort(reverse=True)
+    pruning_amounts.insert(0, 0.0)
     
     print(f"Pruning amounts to be tested: {pruning_amounts}")
     

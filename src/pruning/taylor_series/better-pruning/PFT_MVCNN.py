@@ -242,7 +242,7 @@ class PruningFineTuner:
         if prune_targets is None:
             # Calculate number of filters to prune
             num_filters_to_prune = int(pruning_amount * self.total_num_filters())
-            self._log(f"Pruning {num_filters_to_prune} filters at pruning amount {pruning_amount:.3f}")
+            self._log(f"Pruning {num_filters_to_prune} filters at pruning amount {pruning_amount*100:.3f}%")
             filters_to_prune = self.get_candidates_to_prune(num_filters_to_prune)
         else:
             filters_to_prune = prune_targets
