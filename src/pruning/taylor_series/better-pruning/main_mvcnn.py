@@ -50,33 +50,33 @@ def fine_tune_model(model, curve_value) -> tuple[torch.nn.Module, float, float, 
     pruner = pft(model, quiet=False)
     
     if curve_value == 0.0:
-        accuracy = pruner.get_val_accuracy(model)
-        model_size = pruner.get_model_size(model)
-        comp_time = pruner.get_comp_time(model)
-        return model, accuracy, model_size, comp_time
+        accuracy = pruner.get_val_accuracy()
+        model_size = pruner.get_model_size(pruner.model)
+        comp_time = pruner.get_comp_time(pruner.model)
+        return pruner.model, accuracy, model_size, comp_time
     
     # Prune the model
     logger.info(f"Pruning model with ratio {curve_value:.3f}")
     prev_filter_count = pruner.total_num_filters()
-    model = pruner.prune(pruning_amount=curve_value)
+    pruner.prune(pruning_amount=curve_value)
     current_filter_count = pruner.total_num_filters()
     
     # Check if any filters were pruned
     if current_filter_count == prev_filter_count and curve_value > 0:
         logger.info(f"No more filters can be pruned at ratio {curve_value:.3f}")
-        model_size = pruner.get_model_size(model)
-        comp_time = pruner.get_comp_time(model)
-        accuracy = pruner.get_val_accuracy(model)
-        return model, accuracy, model_size, comp_time
+        model_size = pruner.get_model_size(pruner.model)
+        comp_time = pruner.get_comp_time(pruner.model)
+        accuracy = pruner.get_val_accuracy()
+        return pruner.model, accuracy, model_size, comp_time
     
     logger.info(f"Pruned {prev_filter_count - current_filter_count} filters, {current_filter_count} remaining")
-    logger.info(f"Accuracy of pruned model before fine-tuning: {pruner.get_val_accuracy(model):.2f}%")
+    logger.info(f"Accuracy of pruned model before fine-tuning: {pruner.get_val_accuracy():.2f}%")
     # Fine-tune the pruned model
     logger.info(f"Fine-tuning pruned model ({curve_value:.3f})")
     
     accuracy_previous = []
     epochs = 20
-    optimizer = torch.optim.SGD(model.parameters(), lr=0.001, momentum=0.9, weight_decay=1e-4)
+    optimizer = torch.optim.SGD(pruner.model.parameters(), lr=0.001, momentum=0.9, weight_decay=1e-4)
     # Learning rate scheduler with warmup
     scheduler = torch.optim.lr_scheduler.OneCycleLR(
         optimizer, max_lr=0.005, 
@@ -85,15 +85,15 @@ def fine_tune_model(model, curve_value) -> tuple[torch.nn.Module, float, float, 
     )
     
     with tqdm(range(epochs), desc="Training", ncols=100, colour="green") as pbar:
-        logger.info(f"Number of filters: {sum(layer.out_channels for layer in model.net_1 if isinstance(layer, torch.nn.modules.conv.Conv2d))}")
+        logger.info(f"Number of filters: {sum(layer.out_channels for layer in pruner.model.net_1 if isinstance(layer, torch.nn.modules.conv.Conv2d))}")
         for epoch in pbar:
             # Pass the optimizer to train_epoch
-            model = pruner.train_epoch(optimizer=optimizer)
+            pruner.train_epoch(optimizer=optimizer)
             
             # Step the scheduler
             scheduler.step()
             
-            accuracy = pruner.get_val_accuracy(model=model)
+            accuracy = pruner.get_val_accuracy()
             
             accuracy_previous.append(accuracy)
             if len(accuracy_previous) > 4:
@@ -107,12 +107,12 @@ def fine_tune_model(model, curve_value) -> tuple[torch.nn.Module, float, float, 
                 break
                 
     # Final evaluation
-    accuracy = pruner.get_val_accuracy(model=model)
-    model_size = pruner.get_model_size(model=model)
-    comp_time = pruner.get_comp_time(model=model)
+    accuracy = pruner.get_val_accuracy()
+    model_size = pruner.get_model_size(pruner.model)
+    comp_time = pruner.get_comp_time(pruner.model)
     
     logger.info(f"\nResults: Acc={accuracy:.2f}%, Size={model_size:.2f}MB, Time={comp_time:.3f}s")
-    return model, accuracy, model_size, comp_time
+    return pruner.model, accuracy, model_size, comp_time
 
 
 def get_model() -> torch.nn.Module:

@@ -54,13 +54,36 @@ class PruningFineTuner:
             transforms.Normalize(mean=[0.485, 0.456, 0.406], 
                                  std=[0.229, 0.224, 0.225])
         ])
-        dataset = SingleImgDataset(
-            root_dir=self.train_path if test_or_train == 'train' else self.test_path)
-        self._log(f"Total samples in ModelNet33 {test_or_train}: {len(dataset)}")
-        indices = random.sample(range(len(dataset)), min(num_samples, len(dataset)))
-        dataset = Subset(dataset, indices)
+        
+        if test_or_train == 'train' or test_or_train == 'val':
+            full_dataset = SingleImgDataset(root_dir=self.train_path)
+            self._log(f"Total samples in ModelNet33 full train dataset: {len(full_dataset)}")
+
+            # Create a deterministic 80/20 split for train/val for reproducibility
+            g = torch.Generator().manual_seed(42)
+            indices = torch.randperm(len(full_dataset), generator=g).tolist()
+            split_point = int(len(indices) * 0.8)
+            
+            if test_or_train == 'train':
+                dataset_indices = indices[:split_point]
+            else: # 'val'
+                dataset_indices = indices[split_point:]
+
+            # Sub-sample if needed for faster runs
+            if num_samples < len(dataset_indices):
+                dataset_indices = random.sample(dataset_indices, num_samples)
+
+            dataset = Subset(full_dataset, dataset_indices)
+        
+        else:  # 'test'
+            dataset = SingleImgDataset(root_dir=self.test_path)
+            self._log(f"Total samples in ModelNet33 {test_or_train}: {len(dataset)}")
+            if num_samples < len(dataset):
+                indices = random.sample(range(len(dataset)), num_samples)
+                dataset = Subset(dataset, indices)
+
         print(f"ModelNet33 {test_or_train}: {len(dataset)} samples")
-        dataset.transform = transform # type: ignore
+        dataset.transform = transform  # type: ignore
         return DataLoader(
             dataset,
             batch_size=8,
@@ -150,10 +173,10 @@ class PruningFineTuner:
         self._clear_memory()
         return self.model
     
-    def get_val_accuracy(self, model):
+    def get_val_accuracy(self):
         """Calculate validation accuracy"""
         test_loader = self.get_modelnet33_images('val', num_samples=2000)
-        model.eval()
+        self.model.eval()
         correct = 0
         total = 0
 
@@ -169,7 +192,7 @@ class PruningFineTuner:
                 # Inference
                 image = image.to(self.device, non_blocking=False)
                 label = label.to(self.device, non_blocking=False)
-                output = model(image)
+                output = self.model(image)
 
                 # Calculate accuracy
                 _, predicted = torch.max(output.data, 1)
@@ -257,7 +280,7 @@ class PruningFineTuner:
             self._log(f"No more filters can be pruned at pruning amount {pruning_amount:.3f}")
             self._log(f"Current metrics - Accuracy: 0.0%, Model size: {model_size:.2f}M, Comp time: {comp_time:.2f}ms")
             
-            return self.model
+            return
     
         # Use batch pruning for better performance
         pruner = Pruning(self.model)
@@ -265,7 +288,6 @@ class PruningFineTuner:
         self.pruner = FilterPruner(self.model)
     
         self._clear_memory()
-        return self.model
     
     def reset(self):
         """Clean up resources"""
