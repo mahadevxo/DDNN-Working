@@ -146,7 +146,7 @@ class PruningFineTuner:
     
     def train_epoch(self, optimizer=None, rank_filter=False):
         """Train model for one epoch"""
-        train_loader = self.get_modelnet33_images('train', num_samples=4000 if rank_filter else 24000)
+        train_loader = self.get_modelnet33_images('train', num_samples=1000 if rank_filter else 8000)
         self.train_batch(optimizer, train_loader, rank_filter)
         del train_loader
         self._clear_memory()
@@ -154,7 +154,7 @@ class PruningFineTuner:
     
     def get_val_accuracy(self, model):
         """Calculate validation accuracy"""
-        test_loader = self.get_modelnet33_images('val', num_samples=10000)
+        test_loader = self.get_modelnet33_images('val', num_samples=2000)
         model.eval()
         correct = 0
         total = 0
