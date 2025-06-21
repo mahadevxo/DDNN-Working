@@ -84,6 +84,7 @@ def fine_tune_model(model, curve_value) -> tuple[float, float, float]:
     )
     
     with tqdm(range(epochs), desc="Training", ncols=100, colour="green") as pbar:
+        logger.info(f"Number of filters: {sum(layer.out_channels for layer in model.net_1 if isinstance(layer, torch.nn.modules.conv.Conv2d))}")
         for epoch in pbar:
             # Pass the optimizer to train_epoch
             model = pruner.train_epoch(optimizer=optimizer)

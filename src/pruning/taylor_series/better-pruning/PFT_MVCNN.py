@@ -54,15 +54,8 @@ class PruningFineTuner:
             transforms.Normalize(mean=[0.485, 0.456, 0.406], 
                                  std=[0.229, 0.224, 0.225])
         ])
-        if test_or_train == 'train':
-            dataset = SingleImgDataset(
-                root_dir=self.train_path,
-            )
-
-        else:
-            dataset = SingleImgDataset(
-                root_dir=self.test_path,
-            )
+        dataset = SingleImgDataset(
+            root_dir=self.train_path if test_or_train == 'train' else self.test_path)
         self._log(f"Total samples in ModelNet33 {test_or_train}: {len(dataset)}")
         indices = random.sample(range(len(dataset)), min(num_samples, len(dataset)))
         dataset = Subset(dataset, indices)
@@ -269,6 +262,7 @@ class PruningFineTuner:
         # Use batch pruning for better performance
         pruner = Pruning(self.model)
         self.model = pruner.batch_prune_filters(self.model, filters_to_prune)
+        self.pruner = FilterPruner(self.model)
     
         self._clear_memory()
         return self.model
