@@ -18,6 +18,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 def get_exp_curve(total_sum) -> list[float]:
+    return [total_sum]
     if total_sum == 0:
         return [0.0] * 10
     
