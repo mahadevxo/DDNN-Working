@@ -68,6 +68,7 @@ class PruningFineTuner:
                 num_views=12, 
                 num_models=num_samples
             )
+        print(f"Total samples in ModelNet33 {test_or_train}: {len(dataset)}")
         indices = random.sample(range(len(dataset)), min(num_samples, len(dataset)))
         dataset = Subset(dataset, indices)
         print(f"ModelNet33 {test_or_train}: {len(dataset)} samples")
