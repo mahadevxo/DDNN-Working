@@ -137,7 +137,7 @@ def main() -> None:
     print(f"Pruning amounts to be tested: {pruning_amounts}")
     
     logger.info(f"Starting pruning experiment with {len(pruning_amounts)} pruning ratios")
-    np.random.shuffle(pruning_amounts)
+    # np.random.shuffle(pruning_amounts)
     print(f"Pruning amounts to be tested: {pruning_amounts}")
     # Initialize results file
     with open(result_path, 'w') as f:
