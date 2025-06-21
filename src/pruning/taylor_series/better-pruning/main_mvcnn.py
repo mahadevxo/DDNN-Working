@@ -107,7 +107,7 @@ def fine_tune_model(model, curve_value) -> tuple[float, float, float]:
     model_size = pruner.get_model_size(model=model)
     comp_time = pruner.get_comp_time(model=model)
     
-    logger.info(f"Results: Acc={accuracy:.2f}%, Size={model_size:.2f}MB, Time={comp_time:.3f}s")
+    logger.info(f"\nResults: Acc={accuracy:.2f}%, Size={model_size:.2f}MB, Time={comp_time:.3f}s")
     return accuracy, model_size, comp_time
 
 
