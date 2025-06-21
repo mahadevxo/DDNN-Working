@@ -68,6 +68,8 @@ def fine_tune_model(model, curve_value) -> tuple[float, float, float]:
         comp_time = pruner.get_comp_time(model)
         return 0.0, model_size, comp_time
     
+    logger.info(f"Pruned {prev_filter_count - current_filter_count} filters, {current_filter_count} remaining")
+    logger.info(f"Accuracy of pruned model before fine-tuning: {pruner.get_val_accuracy(model):.2f}%")
     # Fine-tune the pruned model
     logger.info(f"Fine-tuning pruned model ({curve_value:.3f})")
     
