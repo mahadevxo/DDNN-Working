@@ -37,8 +37,8 @@ def get_exp_curve(total_sum) -> list[float]:
     final_curve[-1] = 0.0
     
     # Ensure no step has more than 15% pruning
-    max_step_prune = 0.15
-    final_curve: list[float] = np.array([min(v, max_step_prune) for v in final_curve]).tolist() # type: ignore
+    # max_step_prune = 0.15
+    # final_curve: list[float] = np.array([min(v, max_step_prune) for v in final_curve]).tolist() # type: ignore
     
     return final_curve
 
@@ -131,7 +131,7 @@ def main() -> None:
     
     # Define pruning range
     pruning_amounts = [
-        0.00, 0.20, 0.40, 0.60, 0.80, 0.90, 0.10, 0.30, 0.50, 0.70, 0.05, 0.15, 0.25, 0.35, 0.45, 0.55, 0.65, 0.75, 0.85, 0.95
+        0.60, 0.70, 0.80, 0.90, 0.95, 0.98, 0.99,
     ]
     
     print(f"Pruning amounts to be tested: {pruning_amounts}")
