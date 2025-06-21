@@ -48,12 +48,17 @@ class PruningFineTuner:
             transforms.ToTensor(),
             transforms.Normalize(mean=[0.485, 0.456, 0.406], 
                                  std=[0.229, 0.224, 0.225])
+        ]) if test_or_train == 'train' else transforms.Compose([
+            transforms.Resize((224, 224)),
+            transforms.ToTensor(),
+            transforms.Normalize(mean=[0.485, 0.456, 0.406], 
+                                 std=[0.229, 0.224, 0.225])
         ])
         if test_or_train == 'train':
             dataset = SingleImgDataset(
                 root_dir=self.train_path,
             )
-            
+
         else:
             dataset = SingleImgDataset(
                 root_dir=self.test_path,
@@ -66,9 +71,9 @@ class PruningFineTuner:
         return DataLoader(
             dataset,
             batch_size=8,
-            shuffle=True,
+            shuffle=test_or_train == 'train',
             num_workers=4,
-            pin_memory=True
+            pin_memory=True,
         )
     
     def train_batch(self, optimizer, train_loader, rank_filter=False):
