@@ -131,7 +131,7 @@ def main() -> None:
     
     # Define pruning range
     pruning_amounts = [
-        0.60, 0.70, 0.80, 0.90, 0.95, 0.98, 0.99,
+        0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.95, 0.99,
     ]
     
     print(f"Pruning amounts to be tested: {pruning_amounts}")
@@ -141,7 +141,7 @@ def main() -> None:
     print(f"Pruning amounts to be tested: {pruning_amounts}")
     # Initialize results file
     with open(result_path, 'w') as f:
-        f.write("Pruning_Amount,Accuracy,Model_Size_MB,Computation_Time\n")
+        f.write("Pruning_Amount,Accuracy,Model_Size_MB,Computation_Time, Number Of Filters\n")
     
     # Main pruning loop
     with tqdm(pruning_amounts, desc="Pruning Ratios", ncols=150) as pbar_outer:
@@ -154,9 +154,10 @@ def main() -> None:
                 if pruning_amount == 0.0:
                     # Baseline (unpruned) evaluation
                     final_acc, model_size, comp_time = fine_tune_model(model, 0.0)
+                    num_filters_present = sum(layer.out_channels for layer in model.net_1 if isinstance(layer, torch.nn.modules.conv.Conv2d))  # type: ignore
                     print(f"Baseline model size: {model_size:.4f} MB, Accuracy: {final_acc:.4f}, Computation Time: {comp_time:.4f} seconds")
                     with open(result_path, 'a') as f:
-                        f.write(f"{pruning_amount:.2f},{final_acc:.4f},{model_size:.4f},{comp_time:.4f}\n")
+                        f.write(f"{pruning_amount:.2f},{final_acc:.4f},{model_size:.4f},{comp_time:.4f},{num_filters_present}\n")
                     continue
                 
                 # Get exponential curve values for progressive pruning
@@ -171,18 +172,19 @@ def main() -> None:
                 for i, curve_value in enumerate(curve):
                     logger.info(f"\nStep {i+1}/{len(curve)}: Pruning ratio = {curve_value:.3f}\nTrainable Params: {sum(p.numel() for p in model.parameters() if p.requires_grad)}\n")
                     accuracy, model_size, comp_time = fine_tune_model(model, curve_value)
-                    final_metrics = (pruning_amount, accuracy, model_size, comp_time)
+                    num_filters_present = sum(layer.out_channels for layer in model.net_1 if isinstance(layer, torch.nn.modules.conv.Conv2d)) # type: ignore
+                    final_metrics = (pruning_amount, accuracy, model_size, comp_time, num_filters_present)
                 
                 # Save results
                 if final_metrics:
                     with open(result_path, 'a') as f:
                         f.write(f"{final_metrics[0]:.2f},{final_metrics[1]:.4f},{final_metrics[2]:.4f},"
-                                f"{final_metrics[3]:.4f}\n")
+                                f"{final_metrics[3]:.4f}, {final_metrics[4]}\n")
                     
             except Exception as e:
                 logger.error(f"Error at pruning_amount={pruning_amount}: {str(e)}")
                 with open(result_path, 'a') as f:
-                    f.write(f"{pruning_amount:.2f},Error,0,0,0\n")
+                    f.write(f"{pruning_amount:.2f},Error,0,0,0,0\n")
     
     logger.info(f"\nExperiment completed. Results saved to {result_path}")
 
