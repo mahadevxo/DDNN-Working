@@ -58,14 +58,14 @@ class PruningFineTuner:
             dataset = SingleImgDataset(
                 root_dir=self.test_path,
             )
-        print(f"Total samples in ModelNet33 {test_or_train}: {len(dataset)}")
+        self._log(f"Total samples in ModelNet33 {test_or_train}: {len(dataset)}")
         indices = random.sample(range(len(dataset)), min(num_samples, len(dataset)))
         dataset = Subset(dataset, indices)
         print(f"ModelNet33 {test_or_train}: {len(dataset)} samples")
         dataset.transform = transform # type: ignore
         return DataLoader(
             dataset,
-            batch_size=32,
+            batch_size=8,
             shuffle=True,
             num_workers=4,
             pin_memory=True
