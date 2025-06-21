@@ -40,7 +40,7 @@ def get_exp_curve(total_sum) -> list[float]:
     # max_step_prune = 0.15
     # final_curve: list[float] = np.array([min(v, max_step_prune) for v in final_curve]).tolist() # type: ignore
     
-    return final_curve
+    return final_curve*100
 
 def fine_tune_model(model, curve_value) -> tuple[float, float, float]:
     if curve_value < 0:
