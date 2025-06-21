@@ -133,6 +133,8 @@ def main() -> None:
     pruning_amounts = [
         0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.95, 0.99,
     ]
+    # sort in descending order for better convergence
+    pruning_amounts.sort(reverse=True)
     
     print(f"Pruning amounts to be tested: {pruning_amounts}")
     
@@ -149,7 +151,7 @@ def main() -> None:
             try:
                 model = get_model()
                 pbar_outer.set_postfix({"ratio": f"{pruning_amount:.2f}"})
-                logger.info(f"\n{'='*50}\nProcessing pruning ratio: {pruning_amount:.2f}\nTrainable Params: {sum(layer.out_channels for layer in model.net_1 if isinstance(layer, torch.nn.modules.conv.Conv2d))}\n{'='*50}\n") # type: ignore
+                logger.info(f"\n{'='*50}\nProcessing pruning ratio: {pruning_amount:.2f}\nTrainable Filters: {sum(layer.out_channels for layer in model.net_1 if isinstance(layer, torch.nn.modules.conv.Conv2d))}\n{'='*50}\n") # type: ignore
                 
                 if pruning_amount == 0.0:
                     # Baseline (unpruned) evaluation
@@ -170,7 +172,7 @@ def main() -> None:
                 # Process each step of the curve
                 final_metrics = None
                 for i, curve_value in enumerate(curve):
-                    logger.info(f"\nStep {i+1}/{len(curve)}: Pruning ratio = {curve_value:.3f}\nTrainable Params: {sum(p.numel() for p in model.parameters() if p.requires_grad)}\n")
+                    logger.info(f"\nStep {i+1}/{len(curve)}: Pruning ratio = {curve_value:.3f}\nTrainable Filters: {sum(layer.out_channels for layer in model.net_1 if isinstance(layer, torch.nn.modules.conv.Conv2d))}\n") # type: ignore
                     accuracy, model_size, comp_time = fine_tune_model(model, curve_value)
                     num_filters_present = sum(layer.out_channels for layer in model.net_1 if isinstance(layer, torch.nn.modules.conv.Conv2d)) # type: ignore
                     final_metrics = (pruning_amount, accuracy, model_size, comp_time, num_filters_present)
@@ -180,6 +182,7 @@ def main() -> None:
                     with open(result_path, 'a') as f:
                         f.write(f"{final_metrics[0]:.2f},{final_metrics[1]:.4f},{final_metrics[2]:.4f},"
                                 f"{final_metrics[3]:.4f}, {final_metrics[4]}\n")
+                del model  # Clear model from memory
                     
             except Exception as e:
                 logger.error(f"Error at pruning_amount={pruning_amount}: {str(e)}")
