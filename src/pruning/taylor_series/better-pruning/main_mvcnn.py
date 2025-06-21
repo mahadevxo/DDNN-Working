@@ -40,7 +40,7 @@ def get_exp_curve(total_sum) -> list[float]:
     # max_step_prune = 0.15
     # final_curve: list[float] = np.array([min(v, max_step_prune) for v in final_curve]).tolist() # type: ignore
     
-    return final_curve*100
+    return final_curve
 
 def fine_tune_model(model, curve_value) -> tuple[float, float, float]:
     if curve_value < 0:
@@ -74,7 +74,7 @@ def fine_tune_model(model, curve_value) -> tuple[float, float, float]:
     logger.info(f"Fine-tuning pruned model ({curve_value:.3f})")
     
     accuracy_previous = []
-    epochs = 15
+    epochs = 20
     optimizer = torch.optim.SGD(model.parameters(), lr=0.001, momentum=0.9, weight_decay=1e-4)
     # Learning rate scheduler with warmup
     scheduler = torch.optim.lr_scheduler.OneCycleLR(
