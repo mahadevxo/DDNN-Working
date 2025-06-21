@@ -7,7 +7,7 @@ import os
 import sys
 import time
 
-device = 'mps' if torch.backends.mps.is_available() else 'cuda' if torch.cuda.is_available() else 'cpu'
+device: str = 'mps' if torch.backends.mps.is_available() else 'cuda' if torch.cuda.is_available() else 'cpu'
 # Configure logging for cleaner output
 logging.basicConfig(
     level=logging.INFO,
@@ -149,7 +149,7 @@ def main() -> None:
             try:
                 model = get_model()
                 pbar_outer.set_postfix({"ratio": f"{pruning_amount:.2f}"})
-                logger.info(f"\n{'='*50}\nProcessing pruning ratio: {pruning_amount:.2f}\nTrainable Params: {sum(p.numel() for p in model.parameters() if p.requires_grad)}\n{'='*50}\n")
+                logger.info(f"\n{'='*50}\nProcessing pruning ratio: {pruning_amount:.2f}\nTrainable Params: {sum(layer.out_channels for layer in model.net_1 if isinstance(layer, torch.nn.modules.conv.Conv2d))}\n{'='*50}\n") # type: ignore
                 
                 if pruning_amount == 0.0:
                     # Baseline (unpruned) evaluation
