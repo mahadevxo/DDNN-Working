@@ -183,6 +183,9 @@ class PruningFineTuner:
                 if not self.quiet:
                     pbar.set_postfix({"acc": f"{accuracy:.2f}%"})
 
+        accuracy = 100 * correct / total
+        self._log(f"Validation - Accuracy: {accuracy:.2f}%")
+
         return self._clean_up(test_loader, accuracy) # type: ignore
     
     def get_comp_time(self, model):
