@@ -83,7 +83,7 @@ def fine_tune_model(model: torch.nn.Module, curve_value: float, org_num_filters:
     logger.info(f"Fine-tuning pruned model ({curve_value:.3f})")
     
     accuracy_previous = []
-    epochs = 20
+    epochs = 6
     optimizer = torch.optim.SGD(pruner.model.parameters(), lr=0.001, momentum=0.9, weight_decay=1e-4)
     # Learning rate scheduler with warmup
     scheduler = torch.optim.lr_scheduler.OneCycleLR(
