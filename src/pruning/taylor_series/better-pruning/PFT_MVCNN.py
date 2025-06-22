@@ -1,3 +1,4 @@
+from math import ceil
 from torch.utils.data import DataLoader, Subset
 from torchvision import transforms
 import torch
@@ -24,7 +25,7 @@ class PruningFineTuner:
         self.criterion = torch.nn.CrossEntropyLoss()
         self.pruner = FilterPruner(self.model)
         
-        self.val_dataset = self.get_modelnet33_images('val', num_samples=16000)
+        self.val_dataset = self.get_modelnet33_images('val', num_samples=2000)
         
         # Clean initial state
         self._clear_memory()
@@ -266,7 +267,7 @@ class PruningFineTuner:
         if prune_targets is None:
             # Calculate number of filters to prune
             print(f"num_filters_to_prune not provided, calculating based on pruning amount {pruning_amount:.3f}") if num_filters_to_prune is None else None
-            num_filters_to_prune = int(num_filters_to_prune*pruning_amount) if num_filters_to_prune is not None else int(pruning_amount * self.total_num_filters()) 
+            num_filters_to_prune = ceil(num_filters_to_prune*pruning_amount) if num_filters_to_prune is not None else ceil(pruning_amount * self.total_num_filters()) 
             self._log(f"Pruning {num_filters_to_prune} filters at pruning amount {pruning_amount*100:.3f}%")
             filters_to_prune = self.get_candidates_to_prune(num_filters_to_prune)
         else:
