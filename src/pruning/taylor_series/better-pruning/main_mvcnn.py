@@ -60,7 +60,7 @@ def fine_tune_model(model: torch.nn.Module, curve_value: float, org_num_filters:
     logger.info(f"Pruning model with ratio {curve_value:.3f}")
     prev_filter_count = pruner.total_num_filters()
     output = pruner.prune(pruning_amount=curve_value, num_filters_to_prune=org_num_filters)
-    if output is False:
+    if output is False or output is None:
         logger.info(f"No filters pruned at ratio {curve_value:.3f}")
         model_size = pruner.get_model_size(pruner.model)
         comp_time = pruner.get_comp_time(pruner.model)
@@ -120,7 +120,10 @@ def fine_tune_model(model: torch.nn.Module, curve_value: float, org_num_filters:
     comp_time = pruner.get_comp_time(pruner.model)
     
     logger.info(f"\nResults: Acc={accuracy:.2f}%, Size={model_size:.2f}MB, Time={comp_time:.3f}s")
-    return pruner.model, accuracy, model_size, comp_time
+    x =  (pruner.model, accuracy, model_size, comp_time)
+    pruner.reset()  # Reset pruner state for next iteration
+    del pruner  # Clear pruner from memory
+    return x
 
 
 def get_model() -> torch.nn.Module:

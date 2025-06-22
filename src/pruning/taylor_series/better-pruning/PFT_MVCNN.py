@@ -24,7 +24,7 @@ class PruningFineTuner:
         self.criterion = torch.nn.CrossEntropyLoss()
         self.pruner = FilterPruner(self.model)
         
-        self.val_dataset = self.get_modelnet33_images('val', num_samples=4000)
+        self.val_dataset = self.get_modelnet33_images('val', num_samples=16000)
         
         # Clean initial state
         self._clear_memory()
