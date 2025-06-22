@@ -266,7 +266,7 @@ class PruningFineTuner:
         if prune_targets is None:
             # Calculate number of filters to prune
             print(f"num_filters_to_prune not provided, calculating based on pruning amount {pruning_amount:.3f}") if num_filters_to_prune is None else None
-            num_filters_to_prune = num_filters_to_prune if num_filters_to_prune is not None else int(pruning_amount * self.total_num_filters()) 
+            num_filters_to_prune = int(num_filters_to_prune*pruning_amount) if num_filters_to_prune is not None else int(pruning_amount * self.total_num_filters()) 
             self._log(f"Pruning {num_filters_to_prune} filters at pruning amount {pruning_amount*100:.3f}%")
             filters_to_prune = self.get_candidates_to_prune(num_filters_to_prune)
         else:
@@ -277,7 +277,7 @@ class PruningFineTuner:
             self._log(f"Pruning {len(filters_to_prune)} filters out of {no_filters} ({100 * len(filters_to_prune) / no_filters:.1f}%)")
     
         # Handle case where no filters can be pruned
-        if len(filters_to_prune) == 0:
+        if filters_to_prune is None or len(filters_to_prune) == 0:
             model_size = self.get_model_size(self.model)
             comp_time = self.get_comp_time(self.model)
             

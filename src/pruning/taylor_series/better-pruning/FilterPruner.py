@@ -132,7 +132,7 @@ class FilterPruner:
             print("Warning: No more filters can be pruned safely.")
             return []
         
-        # Group by layer without index shifting (we'll handle that at pruning time)
+        # Group by layer without index shifting (i'll handle that at pruning time later)
         filters_to_prune_per_layer = {}
         for (layer_n, f, _) in filters_to_prune:
             if layer_n not in filters_to_prune_per_layer:
@@ -151,9 +151,10 @@ class FilterPruner:
                     break
             
             # If we found the layer, ensure we don't prune all filters
-            if layer_found and len(filters_to_prune_per_layer[layer_n]) >= total_filters:
+            if layer_found and len(filters_to_prune_per_layer[layer_n]) >= total_filters: # see like > never happens, it's always =, keeing it for safety
                 filters_to_prune_per_layer[layer_n] = filters_to_prune_per_layer[layer_n][:total_filters-1]
-                print(f"Warning: Had to reduce pruning for layer {layer_n} to keep at least one filter")
+                print(f"No more filters to prune at {layer_n}")
+                return None
         
         # Flatten the pruning plan
         filters_to_prune = []
