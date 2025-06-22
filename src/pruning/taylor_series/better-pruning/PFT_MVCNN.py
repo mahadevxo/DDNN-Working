@@ -284,7 +284,7 @@ class PruningFineTuner:
             self._log(f"No more filters can be pruned at pruning amount {pruning_amount:.3f}")
             self._log(f"Current metrics - Accuracy: 0.0%, Model size: {model_size:.2f}M, Comp time: {comp_time:.2f}ms")
             
-            return 0
+            return False
     
         # Use batch pruning for better performance
         pruner = Pruning(self.model)
@@ -292,6 +292,7 @@ class PruningFineTuner:
         self.pruner = FilterPruner(self.model)
     
         self._clear_memory()
+        return True
     
     def reset(self):
         """Clean up resources"""

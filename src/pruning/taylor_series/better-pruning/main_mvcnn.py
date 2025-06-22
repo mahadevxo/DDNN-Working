@@ -60,11 +60,12 @@ def fine_tune_model(model: torch.nn.Module, curve_value: float, org_num_filters:
     logger.info(f"Pruning model with ratio {curve_value:.3f}")
     prev_filter_count = pruner.total_num_filters()
     output = pruner.prune(pruning_amount=curve_value, num_filters_to_prune=org_num_filters)
-    if output == 0:
+    if output is False:
         logger.info(f"No filters pruned at ratio {curve_value:.3f}")
         model_size = pruner.get_model_size(pruner.model)
         comp_time = pruner.get_comp_time(pruner.model)
-        return pruner.model, 0, model_size, comp_time
+        accuracy = pruner.get_val_accuracy()
+        return pruner.model, accuracy, model_size, comp_time
     
     current_filter_count = pruner.total_num_filters()
     
@@ -145,6 +146,7 @@ def main() -> None:
         0.5, 0.1, 0.20, 0.3, 0.4, 0.6, 0.7, 0.8, 0.9, 0.95, 0.99,
     ]
     pruning_amounts.insert(0, 0.0)
+    pruning_amounts.reverse()
     
     print(f"Pruning amounts to be tested: {pruning_amounts}")
     total_num_filters = sum(layer.out_channels for layer in get_model().net_1 if isinstance(layer, torch.nn.modules.conv.Conv2d))  # type: ignore
