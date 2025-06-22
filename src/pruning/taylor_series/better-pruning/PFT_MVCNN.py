@@ -24,6 +24,8 @@ class PruningFineTuner:
         self.criterion = torch.nn.CrossEntropyLoss()
         self.pruner = FilterPruner(self.model)
         
+        self.val_dataset = self.get_modelnet33_images('val', num_samples=4000)
+        
         # Clean initial state
         self._clear_memory()
         
@@ -59,9 +61,7 @@ class PruningFineTuner:
             full_dataset = SingleImgDataset(root_dir=self.train_path)
             self._log(f"Total samples in ModelNet33 full train dataset: {len(full_dataset)}")
 
-            # Create a deterministic 80/20 split for train/val for reproducibility
-            g = torch.Generator().manual_seed(42)
-            indices = torch.randperm(len(full_dataset), generator=g).tolist()
+            indices = torch.randperm(len(full_dataset)).tolist()
             split_point = int(len(indices) * 0.8)
             
             if test_or_train == 'train':
@@ -167,7 +167,7 @@ class PruningFineTuner:
     
     def train_epoch(self, optimizer=None, rank_filter=False):
         """Train model for one epoch"""
-        train_loader = self.get_modelnet33_images('train', num_samples=1000 if rank_filter else 8000)
+        train_loader = self.get_modelnet33_images('train', num_samples=800 if rank_filter else 8000)
         self.train_batch(optimizer, train_loader, rank_filter)
         del train_loader
         self._clear_memory()
@@ -175,7 +175,10 @@ class PruningFineTuner:
     
     def get_val_accuracy(self):
         """Calculate validation accuracy"""
-        test_loader = self.get_modelnet33_images('val', num_samples=2000)
+        test_loader = self.get_modelnet33_images('val', num_samples=1000) if self.val_dataset is None else self.val_dataset
+        if test_loader is None:
+            self._log("Validation dataset is empty or not loaded.")
+            return 0.0
         self.model.eval()
         correct = 0
         total = 0
@@ -257,12 +260,13 @@ class PruningFineTuner:
         )
         return total_size / (1024 ** 2)  # Convert to MB
     
-    def prune(self, pruning_amount, only_model=True, prune_targets=None):
+    def prune(self, pruning_amount, only_model=True, prune_targets=None, num_filters_to_prune=None):
         """Prune the model by removing filters with lowest Taylor scores"""
         # Initialize or use provided pruning targets
         if prune_targets is None:
             # Calculate number of filters to prune
-            num_filters_to_prune = int(pruning_amount * self.total_num_filters())
+            print(f"num_filters_to_prune not provided, calculating based on pruning amount {pruning_amount:.3f}") if num_filters_to_prune is None else None
+            num_filters_to_prune = num_filters_to_prune if num_filters_to_prune is not None else int(pruning_amount * self.total_num_filters()) 
             self._log(f"Pruning {num_filters_to_prune} filters at pruning amount {pruning_amount*100:.3f}%")
             filters_to_prune = self.get_candidates_to_prune(num_filters_to_prune)
         else:
@@ -280,7 +284,7 @@ class PruningFineTuner:
             self._log(f"No more filters can be pruned at pruning amount {pruning_amount:.3f}")
             self._log(f"Current metrics - Accuracy: 0.0%, Model size: {model_size:.2f}M, Comp time: {comp_time:.2f}ms")
             
-            return
+            return 0
     
         # Use batch pruning for better performance
         pruner = Pruning(self.model)
