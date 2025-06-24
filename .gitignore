@@ -22,3 +22,4 @@ src/MVCNN_org/MVCNN-Jetson_stage_2
 **/*.tar.xz
 **/*.prism
 **/.vscode
+**/outcmaes
