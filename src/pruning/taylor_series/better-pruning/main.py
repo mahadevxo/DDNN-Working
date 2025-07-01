@@ -33,7 +33,7 @@ def get_exp_curve(total_sum) -> list[float]:
     # Limit total_sum to a reasonable range to avoid excessive pruning in one step
     total_sum = min(total_sum, 0.99)  # Never prune more than 99% in a single curve
     
-    x = np.arange(7)
+    x = np.arange(10)
     decay_target_ratio = 0.01
     
     k_rate = -np.log(decay_target_ratio) / 9
@@ -45,8 +45,8 @@ def get_exp_curve(total_sum) -> list[float]:
     final_curve = curve_shifted * scaling_factor
     final_curve[-1] = 0.0
     
-    # Ensure no step has more than 99% pruning
-    max_step_prune = 0.99
+    # Ensure no step has more than 15% pruning
+    max_step_prune = 0.15
     final_curve: list[float] = np.array([min(v, max_step_prune) for v in final_curve]).tolist() # type: ignore
     
     return final_curve
@@ -81,7 +81,7 @@ def fine_tune_model(model, curve_value) -> tuple[float, float, float]:
     logger.info(f"Fine-tuning pruned model ({curve_value:.3f})")
     
     accuracy_previous = []
-    epochs = 5
+    epochs = 15
     optimizer = torch.optim.SGD(model.parameters(), lr=0.001, momentum=0.9, weight_decay=1e-4)
     # Learning rate scheduler with warmup
     scheduler = torch.optim.lr_scheduler.OneCycleLR(
@@ -138,7 +138,12 @@ def main() -> None:
     
     # Define pruning range
     pruning_amounts = np.arange(0, 1, 0.05)
-    pruning_amounts = np.append(pruning_amounts, [0.99])
+    
+    done_amounts = {0.30, 0.25, 0.60, 0.45, 0.20, 0.15, 0.50, 0.00}
+    
+    pruning_amounts = [p for p in pruning_amounts if not any(np.isclose(p, d) for d in done_amounts)]
+    
+    pruning_amounts.insert(0, 0.00) # type: ignore
     
     print(f"Pruning amounts to be tested: {pruning_amounts}")
     
