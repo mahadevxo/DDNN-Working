@@ -1,4 +1,5 @@
 from math import ceil
+import test
 from torch.utils.data import DataLoader, Subset
 from torchvision import transforms
 import torch
@@ -73,6 +74,12 @@ class PruningFineTuner:
 
             dataset = Subset(full_dataset, dataset_indices)
         
+        if test_or_train == 'time':
+            num_samples=100
+            full_dataset = SingleImgDataset(root_dir=self.train_path)
+            dataset_indices = random.sample(range(len(full_dataset)), num_samples)
+            dataset = Subset(full_dataset, dataset_indices)
+            
         else:  # 'test'
             dataset = SingleImgDataset(root_dir=self.test_path)
             self._log(f"Total samples in ModelNet33 {test_or_train}: {len(dataset)}")
@@ -215,7 +222,7 @@ class PruningFineTuner:
         model.to('cpu')
 
         # Run inference on CPU for fair comparison
-        test_loader = self.get_modelnet33_images('val', num_samples=100)
+        test_loader = self.get_modelnet33_images('time', num_samples=100)
         with torch.no_grad():
             for label, image, _ in test_loader:
                 image = image.to('cpu', non_blocking=False)
@@ -269,10 +276,6 @@ class PruningFineTuner:
             filters_to_prune = prune_targets
         print(filters_to_prune)
     
-        if not only_model:
-            no_filters = self.total_num_filters()
-            self._log(f"Pruning {len(filters_to_prune)} filters out of {no_filters} ({100 * len(filters_to_prune) / no_filters:.1f}%)") # type: ignore
-    
         # Handle case where no filters can be pruned
         if filters_to_prune is None or len(filters_to_prune) == 0:
             model_size = self.get_model_size(self.model)
@@ -283,6 +286,10 @@ class PruningFineTuner:
             
             return False
     
+        if not only_model:
+            no_filters = self.total_num_filters()
+            self._log(f"Pruning {len(filters_to_prune)} filters out of {no_filters} ({100 * len(filters_to_prune) / no_filters:.1f}%)") # type: ignore
+            
         # Use batch pruning for better performance
         pruner = Pruning(self.model)
         self.model = pruner.batch_prune_filters(self.model, filters_to_prune)
