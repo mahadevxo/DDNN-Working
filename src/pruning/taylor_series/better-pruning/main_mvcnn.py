@@ -145,7 +145,7 @@ def main() -> None:
     result_path = f"results/pruning_results_mvcnn-{current_time_str}.csv"
     
     # Define pruning range
-    pruning_amounts = np.arange(0, 1, 0.2).tolist()
+    pruning_amounts = np.arange(0, 1, 0.1).tolist()
     pruning_amounts.reverse()
     
     print(f"Pruning amounts to be tested: {pruning_amounts}")
