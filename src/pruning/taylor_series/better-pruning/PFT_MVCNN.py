@@ -217,6 +217,7 @@ class PruningFineTuner:
     
     def get_comp_time(self, model):
         """Measure computation time"""
+        print("Measuring computation time...")
         start_time = time.time()
         model.eval()
         model.to('cpu')
