@@ -170,6 +170,7 @@ class PruningFineTuner:
     
     def get_val_accuracy(self):
         """Calculate validation accuracy"""
+        print("Calculating validation accuracy...")
         test_loader = self.get_modelnet33_images('test', num_samples=1000) if self.val_dataset is None else self.val_dataset
         if test_loader is None:
             self._log("Validation dataset is empty or not loaded.")
