@@ -266,6 +266,7 @@ class PruningFineTuner:
             filters_to_prune = self.get_candidates_to_prune(num_filters_to_prune)
         else:
             filters_to_prune = prune_targets
+        print(filters_to_prune)
     
         if not only_model:
             no_filters = self.total_num_filters()
