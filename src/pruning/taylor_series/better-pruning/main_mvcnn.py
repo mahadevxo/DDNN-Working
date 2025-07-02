@@ -146,8 +146,12 @@ def main() -> None:
     
     # Define pruning range
     pruning_amounts = np.arange(0, 1, 0.1).tolist()
+    pruning_amounts.append(0.92)
+    pruning_amounts.append(0.94)
+    pruning_amounts.append(0.96)
+    pruning_amounts.append(0.98)
     pruning_amounts.reverse()
-    
+        
     print(f"Pruning amounts to be tested: {pruning_amounts}")
     total_num_filters = sum(layer.out_channels for layer in get_model().net_1 if isinstance(layer, torch.nn.modules.conv.Conv2d))  # type: ignore
     logger.info(f"Starting pruning experiment with {len(pruning_amounts)} pruning ratios")
