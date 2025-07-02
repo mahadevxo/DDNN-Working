@@ -58,17 +58,14 @@ class PruningFineTuner:
                                  std=[0.229, 0.224, 0.225])
         ])
         
-        if test_or_train == 'train' or test_or_train == 'val':
+        if test_or_train == 'train':
             full_dataset = SingleImgDataset(root_dir=self.train_path)
             self._log(f"Total samples in ModelNet33 full train dataset: {len(full_dataset)}")
 
             indices = torch.randperm(len(full_dataset)).tolist()
-            split_point = int(len(indices) * 0.8)
+            split_point = int(len(indices) * 1)
             
-            if test_or_train == 'train':
-                dataset_indices = indices[:split_point]
-            else: # 'val'
-                dataset_indices = indices[split_point:]
+            dataset_indices = indices[:split_point]
 
             # Sub-sample if needed for faster runs
             if num_samples < len(dataset_indices):
@@ -79,9 +76,6 @@ class PruningFineTuner:
         else:  # 'test'
             dataset = SingleImgDataset(root_dir=self.test_path)
             self._log(f"Total samples in ModelNet33 {test_or_train}: {len(dataset)}")
-            if num_samples < len(dataset):
-                indices = random.sample(range(len(dataset)), num_samples)
-                dataset = Subset(dataset, indices)
 
         print(f"ModelNet33 {test_or_train}: {len(dataset)} samples")
         dataset.transform = transform  # type: ignore
@@ -176,7 +170,7 @@ class PruningFineTuner:
     
     def get_val_accuracy(self):
         """Calculate validation accuracy"""
-        test_loader = self.get_modelnet33_images('val', num_samples=1000) if self.val_dataset is None else self.val_dataset
+        test_loader = self.get_modelnet33_images('test', num_samples=1000) if self.val_dataset is None else self.val_dataset
         if test_loader is None:
             self._log("Validation dataset is empty or not loaded.")
             return 0.0
