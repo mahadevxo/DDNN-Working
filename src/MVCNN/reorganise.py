@@ -1,4 +1,5 @@
 import os
+from tqdm import tqdm
 import shutil
 
 # Define source and destination directories
@@ -7,7 +8,7 @@ dest_root = "ModelNet40-12View"
 
 os.makedirs(dest_root, exist_ok=True)
 
-for category in os.listdir(source_root):
+for category in tqdm(os.listdir(source_root), desc="Processing categories", unit="category", leave=False):
     category_path = os.path.join(source_root, category)
     if not os.path.isdir(category_path):
         continue
@@ -28,5 +29,4 @@ for category in os.listdir(source_root):
                 category_dest_path = os.path.join(dest_root, category, split, obj_instance)
                 os.makedirs(category_dest_path, exist_ok=True)
                 shutil.copy(os.path.join(split_path, view_file), os.path.join(category_dest_path, new_filename))
-                    
 print("Dataset reorganization complete.")

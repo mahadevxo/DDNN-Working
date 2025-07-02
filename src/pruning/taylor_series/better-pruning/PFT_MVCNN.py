@@ -74,7 +74,7 @@ class PruningFineTuner:
 
             dataset = Subset(full_dataset, dataset_indices)
         
-        if test_or_train == 'time':
+        elif test_or_train == 'time':
             num_samples=100
             full_dataset = SingleImgDataset(root_dir=self.train_path)
             dataset_indices = random.sample(range(len(full_dataset)), num_samples)
@@ -89,7 +89,7 @@ class PruningFineTuner:
         return DataLoader(
             dataset,
             batch_size=8,
-            shuffle=test_or_train == 'train',
+            shuffle=False,
             num_workers=4,
             pin_memory=True,
         )
