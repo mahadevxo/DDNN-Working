@@ -13,8 +13,8 @@ from tqdm import tqdm
 class PruningFineTuner:
     def __init__(self, model, quiet=False):
         # Dataset paths
-        self.train_path = 'ModelNet40-12View/*/train'
-        self.test_path = 'ModelNet40-12View/*/test'
+        self.train_path = '../../../MVCNN/ModelNet40-12View/*/train'
+        self.test_path = '../../../MVCNN/ModelNet40-12View/*/test'
         
         # Device selection
         self.device = 'mps' if torch.backends.mps.is_available() else 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -275,7 +275,7 @@ class PruningFineTuner:
     
         if not only_model:
             no_filters = self.total_num_filters()
-            self._log(f"Pruning {len(filters_to_prune)} filters out of {no_filters} ({100 * len(filters_to_prune) / no_filters:.1f}%)")
+            self._log(f"Pruning {len(filters_to_prune)} filters out of {no_filters} ({100 * len(filters_to_prune) / no_filters:.1f}%)") # type: ignore
     
         # Handle case where no filters can be pruned
         if filters_to_prune is None or len(filters_to_prune) == 0:
