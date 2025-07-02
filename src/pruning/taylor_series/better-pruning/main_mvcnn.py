@@ -141,13 +141,7 @@ def get_model() -> torch.nn.Module:
     model = model.to(device)
     return model
 
-def main() -> None:
-    # Create results directory
-    current_time_str = time.strftime("%Y%m%d-%H%M%S")
-    logger.info(f"Experiment started at {current_time_str}")
-    os.makedirs("results", exist_ok=True)
-    result_path = f"results/pruning_results_mvcnn-{current_time_str}.csv"
-    
+def main() -> None:    
     # Define pruning range
     pruning_amounts = np.arange(0, 1, 0.1).tolist()
     pruning_amounts.append(0.92)
@@ -155,61 +149,67 @@ def main() -> None:
     pruning_amounts.append(0.96)
     pruning_amounts.append(0.98)
     pruning_amounts.reverse()
+    
+    for doit in [False, True]:
+        current_time_str = time.strftime("%Y%m%d-%H%M%S")
+        logger.info(f"Experiment started at {current_time_str}")
+        os.makedirs("results", exist_ok=True)
+        result_path = f"results/pruning_results_mvcnn-{current_time_str}-partbypart-{str(doit)}.csv"
         
-    print(f"Pruning amounts to be tested: {pruning_amounts}")
-    total_num_filters = sum(layer.out_channels for layer in get_model().net_1 if isinstance(layer, torch.nn.modules.conv.Conv2d))  # type: ignore
-    logger.info(f"Starting pruning experiment with {len(pruning_amounts)} pruning ratios")
-    # np.random.shuffle(pruning_amounts)
-    print(f"Pruning amounts to be tested: {pruning_amounts}")
-    # Initialize results file
-    with open(result_path, 'w') as f:
-        f.write("Pruning_Amount,Accuracy,Model_Size_MB,Computation_Time, Number Of Filters\n")
-    
-    # Main pruning loop
-    with tqdm(pruning_amounts, desc="Pruning Ratios", ncols=150) as pbar_outer:
-        for pruning_amount in pbar_outer:
-            try:
-                model = get_model()
-                pbar_outer.set_postfix({"ratio": f"{pruning_amount:.2f}"})
-                logger.info(f"\n{'='*50}\nProcessing pruning ratio: {pruning_amount:.2f}\nTrainable Filters: {sum(layer.out_channels for layer in model.net_1 if isinstance(layer, torch.nn.modules.conv.Conv2d))}\n{'='*50}\n") # type: ignore
-                
-                if pruning_amount == 0.0:
-                    # Baseline (unpruned) evaluation
-                    model, final_acc, model_size, comp_time = fine_tune_model(model, 0.0, total_num_filters)
-                    num_filters_present = sum(layer.out_channels for layer in model.net_1 if isinstance(layer, torch.nn.modules.conv.Conv2d))  # type: ignore
-                    print(f"Baseline model size: {model_size:.4f} MB, Accuracy: {final_acc:.4f}, Computation Time: {comp_time:.4f} seconds")
-                    with open(result_path, 'a') as f:
-                        f.write(f"{pruning_amount:.2f},{final_acc:.4f},{model_size:.4f},{comp_time:.4f},{num_filters_present}\n")
-                    continue
-                
-                # Get exponential curve values for progressive pruning
-                curve = get_exp_curve(pruning_amount, do_it=False)
-                curve = [c for c in curve if c > 0]  # Filter out zeros
-                
-                if not curve:
-                    continue
-                
-                # Process each step of the curve
-                final_metrics = None
-                for i, curve_value in enumerate(curve):
-                    logger.info(f"\nStep {i+1}/{len(curve)}: Pruning ratio = {curve_value:.3f}\nTrainable Filters: {sum(layer.out_channels for layer in model.net_1 if isinstance(layer, torch.nn.modules.conv.Conv2d))}\n") # type: ignore
-                    model, accuracy, model_size, comp_time = fine_tune_model(model, curve_value, total_num_filters)
-                    num_filters_present = sum(layer.out_channels for layer in model.net_1 if isinstance(layer, torch.nn.modules.conv.Conv2d)) # type: ignore
-                    final_metrics = (pruning_amount, accuracy, model_size, comp_time, num_filters_present)
-                
-                # Save results
-                if final_metrics:
-                    with open(result_path, 'a') as f:
-                        f.write(f"{final_metrics[0]:.2f},{final_metrics[1]:.4f},{final_metrics[2]:.4f},"
-                                f"{final_metrics[3]:.4f}, {final_metrics[4]}\n")
-                del model  # Clear model from memory
+        print(f"Pruning amounts to be tested: {pruning_amounts}")
+        total_num_filters = sum(layer.out_channels for layer in get_model().net_1 if isinstance(layer, torch.nn.modules.conv.Conv2d))  # type: ignore
+        logger.info(f"Starting pruning experiment with {len(pruning_amounts)} pruning ratios")
+        # np.random.shuffle(pruning_amounts)
+        print(f"Pruning amounts to be tested: {pruning_amounts}")
+        # Initialize results file
+        with open(result_path, 'w') as f:
+            f.write("Pruning_Amount,Accuracy,Model_Size_MB,Computation_Time, Number Of Filters\n")
+        
+        # Main pruning loop
+        with tqdm(pruning_amounts, desc="Pruning Ratios", ncols=150) as pbar_outer:
+            for pruning_amount in pbar_outer:
+                try:
+                    model = get_model()
+                    pbar_outer.set_postfix({"ratio": f"{pruning_amount:.2f}"})
+                    logger.info(f"\n{'='*50}\nProcessing pruning ratio: {pruning_amount:.2f}\nTrainable Filters: {sum(layer.out_channels for layer in model.net_1 if isinstance(layer, torch.nn.modules.conv.Conv2d))}\n{'='*50}\n") # type: ignore
                     
-            except Exception as e:
-                logger.error(f"Error at pruning_amount={pruning_amount}: {str(e)}")
-                with open(result_path, 'a') as f:
-                    f.write(f"{pruning_amount:.2f},Error,0,0,0,0\n")
-    
-    logger.info(f"\nExperiment completed. Results saved to {result_path}")
+                    if pruning_amount == 0.0:
+                        # Baseline (unpruned) evaluation
+                        model, final_acc, model_size, comp_time = fine_tune_model(model, 0.0, total_num_filters)
+                        num_filters_present = sum(layer.out_channels for layer in model.net_1 if isinstance(layer, torch.nn.modules.conv.Conv2d))  # type: ignore
+                        print(f"Baseline model size: {model_size:.4f} MB, Accuracy: {final_acc:.4f}, Computation Time: {comp_time:.4f} seconds")
+                        with open(result_path, 'a') as f:
+                            f.write(f"{pruning_amount:.2f},{final_acc:.4f},{model_size:.4f},{comp_time:.4f},{num_filters_present}\n")
+                        continue
+                    
+                    # Get exponential curve values for progressive pruning
+                    curve = get_exp_curve(pruning_amount, do_it=doit)
+                    curve = [c for c in curve if c > 0]  # Filter out zeros
+                    
+                    if not curve:
+                        continue
+                    
+                    # Process each step of the curve
+                    final_metrics = None
+                    for i, curve_value in enumerate(curve):
+                        logger.info(f"\nStep {i+1}/{len(curve)}: Pruning ratio = {curve_value:.3f}\nTrainable Filters: {sum(layer.out_channels for layer in model.net_1 if isinstance(layer, torch.nn.modules.conv.Conv2d))}\n") # type: ignore
+                        model, accuracy, model_size, comp_time = fine_tune_model(model, curve_value, total_num_filters)
+                        num_filters_present = sum(layer.out_channels for layer in model.net_1 if isinstance(layer, torch.nn.modules.conv.Conv2d)) # type: ignore
+                        final_metrics = (pruning_amount, accuracy, model_size, comp_time, num_filters_present)
+                    
+                    # Save results
+                    if final_metrics:
+                        with open(result_path, 'a') as f:
+                            f.write(f"{final_metrics[0]:.2f},{final_metrics[1]:.4f},{final_metrics[2]:.4f},"
+                                    f"{final_metrics[3]:.4f}, {final_metrics[4]}\n")
+                    del model  # Clear model from memory
+                        
+                except Exception as e:
+                    logger.error(f"Error at pruning_amount={pruning_amount}: {str(e)}")
+                    with open(result_path, 'a') as f:
+                        f.write(f"{pruning_amount:.2f},Error,0,0,0,0\n")
+        
+        logger.info(f"\nExperiment completed. Results saved to {result_path}")
 
 if __name__ == "__main__":
     main()
