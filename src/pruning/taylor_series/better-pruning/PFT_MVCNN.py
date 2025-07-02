@@ -58,28 +58,15 @@ class PruningFineTuner:
             transforms.Normalize(mean=[0.485, 0.456, 0.406], 
                                  std=[0.229, 0.224, 0.225])
         ])
-        
+
         if test_or_train == 'train':
-            full_dataset = SingleImgDataset(root_dir=self.train_path)
-            self._log(f"Total samples in ModelNet33 full train dataset: {len(full_dataset)}")
-
-            indices = torch.randperm(len(full_dataset)).tolist()
-            split_point = int(len(indices) * 1)
-            
-            dataset_indices = indices[:split_point]
-
-            # Sub-sample if needed for faster runs
-            if num_samples < len(dataset_indices):
-                dataset_indices = random.sample(dataset_indices, num_samples)
-
-            dataset = Subset(full_dataset, dataset_indices)
-        
+            dataset = self.get_test_dataset(num_samples)
         elif test_or_train == 'time':
             num_samples=100
             full_dataset = SingleImgDataset(root_dir=self.train_path)
             dataset_indices = random.sample(range(len(full_dataset)), num_samples)
             dataset = Subset(full_dataset, dataset_indices)
-            
+
         else:  # 'test'
             dataset = SingleImgDataset(root_dir=self.test_path)
             self._log(f"Total samples in ModelNet33 {test_or_train}: {len(dataset)}")
@@ -93,6 +80,25 @@ class PruningFineTuner:
             num_workers=4,
             pin_memory=True,
         )
+
+    def get_test_dataset(self, num_samples):
+        full_dataset = SingleImgDataset(root_dir=self.train_path)
+
+        if num_samples < 0:
+            num_samples = len(full_dataset) // 3
+        self._log(f"Total samples in ModelNet33 full train dataset: {len(full_dataset)}")
+        self._log(f"Sub-sampling ModelNet33 train dataset to {num_samples} samples")
+
+        indices = torch.randperm(len(full_dataset)).tolist()
+        split_point = int(len(indices) * 1)
+
+        dataset_indices = indices[:split_point]
+
+        # Sub-sample if needed for faster runs
+        if num_samples < len(dataset_indices):
+            dataset_indices = random.sample(dataset_indices, num_samples)
+
+        return Subset(full_dataset, dataset_indices)
     
     def train_batch(self, optimizer, train_loader, rank_filter=False):
         """Train for a single batch"""
@@ -169,7 +175,7 @@ class PruningFineTuner:
     
     def train_epoch(self, optimizer=None, rank_filter=False):
         """Train model for one epoch"""
-        train_loader = self.get_modelnet33_images('train', num_samples=800 if rank_filter else 8000)
+        train_loader = self.get_modelnet33_images('train', num_samples=800 if rank_filter else -1)
         self.train_batch(optimizer, train_loader, rank_filter)
         del train_loader
         self._clear_memory()
@@ -275,7 +281,7 @@ class PruningFineTuner:
             filters_to_prune = self.get_candidates_to_prune(num_filters_to_prune)
         else:
             filters_to_prune = prune_targets
-        print(filters_to_prune)
+        # print(filters_to_prune)
     
         # Handle case where no filters can be pruned
         if filters_to_prune is None or len(filters_to_prune) == 0:
