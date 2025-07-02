@@ -17,8 +17,12 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-def get_exp_curve(total_sum: float) -> list[float]:
+def get_exp_curve(total_sum: float, do_it: bool) -> list[float]:
     # return [total_sum]
+    
+    if not do_it:
+        return [total_sum]
+    
     if total_sum == 0:
         return [0.0] * 10
     
@@ -179,7 +183,7 @@ def main() -> None:
                     continue
                 
                 # Get exponential curve values for progressive pruning
-                curve = get_exp_curve(pruning_amount)
+                curve = get_exp_curve(pruning_amount, do_it=False)
                 curve = [c for c in curve if c > 0]  # Filter out zeros
                 
                 if not curve:
