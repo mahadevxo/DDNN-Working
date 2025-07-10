@@ -5,7 +5,7 @@ from PIL import Image
 import torch
 from torchvision import transforms
 
-class MultiviewImgDataset(torch.utils.data.Dataset):
+class MultiviewImgDataset(torch.utils.data.Dataset): #DONE FINALLY
 
     def __init__(self, root_dir, scale_aug=False, rot_aug=False, test_mode=False, \
                          num_models=0, num_views=12, shuffle=True):
@@ -25,11 +25,13 @@ class MultiviewImgDataset(torch.utils.data.Dataset):
         self.filepaths = []
 
         for item in self.class_names:
-            model_dirs = sorted(glob.glob(f'{parent_dir}/{item}/{set_}/*'))
+            model_dirs = sorted(glob.glob(f'{parent_dir}/{item}/{set_}/*/'))
             if num_models > 0:
                 model_dirs = model_dirs[:min(num_models, len(model_dirs))]
             for model_dir in model_dirs:
-                view_paths = sorted(glob.glob(f'{model_dir}/*shaded*.png'))
+                x = f'{model_dir}/{model_dir.split("/")[-2]}/*.png'
+                view_paths = sorted(glob.glob(x))
+                print(view_paths)
                 stride = int(12 / self.num_views)
                 view_paths = view_paths[::stride]
                 if len(view_paths) == self.num_views:
@@ -61,7 +63,8 @@ class MultiviewImgDataset(torch.utils.data.Dataset):
 
     def __getitem__(self, idx):
         paths = self.filepaths[idx]
-        class_name = paths[0].split('/')[-4]
+        class_name = paths[0].split('/')[-6]
+        # print(class_name)
         class_id = self.class_names.index(class_name)
         imgs = []
         for path in paths:
@@ -90,7 +93,9 @@ class SingleImgDataset(torch.utils.data.Dataset):
         parent_dir = root_dir.rsplit('/', 2)[0]
         self.filepaths = []
         for item in self.class_names:
-            all_files = sorted(glob.glob(f'{parent_dir}/{item}/{set_}/*/*shaded*.png'))
+            x = f'{parent_dir}/{item}/{set_}/*/*/*.png'
+            print(x)
+            all_files = sorted(glob.glob(x))
             if num_models == 0:
                 self.filepaths.extend(all_files)
             else:
@@ -109,7 +114,7 @@ class SingleImgDataset(torch.utils.data.Dataset):
 
     def __getitem__(self, idx):
         path = self.filepaths[idx]
-        class_name = path.split('/')[-4]
+        class_name = path.split('/')[-5]
         class_id = self.class_names.index(class_name)
         im = Image.open(path).convert('RGB')
         if self.transform:

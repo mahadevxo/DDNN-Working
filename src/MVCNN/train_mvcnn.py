@@ -16,7 +16,7 @@ from models.MVCNN import MVCNN, SVCNN
 parser = argparse.ArgumentParser()
 parser.add_argument("-name", "--name", type=str, help="Name of the experiment", default="MVCNN")
 parser.add_argument("-bs", "--batchSize", type=int, help="Batch size for the second stage", default=8)# it will be *12 images in each batch for mvcnn
-parser.add_argument("-num_models", type=int, help="number of models per class", default=1000)
+parser.add_argument("-num_models", type=int, help="number of models per class", default=0)
 parser.add_argument("-lr", type=float, help="learning rate", default=1e-3)
 parser.add_argument("-weight_decay", type=float, help="weight decay", default=0.0)
 parser.add_argument("-no_pretraining", dest='no_pretraining', action='store_true')
@@ -50,7 +50,7 @@ if __name__ == '__main__':
     print('*'*50, "---------", '*'*50)
     
     # STAGE 1
-    log_dir = f'{args.name}_stage_1'
+    log_dir = 'SVCNN'
     create_folder(log_dir)
     cnet = SVCNN(args.name, nclasses=33, pretraining=pretraining, cnn_name=args.cnn_name)
 
@@ -59,7 +59,7 @@ if __name__ == '__main__':
     n_models_train = args.num_models*args.num_views
 
     train_dataset = SingleImgDataset(args.train_path, scale_aug=False, rot_aug=False, num_models=n_models_train, num_views=args.num_views)
-    train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=32, shuffle=True, num_workers=4)
+    train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=32, shuffle=False, num_workers=4)
 
     val_dataset = SingleImgDataset(args.val_path, scale_aug=False, rot_aug=False, test_mode=True)
     val_loader = torch.utils.data.DataLoader(val_dataset, batch_size=32, shuffle=False, num_workers=4)
@@ -72,15 +72,17 @@ if __name__ == '__main__':
     cnet.save(log_dir, args.epoch)
 
     # STAGE 2
-    log_dir = f'{args.name}_stage_2'
+    log_dir = 'MVCNN'
     create_folder(log_dir)
     cnet_2 = MVCNN(args.name, cnet, nclasses=33, cnn_name=args.cnn_name, num_views=args.num_views)
     del cnet
-
+    
+    print("TRAINING MVCNN")
+    
     optimizer = optim.Adam(cnet_2.parameters(), lr=args.lr, weight_decay=args.weight_decay, betas=(0.9, 0.999))
 
     train_dataset = MultiviewImgDataset(args.train_path, scale_aug=False, rot_aug=False, num_models=n_models_train, num_views=args.num_views)
-    train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=args.batchSize, shuffle=False, num_workers=4)# shuffle needs to be false! it's done within the trainer
+    train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=args.batchSize, shuffle=False, num_workers=4)
 
     val_dataset = MultiviewImgDataset(args.val_path, scale_aug=False, rot_aug=False, num_views=args.num_views)
     val_loader = torch.utils.data.DataLoader(val_dataset, batch_size=args.batchSize, shuffle=False, num_workers=4)
