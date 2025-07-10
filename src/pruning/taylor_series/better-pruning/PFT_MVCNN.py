@@ -1,5 +1,4 @@
 from math import ceil
-import test
 from torch.utils.data import DataLoader, Subset
 from torchvision import transforms
 import torch
@@ -12,22 +11,29 @@ from tools.ImgDataset import SingleImgDataset
 from tqdm import tqdm
 
 class PruningFineTuner:
-    def __init__(self, model, quiet=False):
+    def __init__(self, model=None, quiet=False, view_importance=False):
         # Dataset paths
         self.train_path = '../../../MVCNN/ModelNet40-12View/*/train'
         self.test_path = '../../../MVCNN/ModelNet40-12View/*/test'
         
+        print("Initializing PruningFineTuner...")
+
         # Device selection
         self.device = 'mps' if torch.backends.mps.is_available() else 'cuda' if torch.cuda.is_available() else 'cpu'
         self.quiet = quiet
-        
-        # Model setup
-        self.model = model.to(self.device)
-        self.criterion = torch.nn.CrossEntropyLoss()
-        self.pruner = FilterPruner(self.model)
-        
-        self.val_dataset = self.get_modelnet33_images('val', num_samples=2000)
-        
+
+        if view_importance:
+            self.imp =  self.get_modelnet33_images('train', num_samples=2000)
+        else:
+            if model is None:
+                raise ValueError("Model must be provided for fine-tuning.")
+            
+            self.model = model.to(self.device)
+            self.criterion = torch.nn.CrossEntropyLoss()
+            self.pruner = FilterPruner(self.model)
+
+            self.val_dataset = self.get_modelnet33_images('val', num_samples=2000)
+
         # Clean initial state
         self._clear_memory()
         
@@ -43,6 +49,9 @@ class PruningFineTuner:
         """Conditionally print messages based on quiet mode"""
         if not self.quiet:
             print(message)
+    
+    def get_imp_set(self):
+        return self.imp
     
     def get_modelnet33_images(self, test_or_train, num_samples=2000):
         transform = transforms.Compose([

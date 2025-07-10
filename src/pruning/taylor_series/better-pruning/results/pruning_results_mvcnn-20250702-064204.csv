@@ -1,0 +1,3 @@
+Pruning_Amount,Accuracy,Model_Size_MB,Computation_Time, Number Of Filters
+0.98,78.0000,491.7203,11.5215, 2752
+0.96,60.5000,71.4892,1.9680, 110
