@@ -31,7 +31,7 @@ class MultiviewImgDataset(torch.utils.data.Dataset): #DONE FINALLY
             for model_dir in model_dirs:
                 x = f'{model_dir}/{model_dir.split("/")[-2]}/*.png'
                 view_paths = sorted(glob.glob(x))
-                print(view_paths)
+                # print(view_paths)
                 stride = int(12 / self.num_views)
                 view_paths = view_paths[::stride]
                 if len(view_paths) == self.num_views:
@@ -94,7 +94,7 @@ class SingleImgDataset(torch.utils.data.Dataset):
         self.filepaths = []
         for item in self.class_names:
             x = f'{parent_dir}/{item}/{set_}/*/*/*.png'
-            print(x)
+            # print(x)
             all_files = sorted(glob.glob(x))
             if num_models == 0:
                 self.filepaths.extend(all_files)
