@@ -353,7 +353,7 @@ class PruningFineTuner:
         model.to('cpu')
 
         # Run inference on CPU for fair comparison
-        test_loader = self.get_modelnet33_images('time', num_samples=100)
+        test_loader = self.get_modelnet33_images('time', num_samples=8)
         with torch.no_grad():
             for data in test_loader:
                 label, image = data[0], data[1]
