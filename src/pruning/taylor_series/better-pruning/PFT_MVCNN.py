@@ -115,7 +115,7 @@ class PruningFineTuner:
                                            num_views=12)
 
         if num_samples < 0:
-            num_samples = len(full_dataset) // 3
+            num_samples = len(full_dataset) // 5
         self._log(f"Total samples in ModelNet33 full train dataset: {len(full_dataset)}")
         self._log(f"Sub-sampling ModelNet33 train dataset to {num_samples} samples")
 
