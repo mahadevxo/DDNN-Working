@@ -164,7 +164,7 @@ def main() -> None:
         total_num_filters = sum(layer.out_channels for layer in get_model().net_1 if isinstance(layer, torch.nn.modules.conv.Conv2d))  # type: ignore
         logger.info(f"Starting pruning experiment with {len(pruning_amounts)} pruning ratios")
         # np.random.shuffle(pruning_amounts)
-        print(f"Pruning amounts to be tested: {pruning_amounts}")
+        # print(f"Pruning amounts to be tested: {pruning_amounts}")
         # Initialize results file
         with open(result_path, 'w') as f:
             f.write("Pruning_Amount,Accuracy,Model_Size_MB,Computation_Time, Number Of Filters\n")
