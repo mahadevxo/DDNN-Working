@@ -7,7 +7,7 @@ import gc
 import time
 from FilterPruner import FilterPruner
 from Pruning import Pruning
-from tools.ImgDataset import SingleImgDataset, MultiviewImgDataset
+from tools.ImgDataset import MultiviewImgDataset
 from tqdm import tqdm
 import numpy as np
 
@@ -114,96 +114,26 @@ class PruningFineTuner:
 
         return Subset(full_dataset, dataset_indices)
     
-    def train_batch(self, optimizer, train_loader, rank_filter=False): #idk why it's so long but im way too lazy to fix. hopefully it works
-        """Train for a single batch"""
-        self.model.train()  # Set model to training mode!
-        
-        total_loss = 0
-        correct = 0
-        total = 0
-        
-        # Wrap with tqdm for progress visualization
-        pbar = tqdm(
-            train_loader, 
-            desc="Train", 
-            leave=False,
-            disable=self.quiet,
-            ncols=80
-        )
-        
-        for batch_idx, (label, image, _) in enumerate(pbar):
-            try:
-                with torch.autograd.set_grad_enabled(True):
-                    # Move data to device
-                    image = image.to(self.device, non_blocking=False)
-                    label = label.to(self.device, non_blocking=False)
-                    
-                    # Zero gradients
-                    if optimizer is not None:
-                        optimizer.zero_grad(set_to_none=True)
-                    else:
-                        self.model.zero_grad(set_to_none=True)
-                    
-                    # Forward pass
-                    if rank_filter:
-                        self.pruner.reset()
-                        output = self.pruner.forward(image)
-                    else:
-                        output = self.model(image)
-                    
-                    # Loss and backprop
-                    loss = self.criterion(output, label)
-                    loss.backward()
-                    
-                    # Update weights if optimizer provided
-                    if optimizer is not None:
-                        # Add gradient clipping for stability
-                        torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_norm=1.0)
-                        optimizer.step()
-                        
-                    # Track accuracy during training
-                    _, predicted = torch.max(output.data, 1)
-                    total += label.size(0)
-                    correct += (predicted == label).sum().item()
-                    total_loss += loss.item()
     
-                    # Update progress bar
-                    if not self.quiet:
-                        pbar.set_postfix({"loss": f"{loss.item():.4f}"})
-                        
-            except Exception as e:
-                self._log(f"Error in batch {batch_idx}: {str(e)}")
-                continue
-            finally:
-                # Free memory
-                del image, label
-                if batch_idx % 10 == 0:
-                    self._clear_memory()
-    
-        # Report training progress
-        train_acc = 100 * correct / total
-        train_loss = total_loss / len(train_loader)
-        self._log(f"Training - Loss: {train_loss:.4f}, Accuracy: {train_acc:.2f}%")
-        
-        return self.model
-    
-    def train_model(self, train_loader, optimizer=None):
+    def train_batch(self, train_loader, optimizer=None):
         self.model.train()
         rand_idx = np.random.permutation(len(train_loader.dataset.filepaths) // 12)
         filepaths_new = []
         for i in range(len(rand_idx)):
             filepaths_new.extend(train_loader.dataset.filepaths[rand_idx[i]*self.num_views:(rand_idx[i]+1)*self.num_views])
         train_loader.dataset.filepaths = filepaths_new
-        
-        lr = self.optimizer.state_dict()['param_groups'][0]['lr'] # type: ignore
+
+        # lr = self.optimizer.state_dict()['param_groups'][0]['lr'] # type: ignore
         out_data = None
         in_data = None
         
+        if optimizer is None:
+            optimizer = self.optimizer
+
         pbar = tqdm(train_loader, desc="Training")
         running_loss = 0.0
         running_acc = 0.0
-        total_steps = 0
-        for i, data in enumerate(pbar):
+        for data in pbar:
             if self.model_name == 'mvcnn':
                 N, V, C, H, W = data[1].size()
                 in_data = data[1].view(-1, C, H, W).to(self.device)
@@ -215,10 +145,133 @@ class PruningFineTuner:
                 optimizer.zero_grad()
             else:
                 self.model.zero_grad()
+
+            self.pruner.reset()
+
+            out_data = self.model.forward(in_data)
             
+            loss = self.criterion(out_data, target)
+
+            running_loss += loss.item()
+            pred = torch.max(out_data, 1)[1]
+            results = pred == target
+            correct_points = torch.sum(results.long())
+            acc = correct_points.float() / results.size()[0]
+            running_acc += acc.item()
+            if optimizer is not None:
+                loss.backward()
+                optimizer.step()
+            else:
+                self.model.zero_grad()
+                loss.backward()
+                self.model.step()
+            pbar.set_postfix({"loss": f"{loss.item():.4f}", "acc": f"{acc.item():.4f}"})
+    
+    # def train_batch(self, optimizer, train_loader, rank_filter=False): #idk why it's so long but im way too lazy to fix. hopefully it works
+    #     """Train for a single batch"""
+    #     self.model.train()  # Set model to training mode
+        
+    #     total_loss = 0
+    #     correct = 0
+    #     total = 0
+        
+    #     # Wrap with tqdm for progress visualization
+    #     pbar = tqdm(
+    #         train_loader, 
+    #         desc="Train", 
+    #         leave=False,
+    #         disable=self.quiet,
+    #         ncols=80
+    #     )
+        
+    #     for batch_idx, (label, image, _) in enumerate(pbar):
+    #         try:
+    #             with torch.autograd.set_grad_enabled(True):
+    #                 # Move data to device
+    #                 image = image.to(self.device, non_blocking=False)
+    #                 label = label.to(self.device, non_blocking=False)
+                    
+    #                 # Zero gradients
+    #                 if optimizer is not None:
+    #                     optimizer.zero_grad(set_to_none=True)
+    #                 else:
+    #                     self.model.zero_grad(set_to_none=True)
+                    
+    #                 # Forward pass
+    #                 if rank_filter:
+    #                     self.pruner.reset()
+    #                     output = self.pruner.forward(image)
+    #                 else:
+    #                     output = self.model(image)
+                    
+    #                 # Loss and backprop
+    #                 loss = self.criterion(output, label)
+    #                 loss.backward()
+                    
+    #                 # Update weights if optimizer provided
+    #                 if optimizer is not None:
+    #                     # Add gradient clipping for stability
+    #                     torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_norm=1.0)
+    #                     optimizer.step()
+                        
+    #                 # Track accuracy during training
+    #                 _, predicted = torch.max(output.data, 1)
+    #                 total += label.size(0)
+    #                 correct += (predicted == label).sum().item()
+    #                 total_loss += loss.item()
+    
+    #                 # Update progress bar
+    #                 if not self.quiet:
+    #                     pbar.set_postfix({"loss": f"{loss.item():.4f}"})
+                        
+    #         except Exception as e:
+    #             self._log(f"Error in batch {batch_idx}: {str(e)}")
+    #             continue
+    #         finally:
+    #             # Free memory
+    #             del image, label
+    #             if batch_idx % 10 == 0:
+    #                 self._clear_memory()
+    
+    #     # Report training progress
+    #     train_acc = 100 * correct / total
+    #     train_loss = total_loss / len(train_loader)
+    #     self._log(f"Training - Loss: {train_loss:.4f}, Accuracy: {train_acc:.2f}%")
+        
+    #     return self.model
+    
+    def train_model(self, train_loader, optimizer=None):
+        self.model.train()
+        rand_idx = np.random.permutation(len(train_loader.dataset.filepaths) // 12)
+        filepaths_new = []
+        for i in range(len(rand_idx)):
+            filepaths_new.extend(train_loader.dataset.filepaths[rand_idx[i]*self.num_views:(rand_idx[i]+1)*self.num_views])
+        train_loader.dataset.filepaths = filepaths_new
+
+        # lr = self.optimizer.state_dict()['param_groups'][0]['lr'] # type: ignore
+        out_data = None
+        in_data = None
+
+        pbar = tqdm(train_loader, desc="Training")
+        running_loss = 0.0
+        running_acc = 0.0
+        total_steps = 0
+        for data in pbar:
+            if self.model_name == 'mvcnn':
+                N, V, C, H, W = data[1].size()
+                in_data = data[1].view(-1, C, H, W).to(self.device)
+                target = data[0].to(self.device).repeat_interleave(V)
+            else:
+                in_data = data[1].to(self.device)
+                target = data[0].to(self.device)
+            if optimizer is not None:
+                optimizer.zero_grad()
+            else:
+                self.model.zero_grad()
+
             out_data = self.model(in_data)
             loss = self.criterion(out_data, target)
-            
+
             running_loss += loss.item()
             pred = torch.max(out_data, 1)[1]
             results = pred == target
@@ -234,7 +287,7 @@ class PruningFineTuner:
                 loss.backward()
                 self.model.step()
             pbar.set_postfix({"loss": f"{loss.item():.4f}", "acc": f"{acc.item():.4f}"})
-        
+
         train_loss = running_loss / total_steps
         train_acc = running_acc / total_steps
         self._log(f"Training - Loss: {train_loss:.4f}, Accuracy: {train_acc:.2f}%")
@@ -244,7 +297,7 @@ class PruningFineTuner:
     def train_epoch(self, optimizer=None, rank_filter=False):
         """Train model for one epoch"""
         train_loader = self.get_modelnet33_images('train', num_samples=800 if rank_filter else -1)
-        self.train_batch(optimizer, train_loader, rank_filter) if rank_filter else self.train_model(train_loader, optimizer)
+        self.train_batch(optimizer, train_loader) if rank_filter else self.train_model(train_loader, optimizer)
         del train_loader
         self._clear_memory()
         return self.model
