@@ -140,7 +140,6 @@ class FilterPruner:
             filters_to_prune_per_layer[layer_n].append(f)
         
         # Safety check: ensure we don't prune ALL filters from any layer
-        # But be less conservative - allow pruning up to (total_filters - 1)
         valid_filters_to_prune = []
         
         for layer_n in filters_to_prune_per_layer:
@@ -177,7 +176,7 @@ class FilterPruner:
         
         print(f"Pruning plan: {len(valid_filters_to_prune)} filters across {len(filters_to_prune_per_layer)} layers")
         
-        # Clean up after pruning plan is created
-        self.reset()
+        # DON'T reset here - let the caller decide when to reset
+        # self.reset()  # REMOVED - this was clearing state prematurely
         
         return valid_filters_to_prune

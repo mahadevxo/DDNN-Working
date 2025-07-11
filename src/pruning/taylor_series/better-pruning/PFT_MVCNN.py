@@ -382,10 +382,25 @@ class PruningFineTuner:
     def get_candidates_to_prune(self, num_filter_to_prune):
         """Identify filters to prune based on importance ranking"""
         self._log("Ranking filters...")
-        self.pruner.reset()
-        self.train_epoch(rank_filter=True)
+        self.pruner.reset()  # Start fresh
+        self.train_epoch(rank_filter=True)  # Accumulate rankings
+        
+        # Check if we actually have rankings
+        if not hasattr(self.pruner, 'filter_ranks') or not self.pruner.filter_ranks:
+            self._log("Error: No filter rankings accumulated!")
+            return []
+        
+        self._log(f"Accumulated rankings for {len(self.pruner.filter_ranks)} layer groups")
+        for layer_idx, ranks in self.pruner.filter_ranks.items():
+            self._log(f"Layer group {layer_idx}: {ranks.size(0)} filters ranked")
+        
         self.pruner.normalize_ranks_per_layer()
-        return self.pruner.get_pruning_plan(num_filter_to_prune)
+        pruning_plan = self.pruner.get_pruning_plan(num_filter_to_prune)
+        
+        # Now we can safely reset since we have the pruning plan
+        self.pruner.reset()
+        
+        return pruning_plan
     
     def total_num_filters(self):
         """Count total filters in model"""

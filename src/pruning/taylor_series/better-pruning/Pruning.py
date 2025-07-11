@@ -157,10 +157,23 @@ class Pruning:
             if next_conv.bias is not None and new_next_conv.bias is not None:
                 new_next_conv.bias.data = next_conv.bias.data
 
-    def _map_indices(self, arg0, arg1, filter_indices):
+    def _map_indices(self, conv_layer, dimension, filter_indices):
+        """
+        Create mapping from old indices to new indices, skipping pruned filters.
+        
+        Args:
+            conv_layer: The convolutional layer
+            dimension: 0 for output channels, 1 for input channels  
+            filter_indices: List of indices to be pruned
+            
+        Returns:
+            Dictionary mapping old_index -> new_index
+        """
         result = {}
         target_idx = 0
-        for source_idx in range(arg0.weight.data.size(arg1)):
+        total_size = conv_layer.weight.data.size(dimension)
+        
+        for source_idx in range(total_size):
             if source_idx not in filter_indices:
                 result[source_idx] = target_idx
                 target_idx += 1
@@ -241,19 +254,25 @@ class Pruning:
         """
         Prune multiple filters at once per layer to reduce reconstruction.
         """
+        if not prune_targets:
+            print("Warning: No targets to prune")
+            return model
+            
         # Group filters by layer and remove duplicates
         filters_by_layer = {}
         for layer_idx, filter_idx in prune_targets:
             if layer_idx not in filters_by_layer:
-                filters_by_layer[layer_idx] = set()  # Use a set to avoid duplicates
+                filters_by_layer[layer_idx] = set()
             filters_by_layer[layer_idx].add(filter_idx)
         
-        # Process layers in reverse order to avoid index shifting issues
-        for layer_idx in sorted(filters_by_layer.keys(), reverse=True):
-            filter_indices = sorted(list(filters_by_layer[layer_idx]), reverse=True)  # Convert to sorted list
+        print(f"Pruning filters from {len(filters_by_layer)} layers")
+        
+        # Process layers in order (not reverse) to avoid dependency issues
+        for layer_idx in sorted(filters_by_layer.keys()):
+            filter_indices = sorted(list(filters_by_layer[layer_idx]))
             modules = list(model.net_1)
             
-            # Safety check: ensure we don't prune too many filters
+            # Safety checks
             if layer_idx >= len(modules):
                 print(f"Warning: Layer index {layer_idx} out of bounds, skipping")
                 continue
@@ -263,61 +282,54 @@ class Pruning:
                 print(f"Warning: Layer {layer_idx} is not Conv2d, skipping")
                 continue
                 
+            print(f"Layer {layer_idx}: Pruning {len(filter_indices)} filters from {conv.out_channels} total")
+            
             # Safety check: ensure we don't prune all filters
             if len(filter_indices) >= conv.out_channels:
-                print(f"Warning: Trying to prune {len(filter_indices)} filters from layer {layer_idx} with only {conv.out_channels} filters")
-                # Limit pruning to leave at least one filter
-                filter_indices = filter_indices[:conv.out_channels-1]
+                print(f"Error: Trying to prune {len(filter_indices)} filters from layer {layer_idx} with only {conv.out_channels} filters")
+                # Skip this layer entirely rather than break the model
+                continue
                 
             # Verify indices are in bounds
-            valid_indices = [idx for idx in filter_indices if idx < conv.out_channels]
-            if len(valid_indices) < len(filter_indices):
-                print(f"Warning: Some filter indices for layer {layer_idx} are out of bounds. Max index should be < {conv.out_channels}")
+            valid_indices = [idx for idx in filter_indices if 0 <= idx < conv.out_channels]
+            if len(valid_indices) != len(filter_indices):
+                print(f"Warning: Some filter indices for layer {layer_idx} are out of bounds")
                 filter_indices = valid_indices
                 
+            if not filter_indices:  # No valid indices to prune
+                continue
+                
             # Create new conv with reduced output channels
+            new_out_channels = conv.out_channels - len(filter_indices)
+            if new_out_channels <= 0:
+                print(f"Error: Would result in {new_out_channels} filters for layer {layer_idx}, skipping")
+                continue
+                
             new_conv = self._create_new_conv(
                 conv=conv, 
-                out_channels=conv.out_channels - len(filter_indices)
+                out_channels=new_out_channels
             )
             
+            # Prune the current layer
+            self._prune_conv_layer(conv, new_conv, filter_indices)
+            
+            # Update model with new conv layer
+            modules[layer_idx] = new_conv
+            model.net_1 = torch.nn.Sequential(*modules)
+            
             # Check if this is the last conv layer
-            is_last_conv = self.layer_info[layer_idx]["is_last_conv"] if layer_idx in self.layer_info else False
+            is_last_conv = self.layer_info.get(layer_idx, {}).get("is_last_conv", False)
             
             if is_last_conv:
-                # Handle last conv layer differently due to FC layer connection
-                model = self._prune_last_conv_layer(
-                    model=model,
-                    conv=conv,
-                    new_conv=new_conv,
-                    layer_index=layer_idx,
-                    filter_indices=filter_indices
-                )
+                # Handle connection to FC layer
+                model = self._update_fc_layer_for_pruning(model, layer_idx, filter_indices)
             else:
-                # Regular conv layer pruning
-                self._prune_conv_layer(conv, new_conv, filter_indices)
-                
-                # Update model with new conv layer
-                modules[layer_idx] = new_conv
-                model.net_1 = torch.nn.Sequential(*modules)
-                
-                # Get next conv layer that needs input channel adjustment
-                next_conv_idx = self.layer_info[layer_idx]["next_conv_index"] if layer_idx in self.layer_info else None
+                # Update next conv layer's input channels
+                next_conv_idx = self.layer_info.get(layer_idx, {}).get("next_conv_index")
                 if next_conv_idx is not None:
-                    next_conv = modules[next_conv_idx]
-                    new_next_conv = self._create_new_conv(
-                        conv=next_conv,
-                        in_channels=next_conv.in_channels - len(filter_indices)
-                    )
-                    self._prune_next_conv_layer(next_conv, new_next_conv, filter_indices)
-                    
-                    # Update model with new next_conv layer
-                    modules[next_conv_idx] = new_next_conv
-                    model.net_1 = torch.nn.Sequential(*modules)
+                    model = self._update_next_conv_layer(model, next_conv_idx, filter_indices)
             
-            # Selective memory clearing (not every iteration)
-            if len(filter_indices) > 10:
-                self._clear_memory()
+            print(f"Layer {layer_idx}: Successfully pruned to {new_conv.out_channels} filters")
                 
         # Final memory cleanup
         self._clear_memory()
@@ -328,3 +340,89 @@ class Pruning:
         Legacy method for single filter pruning - redirects to batch pruning for efficiency
         """
         return self.batch_prune_filters(model, [(layer_index, filter_index)])
+
+    def _update_next_conv_layer(self, model, next_conv_idx, filter_indices):
+        """Update the next convolutional layer to handle reduced input channels."""
+        modules = list(model.net_1)
+        if next_conv_idx >= len(modules):
+            return model
+            
+        next_conv = modules[next_conv_idx]
+        if not isinstance(next_conv, torch.nn.Conv2d):
+            return model
+            
+        new_in_channels = next_conv.in_channels - len(filter_indices)
+        if new_in_channels <= 0:
+            print(f"Error: Next conv layer {next_conv_idx} would have {new_in_channels} input channels")
+            return model
+            
+        new_next_conv = self._create_new_conv(
+            conv=next_conv,
+            in_channels=new_in_channels
+        )
+        
+        self._prune_next_conv_layer(next_conv, new_next_conv, filter_indices)
+        
+        # Update model
+        modules[next_conv_idx] = new_next_conv
+        model.net_1 = torch.nn.Sequential(*modules)
+        
+        return model
+
+    def _update_fc_layer_for_pruning(self, model, layer_idx, filter_indices):
+        """Update the fully connected layer when the last conv layer is pruned."""
+        # Find the first FC layer
+        fc_modules = list(model.net_2)
+        fc_layer = None
+        fc_idx = None
+        
+        for i, module in enumerate(fc_modules):
+            if isinstance(module, torch.nn.Linear):
+                fc_layer = module
+                fc_idx = i
+                break
+                
+        if fc_layer is None:
+            print("Warning: No FC layer found to update")
+            return model
+            
+        # Get the conv layer to calculate parameters per filter
+        conv_layer = list(model.net_1)[layer_idx]
+        if not isinstance(conv_layer, torch.nn.Conv2d):
+            return model
+            
+        # Calculate how many parameters each filter contributes to FC input
+        params_per_filter = fc_layer.in_features // (conv_layer.out_channels + len(filter_indices))
+        
+        new_in_features = fc_layer.in_features - (len(filter_indices) * params_per_filter)
+        
+        if new_in_features <= 0:
+            print(f"Error: FC layer would have {new_in_features} input features")
+            return model
+            
+        new_fc = torch.nn.Linear(new_in_features, fc_layer.out_features).to(self.device)
+        
+        # Copy weights, skipping pruned filter contributions
+        with torch.no_grad():
+            target_idx = 0
+            original_filters = conv_layer.out_channels + len(filter_indices)
+            
+            for source_filter in range(original_filters):
+                if source_filter not in filter_indices:
+                    start_old = source_filter * params_per_filter
+                    end_old = (source_filter + 1) * params_per_filter
+                    
+                    start_new = target_idx * params_per_filter
+                    end_new = (target_idx + 1) * params_per_filter
+                    
+                    new_fc.weight.data[:, start_new:end_new] = fc_layer.weight.data[:, start_old:end_old]
+                    target_idx += 1
+                    
+            # Copy bias
+            new_fc.bias.data = fc_layer.bias.data.clone()
+        
+        # Update model
+        fc_modules[fc_idx] = new_fc
+        model.net_2 = torch.nn.Sequential(*fc_modules)
+        
+        return model
