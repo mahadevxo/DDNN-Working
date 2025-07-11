@@ -281,7 +281,7 @@ class Pruning:
                 filters_by_layer[layer_idx] = set()
             filters_by_layer[layer_idx].add(filter_idx)
 
-        print(f"Pruning filters from {len(filters_by_layer)} layers")
+        print(f"BRUTAL: Pruning filters from {len(filters_by_layer)} layers")
 
         # Process layers in order (not reverse) to avoid dependency issues
         for layer_idx in sorted(filters_by_layer.keys()):
@@ -298,13 +298,13 @@ class Pruning:
                 print(f"Warning: Layer {layer_idx} is not Conv2d, skipping")
                 continue
 
-            print(f"Layer {layer_idx}: Pruning {len(filter_indices)} filters from {conv.out_channels} total")
+            print(f"BRUTAL Layer {layer_idx}: Pruning {len(filter_indices)} filters from {conv.out_channels} total")
 
-            # Safety check: ensure we don't prune all filters
+            # REMOVE MOST SAFETY CHECKS - only keep the absolute minimum
             if len(filter_indices) >= conv.out_channels:
-                print(f"Error: Trying to prune {len(filter_indices)} filters from layer {layer_idx} with only {conv.out_channels} filters")
-                # Skip this layer entirely rather than break the model
-                continue
+                # Only leave 1 filter minimum instead of refusing
+                filter_indices = filter_indices[:conv.out_channels-1]
+                print(f"BRUTAL: Limiting to {len(filter_indices)} filters to leave 1 remaining")
 
             # Verify indices are in bounds
             valid_indices = [idx for idx in filter_indices if 0 <= idx < conv.out_channels]
@@ -318,8 +318,9 @@ class Pruning:
             # Create new conv with reduced output channels
             new_out_channels = conv.out_channels - len(filter_indices)
             if new_out_channels <= 0:
-                print(f"Error: Would result in {new_out_channels} filters for layer {layer_idx}, skipping")
-                continue
+                print(f"BRUTAL: Would result in {new_out_channels} filters for layer {layer_idx}, setting to 1")
+                new_out_channels = 1
+                filter_indices = filter_indices[:conv.out_channels-1]
 
             new_conv = self._create_new_conv(
                 conv=conv, 
@@ -333,7 +334,7 @@ class Pruning:
             modules[layer_idx] = new_conv
             model.net_1 = torch.nn.Sequential(*modules)
 
-            if is_last_conv := self.layer_info.get(layer_idx, {}).get(  # noqa: F841
+            if is_last_conv := self.layer_info.get(layer_idx, {}).get(
                 "is_last_conv", False
             ):
                 # Handle connection to FC layer
@@ -344,7 +345,7 @@ class Pruning:
                 if next_conv_idx is not None:
                     model = self._update_next_conv_layer(model, next_conv_idx, filter_indices)
 
-            print(f"Layer {layer_idx}: Successfully pruned to {new_conv.out_channels} filters")
+            print(f"BRUTAL Layer {layer_idx}: Successfully pruned to {new_conv.out_channels} filters")
 
         # Final memory cleanup
         self._clear_memory()

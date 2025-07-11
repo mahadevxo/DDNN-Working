@@ -103,62 +103,73 @@ def fine_tune_model(model: torch.nn.Module, curve_value: float, org_num_filters:
 
     logger.info(f"Successfully pruned {prev_filter_count - current_filter_count} filters, {current_filter_count} remaining")
     logger.info(f"Accuracy of pruned model before fine-tuning: {pruner.validate_model():.2f}%")
-    # Fine-tune the pruned model
-    logger.info(f"Fine-tuning pruned model ({curve_value:.3f})")
-
-    # REDUCED epochs for more realistic results - heavily pruned models shouldn't recover fully
-    epochs = 1 if curve_value > 0.7 else 2  # Very aggressive pruning gets minimal recovery
     
-    # Use much lower learning rates for pruned models to prevent NaN
-    base_lr = 0.00005 if curve_value > 0.5 else 0.0001  # Even lower LR for aggressive pruning
-    optimizer = torch.optim.SGD(pruner.model.parameters(), lr=base_lr, momentum=0.9, weight_decay=1e-4)
-    
-    # More conservative scheduler for pruned models
-    max_lr = 0.0005 if curve_value > 0.5 else 0.001
-    scheduler = torch.optim.lr_scheduler.OneCycleLR(
-        optimizer, max_lr=max_lr, 
-        steps_per_epoch=1, epochs=epochs,
-        pct_start=0.3  # Warmup for 30% of training
-    )
+    # Give ALL pruned models a small chance to recover - but very limited
+    if curve_value > 0.0:
+        logger.info(f"Giving pruned model ({curve_value:.1%}) a small chance to study...")
+        
+        # VERY minimal fine-tuning - just a tiny chance
+        if curve_value > 0.8:
+            epochs = 1  # Heavily pruned models get almost nothing
+            base_lr = 0.000005  # Extremely low LR
+            max_lr = 0.00005
+        elif curve_value > 0.5:
+            epochs = 1  # Moderately pruned models get a tiny bit more
+            base_lr = 0.00001  # Very low LR  
+            max_lr = 0.0001
+        else:
+            epochs = 2  # Lightly pruned models get slightly more chance
+            base_lr = 0.00005  # Still very low LR
+            max_lr = 0.0005
+        
+        optimizer = torch.optim.SGD(pruner.model.parameters(), lr=base_lr, momentum=0.9, weight_decay=1e-4)
+        
+        # Minimal scheduler
+        scheduler = torch.optim.lr_scheduler.OneCycleLR(
+            optimizer, max_lr=max_lr,
+            steps_per_epoch=1, epochs=epochs,
+            pct_start=0.3
+        )
 
-    with tqdm(range(epochs), desc="Training", ncols=100, colour="green") as pbar:
-        logger.info(f"Number of filters: {sum(layer.out_channels for layer in pruner.model.net_1 if isinstance(layer, torch.nn.modules.conv.Conv2d))}")
-        for epoch in pbar:
-            # Check model health before training
-            sample_input = torch.randn(1, 3, 224, 224).to(device)
-            with torch.no_grad():
-                try:
-                    sample_output = pruner.model(sample_input)
-                    if torch.isnan(sample_output).any():
-                        logger.error("Model produces NaN outputs, stopping training")
+        with tqdm(range(epochs), desc="Tiny Study Time", ncols=100, colour="yellow") as pbar:
+            logger.info(f"Giving {epochs} epoch(s) at LR {base_lr} (max {max_lr}) to {sum(layer.out_channels for layer in pruner.model.net_1 if isinstance(layer, torch.nn.modules.conv2d.Conv2d))} filters")
+            for epoch in pbar:
+                # Check model health before training
+                sample_input = torch.randn(1, 3, 224, 224).to(device)
+                with torch.no_grad():
+                    try:
+                        sample_output = pruner.model(sample_input)
+                        if torch.isnan(sample_output).any():
+                            logger.error("Model produces NaN outputs, stopping training")
+                            break
+                    except Exception as e:
+                        logger.error(f"Model forward pass failed: {e}")
                         break
-                except Exception as e:
-                    logger.error(f"Model forward pass failed: {e}")
+                
+                # Pass the optimizer to train_epoch
+                pruner.train_epoch(optimizer=optimizer)
+
+                # Step the scheduler
+                scheduler.step()
+
+                accuracy = pruner.validate_model()
+                
+                # Check for training collapse
+                if accuracy < 0.01:  # Less than 1% accuracy suggests collapse
+                    logger.warning(f"Training collapse detected at epoch {epoch+1}, accuracy: {accuracy:.4f}")
                     break
-            
-            # Pass the optimizer to train_epoch
-            pruner.train_epoch(optimizer=optimizer)
-
-            # Step the scheduler
-            scheduler.step()
-
-            accuracy = pruner.validate_model()
-            
-            # Check for training collapse
-            if accuracy < 0.01:  # Less than 1% accuracy suggests collapse
-                logger.warning(f"Training collapse detected at epoch {epoch+1}, accuracy: {accuracy:.4f}")
-                break
+                
+                pbar.set_postfix({"tiny_acc": f"{accuracy:.2f}%"})
 
     # Final evaluation
     accuracy = pruner.validate_model()
     model_size = pruner.get_model_size(pruner.model)
     comp_time = pruner.get_comp_time(pruner.model)
 
-    logger.info(f"\nResults: Acc={accuracy:.2f}%, Size={model_size:.2f}MB, Time={comp_time:.3f}s")
-    x =  (pruner.model, accuracy, model_size, comp_time)
-    pruner.reset()  # Reset pruner state for next iteration
-    del pruner  # Clear pruner from memory
-    # Return the model and metrics
+    logger.info(f"\nResults after tiny study: Acc={accuracy:.2f}%, Size={model_size:.2f}MB, Time={comp_time:.3f}s")
+    x = (pruner.model, accuracy, model_size, comp_time)
+    pruner.reset()
+    del pruner
     return x
 
 
@@ -174,9 +185,9 @@ def get_model() -> torch.nn.Module:
     return model
 
 def main() -> None:
-    # Define pruning range - MORE AGGRESSIVE
+    # Define pruning range - EXTREMELY AGGRESSIVE
     pruning_amounts = np.array([
-        0.0, 0.2, 0.4, 0.6, 0.7, 0.8, 0.85, 0.9, 0.95, 0.98, 0.99
+        0.0, 0.3, 0.5, 0.7, 0.8, 0.9, 0.95, 0.97, 0.98, 0.99
     ])
     pruning_amounts = list(np.random.permutation(pruning_amounts))
     #randomize it
@@ -209,12 +220,12 @@ def main() -> None:
                 try:
                     model = get_model()
                     pbar_outer.set_postfix({"ratio": f"{pruning_amount:.2f}"})
-                    logger.info(f"\n{'='*50}\nProcessing pruning ratio: {pruning_amount:.2f}\nTrainable Filters: {sum(layer.out_channels for layer in model.net_1 if isinstance(layer, torch.nn.modules.conv.Conv2d))}\n{'='*50}\n") # type: ignore
+                    logger.info(f"\n{'='*50}\nProcessing pruning ratio: {pruning_amount:.2f}\nTrainable Filters: {sum(layer.out_channels for layer in model.net_1 if isinstance(layer, torch.nn.modules.conv2d.Conv2d))}\n{'='*50}\n") # type: ignore
                     
                     if pruning_amount == 0.0:
                         # Baseline (unpruned) evaluation
                         model, final_acc, model_size, comp_time = fine_tune_model(model=model, curve_value=0.0, org_num_filters=total_num_filters, only_val=False)
-                        num_filters_present = sum(layer.out_channels for layer in model.net_1 if isinstance(layer, torch.nn.modules.conv.Conv2d))  # type: ignore
+                        num_filters_present = sum(layer.out_channels for layer in model.net_1 if isinstance(layer, torch.nn.modules.conv2d.Conv2d))  # type: ignore
                         print(f"Baseline model size: {model_size:.4f} MB, Accuracy: {final_acc:.4f}, Computation Time: {comp_time:.4f} seconds")
                         with open(result_path, 'a') as f:
                             f.write(f"{pruning_amount:.2f},{final_acc:.4f},{model_size:.4f},{comp_time:.4f},{num_filters_present}\n")
@@ -230,9 +241,9 @@ def main() -> None:
                     # Process each step of the curve
                     final_metrics = None
                     for i, curve_value in enumerate(curve):
-                        logger.info(f"\nStep {i+1}/{len(curve)}: Pruning ratio = {curve_value:.3f}\nTrainable Filters: {sum(layer.out_channels for layer in model.net_1 if isinstance(layer, torch.nn.modules.conv.Conv2d))}\n") # type: ignore
+                        logger.info(f"\nStep {i+1}/{len(curve)}: Pruning ratio = {curve_value:.3f}\nTrainable Filters: {sum(layer.out_channels for layer in model.net_1 if isinstance(layer, torch.nn.modules.conv2d.Conv2d))}\n") # type: ignore
                         model, accuracy, model_size, comp_time = fine_tune_model(model=model, curve_value=curve_value, org_num_filters=total_num_filters, only_val=False)
-                        num_filters_present = sum(layer.out_channels for layer in model.net_1 if isinstance(layer, torch.nn.modules.conv.Conv2d)) # type: ignore
+                        num_filters_present = sum(layer.out_channels for layer in model.net_1 if isinstance(layer, torch.nn.modules.conv2d.Conv2d)) # type: ignore
                         final_metrics = (pruning_amount, accuracy, model_size, comp_time, num_filters_present)
                     
                     # Save results

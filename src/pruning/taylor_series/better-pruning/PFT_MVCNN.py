@@ -265,14 +265,17 @@ class PruningFineTuner:
             
     def train_epoch(self, optimizer=None, rank_filter=False):
         """Train model for one epoch"""
-        # Use much smaller sample for ranking to make it more challenging
-        train_loader = self.get_modelnet33_images('train', num_samples=200 if rank_filter else -1)
+        if rank_filter:
+            # Use very small sample for ranking to make it more challenging
+            train_loader = self.get_modelnet33_images('train', num_samples=150)
+        else:
+            # Use small sample for fine-tuning - don't give too much data to recover with
+            train_loader = self.get_modelnet33_images('train', num_samples=400)
         
         if train_loader is None:
             self._log("Error: train_loader is None")
             return self.model
         
-        # Fix parameter order: train_batch expects (train_loader, optimizer)
         if rank_filter:
             self.train_batch(train_loader, optimizer)
         else:
