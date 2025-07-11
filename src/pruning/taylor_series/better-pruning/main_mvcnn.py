@@ -139,7 +139,7 @@ def get_model() -> torch.nn.Module:
         nclasses=33,
         cnn_name="vgg11"
     )
-    weights = torch.load("../../../MVCNN/MVCNN/model-00050.pth", map_location=device)
+    weights = torch.load("../../../MVCNN/MVCNN/model-model-00050.pth", map_location=device)
     model.load_state_dict(weights, strict=False)
     model = model.to(device)
     return model
