@@ -6,6 +6,7 @@ import logging
 import os
 import sys
 import time
+sys.path.append('../../../MVCNN/')
 
 device: str = 'mps' if torch.backends.mps.is_available() else 'cuda' if torch.cuda.is_available() else 'cpu'
 # Configure logging for cleaner output
