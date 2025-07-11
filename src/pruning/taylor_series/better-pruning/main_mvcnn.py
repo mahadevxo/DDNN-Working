@@ -1,12 +1,12 @@
 import numpy as np
+import sys
+sys.path.append('../../../MVCNN/')
 from models import MVCNN
 import torch
 from tqdm import tqdm
 import logging
 import os
-import sys
 import time
-sys.path.append('../../../MVCNN/')
 
 device: str = 'mps' if torch.backends.mps.is_available() else 'cuda' if torch.cuda.is_available() else 'cpu'
 # Configure logging for cleaner output
