@@ -108,7 +108,7 @@ def fine_tune_model(model: torch.nn.Module, curve_value: float, org_num_filters:
     logger.info(f"Fine-tuning pruned model ({curve_value:.3f})")
 
     accuracy_previous = []
-    epochs = 5
+    epochs = 3
     
     # Use much lower learning rates for pruned models to prevent NaN
     base_lr = 0.0001 if curve_value > 0 else 0.001  # Lower LR for pruned models
@@ -150,17 +150,6 @@ def fine_tune_model(model: torch.nn.Module, curve_value: float, org_num_filters:
                 logger.warning(f"Training collapse detected at epoch {epoch+1}, accuracy: {accuracy:.4f}")
                 break
 
-            accuracy_previous.append(accuracy)
-            if len(accuracy_previous) > 4:
-                accuracy_previous.pop(0)
-
-            pbar.set_postfix({"val acc": f"{accuracy:.2f}%"})
-
-            # Early stopping check (convergence)
-            if len(accuracy_previous) >= 3 and accuracy-1e-1 <= np.mean(accuracy_previous) <= accuracy+1e1:
-                logger.info(f"Converged at epoch {epoch+1}/{epochs}")
-                break
-
     # Final evaluation
     accuracy = pruner.validate_model()
     model_size = pruner.get_model_size(pruner.model)
@@ -184,20 +173,20 @@ def get_model() -> torch.nn.Module:
     model = model.to(device)
     return model
 
-def main() -> None:    
+def main() -> None:
     # Define pruning range
-    pruning_amounts = np.arange(0, 1, 0.1).tolist()
-    pruning_amounts += [0.92, 0.94, 0.96, 0.98]
-    random.shuffle(pruning_amounts)
-    print(pruning_amounts)
+    pruning_amounts = np.array([
+        0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.95, 0.98
+    ])
+    pruning_amounts = list(np.random.permutation(pruning_amounts))
     #randomize it
       # Reverse to start from 0.98 down to 0.0
     
-    for doit in [False]:
+    for part_my_part_prune in [False]:
         current_time_str = time.strftime("%Y%m%d-%H%M%S")
         logger.info(f"Experiment started at {current_time_str}")
         os.makedirs("results", exist_ok=True)
-        result_path = f"results/pruning_results_mvcnn-{current_time_str}-partbypart-{str(doit)}.csv"
+        result_path = f"results/pruning_results_mvcnn-{current_time_str}-partbypart-{str(part_my_part_prune)}.csv"
         
         print(f"Pruning amounts to be tested: {pruning_amounts}")
         total_num_filters = sum(layer.out_channels for layer in get_model().net_1 if isinstance(layer, torch.nn.modules.conv.Conv2d))  # type: ignore
@@ -232,7 +221,7 @@ def main() -> None:
                         continue
                     
                     # Get exponential curve values for progressive pruning
-                    curve = get_exp_curve(pruning_amount, do_it=doit)
+                    curve = get_exp_curve(pruning_amount, do_it=part_my_part_prune)
                     curve = [c for c in curve if c > 0]  # Filter out zeros
                     
                     if not curve:
