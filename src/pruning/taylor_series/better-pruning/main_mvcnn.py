@@ -132,7 +132,7 @@ def fine_tune_model(model: torch.nn.Module, curve_value: float, org_num_filters:
         )
 
         with tqdm(range(epochs), desc="Tiny Study Time", ncols=100, colour="yellow") as pbar:
-            logger.info(f"Giving {epochs} epoch(s) at LR {base_lr} (max {max_lr}) to {sum(layer.out_channels for layer in pruner.model.net_1 if isinstance(layer, torch.nn.modules.conv2d.Conv2d))} filters")
+            logger.info(f"Giving {epochs} epoch(s) at LR {base_lr} (max {max_lr}) to {sum(layer.out_channels for layer in pruner.model.net_1 if isinstance(layer, torch.nn.modules.conv.Conv2d))} filters")  # Fixed: conv, not conv2d
             for epoch in pbar:
                 # Check model health before training
                 sample_input = torch.randn(1, 3, 224, 224).to(device)
@@ -220,12 +220,12 @@ def main() -> None:
                 try:
                     model = get_model()
                     pbar_outer.set_postfix({"ratio": f"{pruning_amount:.2f}"})
-                    logger.info(f"\n{'='*50}\nProcessing pruning ratio: {pruning_amount:.2f}\nTrainable Filters: {sum(layer.out_channels for layer in model.net_1 if isinstance(layer, torch.nn.modules.conv2d.Conv2d))}\n{'='*50}\n") # type: ignore
+                    logger.info(f"\n{'='*50}\nProcessing pruning ratio: {pruning_amount:.2f}\nTrainable Filters: {sum(layer.out_channels for layer in model.net_1 if isinstance(layer, torch.nn.modules.conv.Conv2d))}\n{'='*50}\n")  # Fixed: conv, not conv2d
                     
                     if pruning_amount == 0.0:
                         # Baseline (unpruned) evaluation
                         model, final_acc, model_size, comp_time = fine_tune_model(model=model, curve_value=0.0, org_num_filters=total_num_filters, only_val=False)
-                        num_filters_present = sum(layer.out_channels for layer in model.net_1 if isinstance(layer, torch.nn.modules.conv2d.Conv2d))  # type: ignore
+                        num_filters_present = sum(layer.out_channels for layer in model.net_1 if isinstance(layer, torch.nn.modules.Conv2d))  # Fixed: conv, not conv2d
                         print(f"Baseline model size: {model_size:.4f} MB, Accuracy: {final_acc:.4f}, Computation Time: {comp_time:.4f} seconds")
                         with open(result_path, 'a') as f:
                             f.write(f"{pruning_amount:.2f},{final_acc:.4f},{model_size:.4f},{comp_time:.4f},{num_filters_present}\n")
@@ -241,9 +241,9 @@ def main() -> None:
                     # Process each step of the curve
                     final_metrics = None
                     for i, curve_value in enumerate(curve):
-                        logger.info(f"\nStep {i+1}/{len(curve)}: Pruning ratio = {curve_value:.3f}\nTrainable Filters: {sum(layer.out_channels for layer in model.net_1 if isinstance(layer, torch.nn.modules.conv2d.Conv2d))}\n") # type: ignore
+                        logger.info(f"\nStep {i+1}/{len(curve)}: Pruning ratio = {curve_value:.3f}\nTrainable Filters: {sum(layer.out_channels for layer in model.net_1 if isinstance(layer, torch.nn.modules.conv.Conv2d))}\n")  # Fixed: conv, not conv2d
                         model, accuracy, model_size, comp_time = fine_tune_model(model=model, curve_value=curve_value, org_num_filters=total_num_filters, only_val=False)
-                        num_filters_present = sum(layer.out_channels for layer in model.net_1 if isinstance(layer, torch.nn.modules.conv2d.Conv2d)) # type: ignore
+                        num_filters_present = sum(layer.out_channels for layer in model.net_1 if isinstance(layer, torch.nn.modules.Conv2d))  # Fixed: conv, not conv2d
                         final_metrics = (pruning_amount, accuracy, model_size, comp_time, num_filters_present)
                     
                     # Save results
