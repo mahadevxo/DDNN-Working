@@ -77,7 +77,7 @@ class PruningFineTuner:
         if test_or_train == 'train':
             dataset = self.get_test_dataset(num_samples)
         elif test_or_train == 'time':
-            num_samples=8
+            # num_samples=8
             full_dataset = MultiviewImgDataset(root_dir=self.train_path,
                                                scale_aug=False,
                                                rot_aug=False,
