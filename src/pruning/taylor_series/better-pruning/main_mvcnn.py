@@ -64,12 +64,21 @@ def fine_tune_model(model: torch.nn.Module, curve_value: float, org_num_filters:
         comp_time = pruner.get_comp_time(pruner.model)
         return pruner.model, accuracy, model_size, comp_time
     
+    # Debug: Show initial filter counts per layer
+    initial_filter_counts = []
+    for i, layer in enumerate(pruner.model.net_1):
+        if isinstance(layer, torch.nn.modules.conv.Conv2d):
+            initial_filter_counts.append((i, layer.out_channels))
+    logger.info(f"Initial filter counts: {initial_filter_counts}")
+    
     # Prune the model
     logger.info(f"Pruning model with ratio {curve_value:.3f}")
     prev_filter_count = pruner.total_num_filters()
+    logger.info(f"Requesting to prune {int(curve_value * org_num_filters)} filters from {prev_filter_count} total")
+    
     output = pruner.prune(pruning_amount=curve_value, num_filters_to_prune=org_num_filters)
     if output is False or output is None:
-        logger.info(f"No filters pruned at ratio {curve_value:.3f}")
+        logger.info(f"Pruning failed at ratio {curve_value:.3f}")
         model_size = pruner.get_model_size(pruner.model)
         comp_time = pruner.get_comp_time(pruner.model)
         accuracy = pruner.validate_model()
@@ -77,15 +86,22 @@ def fine_tune_model(model: torch.nn.Module, curve_value: float, org_num_filters:
     
     current_filter_count = pruner.total_num_filters()
     
+    # Debug: Show final filter counts per layer
+    final_filter_counts = []
+    for i, layer in enumerate(pruner.model.net_1):
+        if isinstance(layer, torch.nn.modules.conv.Conv2d):
+            final_filter_counts.append((i, layer.out_channels))
+    logger.info(f"Final filter counts: {final_filter_counts}")
+    
     # Check if any filters were pruned
     if current_filter_count == prev_filter_count and curve_value > 0:
-        logger.info(f"No more filters can be pruned at ratio {curve_value:.3f}")
+        logger.warning(f"No filters were actually pruned! Expected to prune {int(curve_value * org_num_filters)} filters")
         model_size = pruner.get_model_size(pruner.model)
         comp_time = pruner.get_comp_time(pruner.model)
         accuracy = pruner.validate_model()
         return pruner.model, accuracy, model_size, comp_time
     
-    logger.info(f"Pruned {prev_filter_count - current_filter_count} filters, {current_filter_count} remaining")
+    logger.info(f"Successfully pruned {prev_filter_count - current_filter_count} filters, {current_filter_count} remaining")
     logger.info(f"Accuracy of pruned model before fine-tuning: {pruner.validate_model():.2f}%")
     # Fine-tune the pruned model
     logger.info(f"Fine-tuning pruned model ({curve_value:.3f})")

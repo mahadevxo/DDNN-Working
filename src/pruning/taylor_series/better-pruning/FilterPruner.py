@@ -129,17 +129,20 @@ class FilterPruner:
         
         # If no filters can be pruned, return empty list
         if not filters_to_prune:
-            print("Warning: No more filters can be pruned safely.")
+            print("Warning: No filters available for pruning.")
             return []
         
-        # Group by layer without index shifting (i'll handle that at pruning time later)
+        # Group by layer for safety checking
         filters_to_prune_per_layer = {}
         for (layer_n, f, _) in filters_to_prune:
             if layer_n not in filters_to_prune_per_layer:
                 filters_to_prune_per_layer[layer_n] = []
             filters_to_prune_per_layer[layer_n].append(f)
         
-        # Check if any layer would be left with no filters
+        # Safety check: ensure we don't prune ALL filters from any layer
+        # But be less conservative - allow pruning up to (total_filters - 1)
+        valid_filters_to_prune = []
+        
         for layer_n in filters_to_prune_per_layer:
             # Find the total number of filters in this layer
             layer_found = False
@@ -150,23 +153,31 @@ class FilterPruner:
                     layer_found = True
                     break
             
-            # If we found the layer, ensure we don't prune all filters
-            if layer_found and len(filters_to_prune_per_layer[layer_n]) >= total_filters: # see like > never happens, it's always =, keeing it for safety
-                filters_to_prune_per_layer[layer_n] = filters_to_prune_per_layer[layer_n][:total_filters-1]
-                print(f"No more filters to prune at {layer_n}")
-                return None
-        
-        # Flatten the pruning plan
-        filters_to_prune = []
-        for layer_n in filters_to_prune_per_layer:
-            for f in sorted(filters_to_prune_per_layer[layer_n]):
-                filters_to_prune.append((layer_n, f))
+            if not layer_found:
+                print(f"Warning: Layer {layer_n} not found, skipping")
+                continue
+                
+            # Allow pruning up to (total_filters - 1), but be more permissive
+            filters_for_this_layer = filters_to_prune_per_layer[layer_n]
+            max_prunable = max(1, total_filters - 1)  # Always leave at least 1 filter
+            
+            if len(filters_for_this_layer) >= total_filters:
+                # Limit to max_prunable filters for this layer
+                filters_for_this_layer = filters_for_this_layer[:max_prunable]
+                print(f"Layer {layer_n}: Limiting pruning to {len(filters_for_this_layer)}/{total_filters} filters")
+            
+            # Add valid filters to the final pruning plan
+            for f in sorted(filters_for_this_layer):
+                valid_filters_to_prune.append((layer_n, f))
         
         # Check if we ended up with no filters to prune
-        if not filters_to_prune:
+        if not valid_filters_to_prune:
             print("Warning: After safety checks, no filters can be pruned.")
+            return []
+        
+        print(f"Pruning plan: {len(valid_filters_to_prune)} filters across {len(filters_to_prune_per_layer)} layers")
         
         # Clean up after pruning plan is created
         self.reset()
         
-        return filters_to_prune
+        return valid_filters_to_prune
