@@ -113,8 +113,8 @@ class FilterPruner:
     
     def smooth_distributions(self):
         for i in self.filter_ranks:
-            # Add small random noise to break ties and clusters
-            noise = torch.randn_like(self.filter_ranks[i]) * 1e-5
+            # Add MORE noise to create more variation in rankings
+            noise = torch.randn_like(self.filter_ranks[i]) * 1e-3  # Increased noise
             self.filter_ranks[i] += noise
             
     def get_pruning_plan(self, num_filters_to_prune):
@@ -139,7 +139,7 @@ class FilterPruner:
                 filters_to_prune_per_layer[layer_n] = []
             filters_to_prune_per_layer[layer_n].append(f)
         
-        # Safety check: ensure we don't prune ALL filters from any layer
+        # MUCH MORE AGGRESSIVE PRUNING - allow up to 90% of filters to be pruned per layer
         valid_filters_to_prune = []
         
         for layer_n in filters_to_prune_per_layer:
@@ -156,14 +156,13 @@ class FilterPruner:
                 print(f"Warning: Layer {layer_n} not found, skipping")
                 continue
                 
-            # Allow pruning up to (total_filters - 1), but be more permissive
+            # AGGRESSIVE: Allow pruning up to 95% of filters per layer
             filters_for_this_layer = filters_to_prune_per_layer[layer_n]
-            max_prunable = max(1, total_filters - 1)  # Always leave at least 1 filter
+            max_prunable = max(1, int(total_filters * 0.95))  # Keep only 5% minimum
             
-            if len(filters_for_this_layer) >= total_filters:
-                # Limit to max_prunable filters for this layer
+            if len(filters_for_this_layer) > max_prunable:
                 filters_for_this_layer = filters_for_this_layer[:max_prunable]
-                print(f"Layer {layer_n}: Limiting pruning to {len(filters_for_this_layer)}/{total_filters} filters")
+                print(f"Layer {layer_n}: Aggressively pruning {len(filters_for_this_layer)}/{total_filters} filters")
             
             # Add valid filters to the final pruning plan
             for f in sorted(filters_for_this_layer):
@@ -174,9 +173,6 @@ class FilterPruner:
             print("Warning: After safety checks, no filters can be pruned.")
             return []
         
-        print(f"Pruning plan: {len(valid_filters_to_prune)} filters across {len(filters_to_prune_per_layer)} layers")
-        
-        # DON'T reset here - let the caller decide when to reset
-        # self.reset()  # REMOVED - this was clearing state prematurely
+        print(f"AGGRESSIVE Pruning plan: {len(valid_filters_to_prune)} filters across {len(filters_to_prune_per_layer)} layers")
         
         return valid_filters_to_prune

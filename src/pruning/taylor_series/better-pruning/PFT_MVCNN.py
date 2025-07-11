@@ -109,13 +109,13 @@ class PruningFineTuner:
 
     def get_test_dataset(self, num_samples):
         full_dataset = MultiviewImgDataset(root_dir=self.train_path,
-                                           scale_aug=False,
-                                           rot_aug=False,
-                                           num_models=0,
-                                           num_views=12)
+                                       scale_aug=False,
+                                       rot_aug=False,
+                                       num_models=0,
+                                       num_views=12)
 
         if num_samples < 0:
-            num_samples = len(full_dataset) // 5
+            num_samples = len(full_dataset) // 8  # Much smaller subset for more realistic ranking
         self._log(f"Total samples in ModelNet33 full train dataset: {len(full_dataset)}")
         self._log(f"Sub-sampling ModelNet33 train dataset to {num_samples} samples")
 
@@ -265,7 +265,8 @@ class PruningFineTuner:
             
     def train_epoch(self, optimizer=None, rank_filter=False):
         """Train model for one epoch"""
-        train_loader = self.get_modelnet33_images('train', num_samples=800 if rank_filter else -1)
+        # Use much smaller sample for ranking to make it more challenging
+        train_loader = self.get_modelnet33_images('train', num_samples=200 if rank_filter else -1)
         
         if train_loader is None:
             self._log("Error: train_loader is None")

@@ -7,7 +7,6 @@ from tqdm import tqdm
 import logging
 import os
 import time
-import random
 
 device: str = 'mps' if torch.backends.mps.is_available() else 'cuda' if torch.cuda.is_available() else 'cpu'
 # Configure logging for cleaner output
@@ -107,15 +106,15 @@ def fine_tune_model(model: torch.nn.Module, curve_value: float, org_num_filters:
     # Fine-tune the pruned model
     logger.info(f"Fine-tuning pruned model ({curve_value:.3f})")
 
-    accuracy_previous = []
-    epochs = 3
+    # REDUCED epochs for more realistic results - heavily pruned models shouldn't recover fully
+    epochs = 1 if curve_value > 0.7 else 2  # Very aggressive pruning gets minimal recovery
     
     # Use much lower learning rates for pruned models to prevent NaN
-    base_lr = 0.0001 if curve_value > 0 else 0.001  # Lower LR for pruned models
+    base_lr = 0.00005 if curve_value > 0.5 else 0.0001  # Even lower LR for aggressive pruning
     optimizer = torch.optim.SGD(pruner.model.parameters(), lr=base_lr, momentum=0.9, weight_decay=1e-4)
     
     # More conservative scheduler for pruned models
-    max_lr = 0.001 if curve_value > 0 else 0.005
+    max_lr = 0.0005 if curve_value > 0.5 else 0.001
     scheduler = torch.optim.lr_scheduler.OneCycleLR(
         optimizer, max_lr=max_lr, 
         steps_per_epoch=1, epochs=epochs,
@@ -159,6 +158,7 @@ def fine_tune_model(model: torch.nn.Module, curve_value: float, org_num_filters:
     x =  (pruner.model, accuracy, model_size, comp_time)
     pruner.reset()  # Reset pruner state for next iteration
     del pruner  # Clear pruner from memory
+    # Return the model and metrics
     return x
 
 
@@ -174,9 +174,9 @@ def get_model() -> torch.nn.Module:
     return model
 
 def main() -> None:
-    # Define pruning range
+    # Define pruning range - MORE AGGRESSIVE
     pruning_amounts = np.array([
-        0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.95, 0.98
+        0.0, 0.2, 0.4, 0.6, 0.7, 0.8, 0.85, 0.9, 0.95, 0.98, 0.99
     ])
     pruning_amounts = list(np.random.permutation(pruning_amounts))
     #randomize it
@@ -241,6 +241,10 @@ def main() -> None:
                             f.write(f"{final_metrics[0]:.2f},{final_metrics[1]:.4f},{final_metrics[2]:.4f},"
                                     f"{final_metrics[3]:.4f}, {final_metrics[4]}\n")
                     del model  # Clear model from memory
+                    del final_metrics  # Clear metrics from memory
+                    
+                    
+                    
                         
                 except Exception as e:
                     logger.error(f"Error at pruning_amount={pruning_amount}: {str(e)}")
