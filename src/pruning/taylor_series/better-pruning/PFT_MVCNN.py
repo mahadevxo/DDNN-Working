@@ -355,16 +355,16 @@ class PruningFineTuner:
         # Run inference on CPU for fair comparison
         test_loader = self.get_modelnet33_images('time', num_samples=100)
         with torch.no_grad():
-            for label, image, _ in test_loader:
-                image = image.to('cpu', non_blocking=False)
+            for data in test_loader:
+                label, image = data[0], data[1]
                 
-                # Handle MVCNN input format correctly
-                if self.model_name == 'mvcnn':
-                    # image shape: (batch_size, num_views, channels, height, width)
+                # Handle multi-view data properly
+                if self.model_name == 'mvcnn' and len(image.shape) == 5:
+                    # image shape: [batch_size, num_views, channels, height, width]
                     N, V, C, H, W = image.size()
-                    # Reshape to (batch_size * num_views, channels, height, width)
-                    image = image.view(-1, C, H, W)
+                    image = image.view(-1, C, H, W)  # Reshape to [batch_size * num_views, channels, height, width]
                 
+                image = image.to('cpu', non_blocking=False)
                 _ = model(image)
                 del image, label
 
@@ -413,31 +413,29 @@ class PruningFineTuner:
             filters_to_prune = self.get_candidates_to_prune(num_filters_to_prune)
         else:
             filters_to_prune = prune_targets
-
+        # print(filters_to_prune)
+    
         # Handle case where no filters can be pruned
         if filters_to_prune is None or len(filters_to_prune) == 0:
-            self._log(f"No more filters can be pruned at pruning amount {pruning_amount:.3f}")
-            
-            # Get metrics for current model state
-            accuracy = self.validate_model()
             model_size = self.get_model_size(self.model)
             comp_time = self.get_comp_time(self.model)
             
-            self._log(f"Current metrics - Accuracy: {accuracy:.2f}%, Model size: {model_size:.2f}MB, Comp time: {comp_time:.2f}s")
+            self._log(f"No more filters can be pruned at pruning amount {pruning_amount:.3f}")
+            self._log(f"Current metrics - Accuracy: 0.0%, Model size: {model_size:.2f}M, Comp time: {comp_time:.2f}ms")
             
             return False
-
-    if not only_model:
-        no_filters = self.total_num_filters()
-        self._log(f"Pruning {len(filters_to_prune)} filters out of {no_filters} ({100 * len(filters_to_prune) / no_filters:.1f}%)") # type: ignore
-        
-    # Use batch pruning for better performance
-    pruner = Pruning(self.model)
-    self.model = pruner.batch_prune_filters(self.model, filters_to_prune)
-    self.pruner = FilterPruner(self.model)
-
-    self._clear_memory()
-    return True
+    
+        if not only_model:
+            no_filters = self.total_num_filters()
+            self._log(f"Pruning {len(filters_to_prune)} filters out of {no_filters} ({100 * len(filters_to_prune) / no_filters:.1f}%)") # type: ignore
+            
+        # Use batch pruning for better performance
+        pruner = Pruning(self.model)
+        self.model = pruner.batch_prune_filters(self.model, filters_to_prune)
+        self.pruner = FilterPruner(self.model)
+    
+        self._clear_memory()
+        return True
     
     def reset(self):
         """Clean up resources"""
