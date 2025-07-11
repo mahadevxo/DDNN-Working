@@ -7,6 +7,7 @@ from tqdm import tqdm
 import logging
 import os
 import time
+import random
 
 device: str = 'mps' if torch.backends.mps.is_available() else 'cuda' if torch.cuda.is_available() else 'cpu'
 # Configure logging for cleaner output
@@ -54,28 +55,28 @@ def fine_tune_model(model: torch.nn.Module, curve_value: float, org_num_filters:
 
     from PFT_MVCNN import PruningFineTuner as pft
     pruner = pft(model, quiet=False)
-    
+
     if only_val:
         return model, pruner.validate_model(), 0.0, 0.0
-    
+
     if curve_value == 0.0:
         accuracy = pruner.validate_model()
         model_size = pruner.get_model_size(pruner.model)
         comp_time = pruner.get_comp_time(pruner.model)
         return pruner.model, accuracy, model_size, comp_time
-    
-    # Debug: Show initial filter counts per layer
-    initial_filter_counts = []
-    for i, layer in enumerate(pruner.model.net_1):
-        if isinstance(layer, torch.nn.modules.conv.Conv2d):
-            initial_filter_counts.append((i, layer.out_channels))
+
+    initial_filter_counts = [
+        (i, layer.out_channels)
+        for i, layer in enumerate(pruner.model.net_1)
+        if isinstance(layer, torch.nn.modules.conv.Conv2d)
+    ]
     logger.info(f"Initial filter counts: {initial_filter_counts}")
-    
+
     # Prune the model
     logger.info(f"Pruning model with ratio {curve_value:.3f}")
     prev_filter_count = pruner.total_num_filters()
     logger.info(f"Requesting to prune {int(curve_value * org_num_filters)} filters from {prev_filter_count} total")
-    
+
     output = pruner.prune(pruning_amount=curve_value, num_filters_to_prune=org_num_filters)
     if output is False or output is None:
         logger.info(f"Pruning failed at ratio {curve_value:.3f}")
@@ -83,16 +84,16 @@ def fine_tune_model(model: torch.nn.Module, curve_value: float, org_num_filters:
         comp_time = pruner.get_comp_time(pruner.model)
         accuracy = pruner.validate_model()
         return pruner.model, accuracy, model_size, comp_time
-    
+
     current_filter_count = pruner.total_num_filters()
-    
-    # Debug: Show final filter counts per layer
-    final_filter_counts = []
-    for i, layer in enumerate(pruner.model.net_1):
-        if isinstance(layer, torch.nn.modules.conv.Conv2d):
-            final_filter_counts.append((i, layer.out_channels))
+
+    final_filter_counts = [
+        (i, layer.out_channels)
+        for i, layer in enumerate(pruner.model.net_1)
+        if isinstance(layer, torch.nn.modules.conv.Conv2d)
+    ]
     logger.info(f"Final filter counts: {final_filter_counts}")
-    
+
     # Check if any filters were pruned
     if current_filter_count == prev_filter_count and curve_value > 0:
         logger.warning(f"No filters were actually pruned! Expected to prune {int(curve_value * org_num_filters)} filters")
@@ -100,12 +101,12 @@ def fine_tune_model(model: torch.nn.Module, curve_value: float, org_num_filters:
         comp_time = pruner.get_comp_time(pruner.model)
         accuracy = pruner.validate_model()
         return pruner.model, accuracy, model_size, comp_time
-    
+
     logger.info(f"Successfully pruned {prev_filter_count - current_filter_count} filters, {current_filter_count} remaining")
     logger.info(f"Accuracy of pruned model before fine-tuning: {pruner.validate_model():.2f}%")
     # Fine-tune the pruned model
     logger.info(f"Fine-tuning pruned model ({curve_value:.3f})")
-    
+
     accuracy_previous = []
     epochs = 5
     optimizer = torch.optim.SGD(pruner.model.parameters(), lr=0.001, momentum=0.9, weight_decay=1e-3)
@@ -115,34 +116,34 @@ def fine_tune_model(model: torch.nn.Module, curve_value: float, org_num_filters:
         steps_per_epoch=1, epochs=epochs,
         pct_start=0.3  # Warmup for 30% of training
     )
-    
+
     with tqdm(range(epochs), desc="Training", ncols=100, colour="green") as pbar:
         logger.info(f"Number of filters: {sum(layer.out_channels for layer in pruner.model.net_1 if isinstance(layer, torch.nn.modules.conv.Conv2d))}")
         for epoch in pbar:
             # Pass the optimizer to train_epoch
             pruner.train_epoch(optimizer=optimizer)
-            
+
             # Step the scheduler
             scheduler.step()
-            
+
             accuracy = pruner.validate_model()
-            
+
             accuracy_previous.append(accuracy)
             if len(accuracy_previous) > 4:
                 accuracy_previous.pop(0)
-                
+
             pbar.set_postfix({"val acc": f"{accuracy:.2f}%"})
-            
+
             # Early stopping check (convergence)
             if len(accuracy_previous) >= 3 and accuracy-1e-1 <= np.mean(accuracy_previous) <= accuracy+1e1:
                 logger.info(f"Converged at epoch {epoch+1}/{epochs}")
                 break
-                
+
     # Final evaluation
     accuracy = pruner.validate_model()
     model_size = pruner.get_model_size(pruner.model)
     comp_time = pruner.get_comp_time(pruner.model)
-    
+
     logger.info(f"\nResults: Acc={accuracy:.2f}%, Size={model_size:.2f}MB, Time={comp_time:.3f}s")
     x =  (pruner.model, accuracy, model_size, comp_time)
     pruner.reset()  # Reset pruner state for next iteration
@@ -164,11 +165,11 @@ def get_model() -> torch.nn.Module:
 def main() -> None:    
     # Define pruning range
     pruning_amounts = np.arange(0, 1, 0.1).tolist()
-    pruning_amounts.append(0.92)
-    pruning_amounts.append(0.94)
-    pruning_amounts.append(0.96)
-    pruning_amounts.append(0.98)
-    pruning_amounts.reverse()
+    pruning_amounts += [0.92, 0.94, 0.96, 0.98]
+    random.shuffle(pruning_amounts)
+    print(pruning_amounts)
+    #randomize it
+      # Reverse to start from 0.98 down to 0.0
     
     for doit in [False]:
         current_time_str = time.strftime("%Y%m%d-%H%M%S")
