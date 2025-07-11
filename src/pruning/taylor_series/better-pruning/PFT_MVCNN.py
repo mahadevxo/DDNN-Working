@@ -7,8 +7,9 @@ import gc
 import time
 from FilterPruner import FilterPruner
 from Pruning import Pruning
-from tools.ImgDataset import SingleImgDataset
+from tools.ImgDataset import SingleImgDataset, MultiviewImgDataset
 from tqdm import tqdm
+import numpy as np
 
 class PruningFineTuner:
     def __init__(self, model=None, quiet=False, view_importance=False):
@@ -23,7 +24,7 @@ class PruningFineTuner:
         self.quiet = quiet
 
         if view_importance:
-            self.imp =  self.get_modelnet33_images('train', num_samples=2000)
+            self.imp =  self.get_modelnet33_images('train', num_samples=10000)
         else:
             if model is None:
                 raise ValueError("Model must be provided for fine-tuning.")
@@ -31,8 +32,12 @@ class PruningFineTuner:
             self.model = model.to(self.device)
             self.criterion = torch.nn.CrossEntropyLoss()
             self.pruner = FilterPruner(self.model)
+            self.optimizer = torch.optim.Adam(self.model.parameters(), lr=1e-3, weight_decay=0.0)
 
-            self.val_dataset = self.get_modelnet33_images('val', num_samples=2000)
+            self.val_dataset = self.get_modelnet33_images('test')
+        
+        self.num_views = 12
+        self.model_name = 'mvcnn' if model is not None else 'unknown'
 
         # Clean initial state
         self._clear_memory()
@@ -53,7 +58,7 @@ class PruningFineTuner:
     def get_imp_set(self):
         return self.imp
     
-    def get_modelnet33_images(self, test_or_train, num_samples=2000):
+    def get_modelnet33_images(self, test_or_train, num_samples=-1):
         transform = transforms.Compose([
             transforms.Resize((224, 224)),
             transforms.RandomHorizontalFlip(),
@@ -72,15 +77,15 @@ class PruningFineTuner:
             dataset = self.get_test_dataset(num_samples)
         elif test_or_train == 'time':
             num_samples=100
-            full_dataset = SingleImgDataset(root_dir=self.train_path)
+            full_dataset = MultiviewImgDataset(root_dir=self.train_path)
             dataset_indices = random.sample(range(len(full_dataset)), num_samples)
             dataset = Subset(full_dataset, dataset_indices)
 
-        else:  # 'test'
-            dataset = SingleImgDataset(root_dir=self.test_path)
-            self._log(f"Total samples in ModelNet33 {test_or_train}: {len(dataset)}")
+        else:  # 'test or val or whatever else'
+            dataset = MultiviewImgDataset(root_dir=self.test_path)
+            # self._log(f"Total samples in ModelNet33 {test_or_train}: {len(dataset)}")
 
-        print(f"ModelNet33 {test_or_train}: {len(dataset)} samples")
+        # print(f"ModelNet33 {test_or_train}: {len(dataset)} samples")
         dataset.transform = transform  # type: ignore
         return DataLoader(
             dataset,
@@ -91,7 +96,7 @@ class PruningFineTuner:
         )
 
     def get_test_dataset(self, num_samples):
-        full_dataset = SingleImgDataset(root_dir=self.train_path)
+        full_dataset = MultiviewImgDataset(root_dir=self.train_path)
 
         if num_samples < 0:
             num_samples = len(full_dataset) // 3
@@ -109,7 +114,7 @@ class PruningFineTuner:
 
         return Subset(full_dataset, dataset_indices)
     
-    def train_batch(self, optimizer, train_loader, rank_filter=False):
+    def train_batch(self, optimizer, train_loader, rank_filter=False): #idk why it's so long but im way too lazy to fix. hopefully it works
         """Train for a single batch"""
         self.model.train()  # Set model to training mode!
         
@@ -182,53 +187,145 @@ class PruningFineTuner:
         
         return self.model
     
+    def train_model(self, train_loader, optimizer=None):
+        self.model.train()
+        rand_idx = np.random.permutation(len(train_loader.dataset.filepaths) // 12)
+        filepaths_new = []
+        for i in range(len(rand_idx)):
+            filepaths_new.extend(train_loader.dataset.filepaths[rand_idx[i]*self.num_views:(rand_idx[i]+1)*self.num_views])
+        train_loader.dataset.filepaths = filepaths_new
+        
+        lr = self.optimizer.state_dict()['param_groups'][0]['lr'] # type: ignore
+        out_data = None
+        in_data = None
+        
+        pbar = tqdm(train_loader, desc="Training")
+        running_loss = 0.0
+        running_acc = 0.0
+        total_steps = 0
+        for i, data in enumerate(pbar):
+            if self.model_name == 'mvcnn':
+                N, V, C, H, W = data[1].size()
+                in_data = data[1].view(-1, C, H, W).to(self.device)
+                target = data[0].to(self.device).repeat_interleave(V)
+            else:
+                in_data = data[1].to(self.device)
+                target = data[0].to(self.device)
+            if optimizer is not None:
+                optimizer.zero_grad()
+            else:
+                self.model.zero_grad()
+            
+            out_data = self.model(in_data)
+            loss = self.criterion(out_data, target)
+            
+            running_loss += loss.item()
+            pred = torch.max(out_data, 1)[1]
+            results = pred == target
+            correct_points = torch.sum(results.long())
+            acc = correct_points.float() / results.size()[0]
+            running_acc += acc.item()
+            total_steps += 1
+            if optimizer is not None:
+                loss.backward()
+                optimizer.step()
+            else:
+                self.model.zero_grad()
+                loss.backward()
+                self.model.step()
+            pbar.set_postfix({"loss": f"{loss.item():.4f}", "acc": f"{acc.item():.4f}"})
+        
+        train_loss = running_loss / total_steps
+        train_acc = running_acc / total_steps
+        self._log(f"Training - Loss: {train_loss:.4f}, Accuracy: {train_acc:.2f}%")
+        self._clear_memory()
+        return self.model
+            
     def train_epoch(self, optimizer=None, rank_filter=False):
         """Train model for one epoch"""
         train_loader = self.get_modelnet33_images('train', num_samples=800 if rank_filter else -1)
-        self.train_batch(optimizer, train_loader, rank_filter)
+        self.train_batch(optimizer, train_loader, rank_filter) if rank_filter else self.train_model(train_loader, optimizer)
         del train_loader
         self._clear_memory()
         return self.model
     
-    def get_val_accuracy(self):
-        """Calculate validation accuracy"""
-        print("Calculating validation accuracy...")
-        test_loader = self.get_modelnet33_images('test', num_samples=1000) if self.val_dataset is None else self.val_dataset
-        if test_loader is None:
-            self._log("Validation dataset is empty or not loaded.")
-            return 0.0
+    def validate_model(self,
+                   single_view: bool = False,
+                   view_idx: int = 0):
+        all_correct = 0
+        all_samples = 0
+        all_loss = 0.0
+
+        # for per‐class stats (if you still want them)
+        wrong_class   = np.zeros(33, dtype=int)
+        samples_class = np.zeros(33, dtype=int)
+
         self.model.eval()
-        correct = 0
-        total = 0
+        pbar = tqdm(self.val_dataset, desc=f'Val {self.model_name}'+(' (1 view)' if single_view else ''), unit='batch')
+        for batch_i, data in enumerate(pbar):
+            labels, views = data[0].to(self.device), data[1].to(self.device)
+            # views: (N, V, C, H, W)
+            if self.model_name == 'mvcnn' and not single_view:
+                # —— full MVCNN voting as before ——
+                N, V, C, H, W = views.size()
+                x = views.view(-1, C, H, W)                # (N*V, C, H, W)
+                tgt = labels.repeat_interleave(V, dim=0)   # (N*V,)
+                out = self.model(x)
+                preds = out.argmax(1)
 
-        with torch.no_grad():
-            pbar = tqdm(
-                test_loader, 
-                desc="Validating", 
-                leave=False,
-                disable=self.quiet,
-                ncols=80
-            )
-            for label, image, _ in pbar:
-                # Inference
-                image = image.to(self.device, non_blocking=False)
-                label = label.to(self.device, non_blocking=False)
-                output = self.model(image)
+                # compute batch loss
+                all_loss += torch.nn.functional.cross_entropy(out, tgt).item()
+                
+                # majority vote per object
+                batch_correct = 0
+                for i in range(N):
+                    vp = preds[i*V:(i+1)*V].cpu()
+                    voted = torch.mode(vp)[0]
+                    if voted == labels[i].cpu():
+                        batch_correct += 1
+                    else:
+                        wrong_class[labels[i].item()] += 1
+                    samples_class[labels[i].item()] += 1
 
-                # Calculate accuracy
-                _, predicted = torch.max(output.data, 1)
-                total += label.size(0)
-                correct += (predicted == label).sum().item()
+                all_correct += batch_correct
+                all_samples += N
+                acc = batch_correct / N
 
-                # Update progress
-                accuracy = 100 * correct / total
-                if not self.quiet:
-                    pbar.set_postfix({"acc": f"{accuracy:.2f}%"})
+            else:
+                # —— single‐view branch (or any non-mvcnn model) ——
+                # pick one view:
+                x     = views[:, view_idx, ...]    # (N, C, H, W)
+                tgt   = labels                     # (N,)
+                out   = self.model(x)
+                preds = out.argmax(1)
 
-        accuracy = 100 * correct / total
-        self._log(f"Validation - Accuracy: {accuracy:.2f}%")
+                all_loss += torch.nn.functional.cross_entropy(out, tgt).item()
+                
+                # accumulate per‐class if you want
+                matches = (preds == tgt)
+                for i, correct in enumerate(matches):
+                    samples_class[tgt[i].item()] += 1
+                    if not correct:
+                        wrong_class[tgt[i].item()] += 1
 
-        return self._clean_up(test_loader, accuracy) # type: ignore
+                batch_correct = matches.sum().item()
+                all_correct += batch_correct
+                all_samples += tgt.size(0)
+                acc = batch_correct / tgt.size(0)
+
+            pbar.set_postfix({
+                'acc':  f'{acc:.4f}',
+                'loss': f'{(all_loss / (batch_i+1)):.4f}'
+            })
+
+        overall_acc = all_correct / all_samples
+        per_cls     = (samples_class - wrong_class) / np.maximum(samples_class, 1)
+        mean_cls    = per_cls[samples_class>0].mean()
+
+        print(f'\nOverall Acc: {overall_acc:.4f}   Mean Class Acc: {mean_cls:.4f}')
+
+        self._clear_memory()
+        return mean_cls
     
     def get_comp_time(self, model):
         """Measure computation time"""

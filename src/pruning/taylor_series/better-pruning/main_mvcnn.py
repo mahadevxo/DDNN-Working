@@ -55,10 +55,10 @@ def fine_tune_model(model: torch.nn.Module, curve_value: float, org_num_filters:
     pruner = pft(model, quiet=False)
     
     if only_val:
-        return model, pruner.get_val_accuracy(), 0.0, 0.0
+        return model, pruner.validate_model(), 0.0, 0.0
     
     if curve_value == 0.0:
-        accuracy = pruner.get_val_accuracy()
+        accuracy = pruner.validate_model()
         model_size = pruner.get_model_size(pruner.model)
         comp_time = pruner.get_comp_time(pruner.model)
         return pruner.model, accuracy, model_size, comp_time
@@ -71,7 +71,7 @@ def fine_tune_model(model: torch.nn.Module, curve_value: float, org_num_filters:
         logger.info(f"No filters pruned at ratio {curve_value:.3f}")
         model_size = pruner.get_model_size(pruner.model)
         comp_time = pruner.get_comp_time(pruner.model)
-        accuracy = pruner.get_val_accuracy()
+        accuracy = pruner.validate_model()
         return pruner.model, accuracy, model_size, comp_time
     
     current_filter_count = pruner.total_num_filters()
@@ -81,11 +81,11 @@ def fine_tune_model(model: torch.nn.Module, curve_value: float, org_num_filters:
         logger.info(f"No more filters can be pruned at ratio {curve_value:.3f}")
         model_size = pruner.get_model_size(pruner.model)
         comp_time = pruner.get_comp_time(pruner.model)
-        accuracy = pruner.get_val_accuracy()
+        accuracy = pruner.validate_model()
         return pruner.model, accuracy, model_size, comp_time
     
     logger.info(f"Pruned {prev_filter_count - current_filter_count} filters, {current_filter_count} remaining")
-    logger.info(f"Accuracy of pruned model before fine-tuning: {pruner.get_val_accuracy():.2f}%")
+    logger.info(f"Accuracy of pruned model before fine-tuning: {pruner.validate_model():.2f}%")
     # Fine-tune the pruned model
     logger.info(f"Fine-tuning pruned model ({curve_value:.3f})")
     
@@ -108,7 +108,7 @@ def fine_tune_model(model: torch.nn.Module, curve_value: float, org_num_filters:
             # Step the scheduler
             scheduler.step()
             
-            accuracy = pruner.get_val_accuracy()
+            accuracy = pruner.validate_model()
             
             accuracy_previous.append(accuracy)
             if len(accuracy_previous) > 4:
@@ -122,7 +122,7 @@ def fine_tune_model(model: torch.nn.Module, curve_value: float, org_num_filters:
                 break
                 
     # Final evaluation
-    accuracy = pruner.get_val_accuracy()
+    accuracy = pruner.validate_model()
     model_size = pruner.get_model_size(pruner.model)
     comp_time = pruner.get_comp_time(pruner.model)
     
@@ -153,7 +153,7 @@ def main() -> None:
     pruning_amounts.append(0.98)
     pruning_amounts.reverse()
     
-    for doit in [False, True]:
+    for doit in [False]:
         current_time_str = time.strftime("%Y%m%d-%H%M%S")
         logger.info(f"Experiment started at {current_time_str}")
         os.makedirs("results", exist_ok=True)
