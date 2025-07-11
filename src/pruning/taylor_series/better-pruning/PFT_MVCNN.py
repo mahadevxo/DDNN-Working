@@ -93,14 +93,16 @@ class PruningFineTuner:
                                           test_mode=True,
                                           num_models=0,
                                           num_views=12)
-            # self._log(f"Total samples in ModelNet33 {test_or_train}: {len(dataset)}")
 
-        # print(f"ModelNet33 {test_or_train}: {len(dataset)} samples")
         dataset.transform = transform  # type: ignore
+    
+        # Enable shuffling for Subset datasets at DataLoader level
+        shuffle_data = hasattr(dataset, 'dataset')  # True if it's a Subset
+    
         return DataLoader(
             dataset,
             batch_size=8,
-            shuffle=False,
+            shuffle=shuffle_data,  # Enable shuffle for Subset datasets
             num_workers=4,
             pin_memory=True,
         )
@@ -132,28 +134,18 @@ class PruningFineTuner:
     def train_batch(self, train_loader, optimizer=None):
         self.model.train()
         
-        # Handle both Subset and direct dataset access
+        # Skip filepath shuffling for Subset datasets to avoid index errors
         dataset = train_loader.dataset
         if hasattr(dataset, 'dataset'):  # It's a Subset
-            base_dataset = dataset.dataset
-            subset_indices = dataset.indices
-            # Get filepaths for subset indices only
-            all_filepaths = base_dataset.filepaths
-            current_filepaths = [all_filepaths[i] for i in subset_indices]
-        else:  # Direct dataset
+            # For Subset, we can't safely shuffle filepaths without breaking indices
+            # The DataLoader will handle shuffling if shuffle=True was set
+            pass
+        else:  # Direct dataset - safe to shuffle filepaths
             current_filepaths = dataset.filepaths
-    
-        rand_idx = np.random.permutation(len(current_filepaths) // 12)
-        filepaths_new = []
-        for i in range(len(rand_idx)):
-            filepaths_new.extend(current_filepaths[rand_idx[i]*self.num_views:(rand_idx[i]+1)*self.num_views])
-    
-        # Update the appropriate filepaths
-        if hasattr(dataset, 'dataset'):  # It's a Subset
-            # For Subset, we need to update the base dataset's filepaths
-            # but only use the subset portion
-            dataset.dataset.filepaths = filepaths_new
-        else:  # Direct dataset
+            rand_idx = np.random.permutation(len(current_filepaths) // 12)
+            filepaths_new = []
+            for i in range(len(rand_idx)):
+                filepaths_new.extend(current_filepaths[rand_idx[i]*self.num_views:(rand_idx[i]+1)*self.num_views])
             dataset.filepaths = filepaths_new
 
         # lr = self.optimizer.state_dict()['param_groups'][0]['lr'] # type: ignore
@@ -203,28 +195,18 @@ class PruningFineTuner:
     def train_model(self, train_loader, optimizer=None):
         self.model.train()
         
-        # Handle both Subset and direct dataset access
+        # Skip filepath shuffling for Subset datasets to avoid index errors
         dataset = train_loader.dataset
         if hasattr(dataset, 'dataset'):  # It's a Subset
-            base_dataset = dataset.dataset
-            subset_indices = dataset.indices
-            # Get filepaths for subset indices only
-            all_filepaths = base_dataset.filepaths
-            current_filepaths = [all_filepaths[i] for i in subset_indices]
-        else:  # Direct dataset
+            # For Subset, we can't safely shuffle filepaths without breaking indices
+            # The DataLoader will handle shuffling if shuffle=True was set
+            pass
+        else:  # Direct dataset - safe to shuffle filepaths
             current_filepaths = dataset.filepaths
-    
-        rand_idx = np.random.permutation(len(current_filepaths) // 12)
-        filepaths_new = []
-        for i in range(len(rand_idx)):
-            filepaths_new.extend(current_filepaths[rand_idx[i]*self.num_views:(rand_idx[i]+1)*self.num_views])
-    
-        # Update the appropriate filepaths
-        if hasattr(dataset, 'dataset'):  # It's a Subset
-            # For Subset, we need to update the base dataset's filepaths
-            # but only use the subset portion
-            dataset.dataset.filepaths = filepaths_new
-        else:  # Direct dataset
+            rand_idx = np.random.permutation(len(current_filepaths) // 12)
+            filepaths_new = []
+            for i in range(len(rand_idx)):
+                filepaths_new.extend(current_filepaths[rand_idx[i]*self.num_views:(rand_idx[i]+1)*self.num_views])
             dataset.filepaths = filepaths_new
 
         # lr = self.optimizer.state_dict()['param_groups'][0]['lr'] # type: ignore
