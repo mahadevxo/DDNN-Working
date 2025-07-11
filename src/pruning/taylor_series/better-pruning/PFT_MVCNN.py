@@ -12,10 +12,11 @@ from tqdm import tqdm
 import numpy as np
 
 class PruningFineTuner:
-    def __init__(self, model=None, quiet=False, view_importance=False):
+    def __init__(self, model=None, quiet=False, view_importance=False, num_classes=33):
         # Dataset paths
         self.train_path = '../../../MVCNN/ModelNet40-12View/*/train'
         self.test_path = '../../../MVCNN/ModelNet40-12View/*/test'
+        self.num_classes = num_classes  # Support for 33 classes
         
         print("Initializing PruningFineTuner...")
 
@@ -77,12 +78,21 @@ class PruningFineTuner:
             dataset = self.get_test_dataset(num_samples)
         elif test_or_train == 'time':
             num_samples=100
-            full_dataset = MultiviewImgDataset(root_dir=self.train_path)
+            full_dataset = MultiviewImgDataset(root_dir=self.train_path,
+                                               scale_aug=False,
+                                               rot_aug=False
+                                               num_models=0,
+                                               num_views=12)
             dataset_indices = random.sample(range(len(full_dataset)), num_samples)
             dataset = Subset(full_dataset, dataset_indices)
 
         else:  # 'test or val or whatever else'
-            dataset = MultiviewImgDataset(root_dir=self.test_path)
+            dataset = MultiviewImgDataset(root_dir=self.test_path,
+                                          scale_aug=False,
+                                          rot_aug=False,
+                                          test_mode=True,
+                                          num_models=0,
+                                          num_views=12)
             # self._log(f"Total samples in ModelNet33 {test_or_train}: {len(dataset)}")
 
         # print(f"ModelNet33 {test_or_train}: {len(dataset)} samples")
@@ -96,7 +106,11 @@ class PruningFineTuner:
         )
 
     def get_test_dataset(self, num_samples):
-        full_dataset = MultiviewImgDataset(root_dir=self.train_path)
+        full_dataset = MultiviewImgDataset(root_dir=self.train_path,
+                                           scale_aug=False,
+                                           rot_aug=False,
+                                           num_models=0,
+                                           num_views=12)
 
         if num_samples < 0:
             num_samples = len(full_dataset) // 3
@@ -167,79 +181,6 @@ class PruningFineTuner:
                 self.model.step()
             pbar.set_postfix({"loss": f"{loss.item():.4f}", "acc": f"{acc.item():.4f}"})
     
-    # def train_batch(self, optimizer, train_loader, rank_filter=False): #idk why it's so long but im way too lazy to fix. hopefully it works
-    #     """Train for a single batch"""
-    #     self.model.train()  # Set model to training mode
-        
-    #     total_loss = 0
-    #     correct = 0
-    #     total = 0
-        
-    #     # Wrap with tqdm for progress visualization
-    #     pbar = tqdm(
-    #         train_loader, 
-    #         desc="Train", 
-    #         leave=False,
-    #         disable=self.quiet,
-    #         ncols=80
-    #     )
-        
-    #     for batch_idx, (label, image, _) in enumerate(pbar):
-    #         try:
-    #             with torch.autograd.set_grad_enabled(True):
-    #                 # Move data to device
-    #                 image = image.to(self.device, non_blocking=False)
-    #                 label = label.to(self.device, non_blocking=False)
-                    
-    #                 # Zero gradients
-    #                 if optimizer is not None:
-    #                     optimizer.zero_grad(set_to_none=True)
-    #                 else:
-    #                     self.model.zero_grad(set_to_none=True)
-                    
-    #                 # Forward pass
-    #                 if rank_filter:
-    #                     self.pruner.reset()
-    #                     output = self.pruner.forward(image)
-    #                 else:
-    #                     output = self.model(image)
-                    
-    #                 # Loss and backprop
-    #                 loss = self.criterion(output, label)
-    #                 loss.backward()
-                    
-    #                 # Update weights if optimizer provided
-    #                 if optimizer is not None:
-    #                     # Add gradient clipping for stability
-    #                     torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_norm=1.0)
-    #                     optimizer.step()
-                        
-    #                 # Track accuracy during training
-    #                 _, predicted = torch.max(output.data, 1)
-    #                 total += label.size(0)
-    #                 correct += (predicted == label).sum().item()
-    #                 total_loss += loss.item()
-    
-    #                 # Update progress bar
-    #                 if not self.quiet:
-    #                     pbar.set_postfix({"loss": f"{loss.item():.4f}"})
-                        
-    #         except Exception as e:
-    #             self._log(f"Error in batch {batch_idx}: {str(e)}")
-    #             continue
-    #         finally:
-    #             # Free memory
-    #             del image, label
-    #             if batch_idx % 10 == 0:
-    #                 self._clear_memory()
-    
-    #     # Report training progress
-    #     train_acc = 100 * correct / total
-    #     train_loss = total_loss / len(train_loader)
-    #     self._log(f"Training - Loss: {train_loss:.4f}, Accuracy: {train_acc:.2f}%")
-        
-    #     return self.model
-    
     def train_model(self, train_loader, optimizer=None):
         self.model.train()
         rand_idx = np.random.permutation(len(train_loader.dataset.filepaths) // 12)
@@ -309,9 +250,9 @@ class PruningFineTuner:
         all_samples = 0
         all_loss = 0.0
 
-        # for per‐class stats (if you still want them)
-        wrong_class   = np.zeros(33, dtype=int)
-        samples_class = np.zeros(33, dtype=int)
+        # for per‐class stats - using dynamic num_classes
+        wrong_class   = np.zeros(self.num_classes, dtype=int)
+        samples_class = np.zeros(self.num_classes, dtype=int)
 
         self.model.eval()
         pbar = tqdm(self.val_dataset, desc=f'Val {self.model_name}'+(' (1 view)' if single_view else ''), unit='batch')
@@ -376,6 +317,7 @@ class PruningFineTuner:
         mean_cls    = per_cls[samples_class>0].mean()
 
         print(f'\nOverall Acc: {overall_acc:.4f}   Mean Class Acc: {mean_cls:.4f}')
+        print(f'Dataset contains {self.num_classes} classes')
 
         self._clear_memory()
         return mean_cls
