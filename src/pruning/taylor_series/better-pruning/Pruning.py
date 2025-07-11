@@ -128,6 +128,14 @@ class Pruning:
                 # Copy biases if present
                 if conv.bias is not None and new_conv.bias is not None:
                     new_conv.bias.data[target_idx] = conv.bias.data[source_idx]
+            
+            # Ensure no NaN/inf values in the new layer
+            if torch.isnan(new_conv.weight.data).any() or torch.isinf(new_conv.weight.data).any():
+                print("Warning: NaN/inf detected in conv weights")
+                # Reinitialize problematic weights
+                torch.nn.init.kaiming_normal_(new_conv.weight.data, mode='fan_out', nonlinearity='relu')
+                if new_conv.bias is not None:
+                    torch.nn.init.zeros_(new_conv.bias.data)
 
     def _prune_next_conv_layer(self, next_conv, new_next_conv, filter_indices):
         """
@@ -156,6 +164,13 @@ class Pruning:
             # Copy biases directly (not affected by input channel pruning)
             if next_conv.bias is not None and new_next_conv.bias is not None:
                 new_next_conv.bias.data = next_conv.bias.data
+                
+            # Check for NaN/inf values
+            if torch.isnan(new_next_conv.weight.data).any() or torch.isinf(new_next_conv.weight.data).any():
+                print("Warning: NaN/inf detected in next conv weights")
+                torch.nn.init.kaiming_normal_(new_next_conv.weight.data, mode='fan_out', nonlinearity='relu')
+                if new_next_conv.bias is not None:
+                    torch.nn.init.zeros_(new_next_conv.bias.data)
 
     def _map_indices(self, conv_layer, dimension, filter_indices):
         """
@@ -182,16 +197,6 @@ class Pruning:
     def _prune_last_conv_layer(self, model, conv, new_conv, layer_index, filter_indices):
         """
         Prunes the last convolutional layer and adjusts the first fully connected layer.
-        
-        Args:
-            model: The model being pruned
-            conv: Original last convolutional layer
-            new_conv: New convolutional layer with fewer filters
-            layer_index: Index of the layer in the model
-            filter_indices: List of indices of filters to remove
-            
-        Returns:
-            Modified model with updated layers
         """
         # Sort filter indices in descending order
         filter_indices = sorted(filter_indices, reverse=True)
@@ -205,13 +210,13 @@ class Pruning:
         model.net_1 = torch.nn.Sequential(*modules)
         
         # Find the first fully connected layer
-        layer_index = 0
+        fc_layer_index = 0
         old_linear_layer = None
         for _, module in model.net_2._modules.items():
             if isinstance(module, torch.nn.Linear):
                 old_linear_layer = module
                 break
-            layer_index += 1
+            fc_layer_index += 1
         
         if old_linear_layer is None:
             raise ValueError(f"No linear layer found in classifier, Model: {model}")
@@ -242,11 +247,22 @@ class Pruning:
             
             # Copy biases directly
             new_linear_layer.bias.data = old_linear_layer.bias.data
+            
+            # Initialize weights properly to prevent NaN
+            # Clamp weights to reasonable range
+            new_linear_layer.weight.data = torch.clamp(new_linear_layer.weight.data, -1.0, 1.0)
+            new_linear_layer.bias.data = torch.clamp(new_linear_layer.bias.data, -1.0, 1.0)
+            
+            # Check for NaN/inf values
+            if torch.isnan(new_linear_layer.weight.data).any() or torch.isinf(new_linear_layer.weight.data).any():
+                print("Warning: NaN/inf detected in FC weights, reinitializing")
+                torch.nn.init.xavier_uniform_(new_linear_layer.weight.data)
+                torch.nn.init.zeros_(new_linear_layer.bias.data)
         
         # Update the classifier
-        modules = list(model.net_2)
-        modules[layer_index] = new_linear_layer
-        model.net_2 = torch.nn.Sequential(*modules)
+        fc_modules = list(model.net_2)
+        fc_modules[fc_layer_index] = new_linear_layer
+        model.net_2 = torch.nn.Sequential(*fc_modules)
         
         return model
 
@@ -257,70 +273,69 @@ class Pruning:
         if not prune_targets:
             print("Warning: No targets to prune")
             return model
-            
+
         # Group filters by layer and remove duplicates
         filters_by_layer = {}
         for layer_idx, filter_idx in prune_targets:
             if layer_idx not in filters_by_layer:
                 filters_by_layer[layer_idx] = set()
             filters_by_layer[layer_idx].add(filter_idx)
-        
+
         print(f"Pruning filters from {len(filters_by_layer)} layers")
-        
+
         # Process layers in order (not reverse) to avoid dependency issues
         for layer_idx in sorted(filters_by_layer.keys()):
             filter_indices = sorted(list(filters_by_layer[layer_idx]))
             modules = list(model.net_1)
-            
+
             # Safety checks
             if layer_idx >= len(modules):
                 print(f"Warning: Layer index {layer_idx} out of bounds, skipping")
                 continue
-                
+
             conv = modules[layer_idx]
             if not isinstance(conv, torch.nn.Conv2d):
                 print(f"Warning: Layer {layer_idx} is not Conv2d, skipping")
                 continue
-                
+
             print(f"Layer {layer_idx}: Pruning {len(filter_indices)} filters from {conv.out_channels} total")
-            
+
             # Safety check: ensure we don't prune all filters
             if len(filter_indices) >= conv.out_channels:
                 print(f"Error: Trying to prune {len(filter_indices)} filters from layer {layer_idx} with only {conv.out_channels} filters")
                 # Skip this layer entirely rather than break the model
                 continue
-                
+
             # Verify indices are in bounds
             valid_indices = [idx for idx in filter_indices if 0 <= idx < conv.out_channels]
             if len(valid_indices) != len(filter_indices):
                 print(f"Warning: Some filter indices for layer {layer_idx} are out of bounds")
                 filter_indices = valid_indices
-                
+
             if not filter_indices:  # No valid indices to prune
                 continue
-                
+
             # Create new conv with reduced output channels
             new_out_channels = conv.out_channels - len(filter_indices)
             if new_out_channels <= 0:
                 print(f"Error: Would result in {new_out_channels} filters for layer {layer_idx}, skipping")
                 continue
-                
+
             new_conv = self._create_new_conv(
                 conv=conv, 
                 out_channels=new_out_channels
             )
-            
+
             # Prune the current layer
             self._prune_conv_layer(conv, new_conv, filter_indices)
-            
+
             # Update model with new conv layer
             modules[layer_idx] = new_conv
             model.net_1 = torch.nn.Sequential(*modules)
-            
-            # Check if this is the last conv layer
-            is_last_conv = self.layer_info.get(layer_idx, {}).get("is_last_conv", False)
-            
-            if is_last_conv:
+
+            if is_last_conv := self.layer_info.get(layer_idx, {}).get(  # noqa: F841
+                "is_last_conv", False
+            ):
                 # Handle connection to FC layer
                 model = self._update_fc_layer_for_pruning(model, layer_idx, filter_indices)
             else:
@@ -328,9 +343,9 @@ class Pruning:
                 next_conv_idx = self.layer_info.get(layer_idx, {}).get("next_conv_index")
                 if next_conv_idx is not None:
                     model = self._update_next_conv_layer(model, next_conv_idx, filter_indices)
-            
+
             print(f"Layer {layer_idx}: Successfully pruned to {new_conv.out_channels} filters")
-                
+
         # Final memory cleanup
         self._clear_memory()
         return model
@@ -386,26 +401,39 @@ class Pruning:
             print("Warning: No FC layer found to update")
             return model
             
-        # Get the conv layer to calculate parameters per filter
+        # Get the conv layer BEFORE pruning to calculate the original relationship
         conv_layer = list(model.net_1)[layer_idx]
         if not isinstance(conv_layer, torch.nn.Conv2d):
             return model
-            
-        # Calculate how many parameters each filter contributes to FC input
-        params_per_filter = fc_layer.in_features // (conv_layer.out_channels + len(filter_indices))
+    
+        # Calculate the feature map size after the conv layer
+        # For VGG11: final conv output is typically 7x7 per filter
+        # This needs to match the actual architecture
+        feature_map_size = 7 * 7  # Standard for VGG11 with 224x224 input
+    
+        # Calculate original filters before this pruning operation
+        original_filters = conv_layer.out_channels + len(filter_indices)
+        expected_fc_input = original_filters * feature_map_size
         
+        # Verify our calculation matches the actual FC layer
+        if fc_layer.in_features != expected_fc_input:
+            # Try to auto-detect the feature map size
+            feature_map_size = fc_layer.in_features // original_filters
+            print(f"Auto-detected feature map size: {feature_map_size}")
+    
+        params_per_filter = feature_map_size
         new_in_features = fc_layer.in_features - (len(filter_indices) * params_per_filter)
         
         if new_in_features <= 0:
             print(f"Error: FC layer would have {new_in_features} input features")
             return model
             
+        print(f"Updating FC layer: {fc_layer.in_features} -> {new_in_features} features")
         new_fc = torch.nn.Linear(new_in_features, fc_layer.out_features).to(self.device)
         
         # Copy weights, skipping pruned filter contributions
         with torch.no_grad():
             target_idx = 0
-            original_filters = conv_layer.out_channels + len(filter_indices)
             
             for source_filter in range(original_filters):
                 if source_filter not in filter_indices:
@@ -415,14 +443,33 @@ class Pruning:
                     start_new = target_idx * params_per_filter
                     end_new = (target_idx + 1) * params_per_filter
                     
-                    new_fc.weight.data[:, start_new:end_new] = fc_layer.weight.data[:, start_old:end_old]
-                    target_idx += 1
+                    # Bounds checking
+                    if end_old <= fc_layer.weight.size(1) and end_new <= new_fc.weight.size(1):
+                        new_fc.weight.data[:, start_new:end_new] = fc_layer.weight.data[:, start_old:end_old]
+                    else:
+                        print("Warning: Bounds error in FC layer update")
+                        return model
                     
+                    target_idx += 1
+            
             # Copy bias
             new_fc.bias.data = fc_layer.bias.data.clone()
         
+        # Initialize weights properly to prevent NaN
+        with torch.no_grad():
+            # Clamp weights to reasonable range
+            new_fc.weight.data = torch.clamp(new_fc.weight.data, -1.0, 1.0)
+            new_fc.bias.data = torch.clamp(new_fc.bias.data, -1.0, 1.0)
+            
+            # Check for NaN/inf values
+            if torch.isnan(new_fc.weight.data).any() or torch.isinf(new_fc.weight.data).any():
+                print("Warning: NaN/inf detected in FC weights, reinitializing")
+                torch.nn.init.xavier_uniform_(new_fc.weight.data)
+                torch.nn.init.zeros_(new_fc.bias.data)
+        
         # Update model
-        fc_modules[fc_idx] = new_fc
+        fc_modules[fc_idx] = new_fc # type: ignore
         model.net_2 = torch.nn.Sequential(*fc_modules)
         
         return model
+

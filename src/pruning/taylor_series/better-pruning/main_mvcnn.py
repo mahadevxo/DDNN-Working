@@ -109,10 +109,15 @@ def fine_tune_model(model: torch.nn.Module, curve_value: float, org_num_filters:
 
     accuracy_previous = []
     epochs = 5
-    optimizer = torch.optim.SGD(pruner.model.parameters(), lr=0.001, momentum=0.9, weight_decay=1e-3)
-    # Learning rate scheduler with warmup
+    
+    # Use much lower learning rates for pruned models to prevent NaN
+    base_lr = 0.0001 if curve_value > 0 else 0.001  # Lower LR for pruned models
+    optimizer = torch.optim.SGD(pruner.model.parameters(), lr=base_lr, momentum=0.9, weight_decay=1e-4)
+    
+    # More conservative scheduler for pruned models
+    max_lr = 0.001 if curve_value > 0 else 0.005
     scheduler = torch.optim.lr_scheduler.OneCycleLR(
-        optimizer, max_lr=0.005, 
+        optimizer, max_lr=max_lr, 
         steps_per_epoch=1, epochs=epochs,
         pct_start=0.3  # Warmup for 30% of training
     )
@@ -120,6 +125,18 @@ def fine_tune_model(model: torch.nn.Module, curve_value: float, org_num_filters:
     with tqdm(range(epochs), desc="Training", ncols=100, colour="green") as pbar:
         logger.info(f"Number of filters: {sum(layer.out_channels for layer in pruner.model.net_1 if isinstance(layer, torch.nn.modules.conv.Conv2d))}")
         for epoch in pbar:
+            # Check model health before training
+            sample_input = torch.randn(1, 3, 224, 224).to(device)
+            with torch.no_grad():
+                try:
+                    sample_output = pruner.model(sample_input)
+                    if torch.isnan(sample_output).any():
+                        logger.error("Model produces NaN outputs, stopping training")
+                        break
+                except Exception as e:
+                    logger.error(f"Model forward pass failed: {e}")
+                    break
+            
             # Pass the optimizer to train_epoch
             pruner.train_epoch(optimizer=optimizer)
 
@@ -127,6 +144,11 @@ def fine_tune_model(model: torch.nn.Module, curve_value: float, org_num_filters:
             scheduler.step()
 
             accuracy = pruner.validate_model()
+            
+            # Check for training collapse
+            if accuracy < 0.01:  # Less than 1% accuracy suggests collapse
+                logger.warning(f"Training collapse detected at epoch {epoch+1}, accuracy: {accuracy:.4f}")
+                break
 
             accuracy_previous.append(accuracy)
             if len(accuracy_previous) > 4:

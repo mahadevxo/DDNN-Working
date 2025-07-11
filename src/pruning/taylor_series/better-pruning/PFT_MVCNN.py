@@ -132,7 +132,6 @@ class PruningFineTuner:
     
     
     def train_batch(self, train_loader, optimizer=None): # FOR RANKS
-        # sourcery skip: class-extract-method
         self.model.train()
 
         # Skip filepath shuffling for Subset datasets to avoid index errors
@@ -167,13 +166,15 @@ class PruningFineTuner:
             else:
                 self.model.zero_grad()
 
-            # DON'T reset the pruner here - we need to accumulate rankings!
-            # self.pruner.reset()  # REMOVED THIS LINE
-
             # Use pruner's forward method to accumulate filter importance rankings
             out_data = self.pruner.forward(in_data)
 
             loss = self.criterion(out_data, target)
+            
+            # Check for NaN loss
+            if torch.isnan(loss) or torch.isinf(loss):
+                print(f"Warning: NaN/inf loss detected: {loss.item()}")
+                continue  # Skip this batch
 
             running_loss += loss.item()
             pred = torch.max(out_data, 1)[1]
@@ -181,12 +182,16 @@ class PruningFineTuner:
             correct_points = torch.sum(results.long())
             acc = correct_points.float() / results.size()[0]
             running_acc += acc.item()
+            
             if optimizer is not None:
                 loss.backward()
+                # Add gradient clipping to prevent explosion
+                torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_norm=1.0)
                 optimizer.step()
             else:
                 self.model.zero_grad()
                 loss.backward()
+                torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_norm=1.0)
                 self.model.step()
             pbar.set_postfix({"loss": f"{loss.item():.4f}", "acc": f"{acc.item():.4f}"})
     
@@ -226,6 +231,11 @@ class PruningFineTuner:
 
             out_data = self.model(in_data)
             loss = self.criterion(out_data, target)
+            
+            # Check for NaN loss
+            if torch.isnan(loss) or torch.isinf(loss):
+                print(f"Warning: NaN/inf loss detected: {loss.item()}, skipping batch")
+                continue
 
             running_loss += loss.item()
             pred = torch.max(out_data, 1)[1]
@@ -234,12 +244,16 @@ class PruningFineTuner:
             acc = correct_points.float() / results.size()[0]
             running_acc += acc.item()
             total_steps += 1
+            
             if optimizer is not None:
                 loss.backward()
+                # Add gradient clipping to prevent explosion
+                torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_norm=1.0)
                 optimizer.step()
             else:
                 self.model.zero_grad()
                 loss.backward()
+                torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_norm=1.0)
                 self.model.step()
             pbar.set_postfix({"loss": f"{loss.item():.4f}", "acc": f"{acc.item():.4f}"})
 
@@ -422,15 +436,13 @@ class PruningFineTuner:
         """Prune the model by removing filters with lowest Taylor scores"""
         # Initialize or use provided pruning targets
         if prune_targets is None:
-            # Calculate number of filters to prune
             print(f"num_filters_to_prune not provided, calculating based on pruning amount {pruning_amount:.3f}") if num_filters_to_prune is None else None
             num_filters_to_prune = ceil(num_filters_to_prune*pruning_amount) if num_filters_to_prune is not None else ceil(pruning_amount * self.total_num_filters()) 
             self._log(f"Pruning {num_filters_to_prune} filters at pruning amount {pruning_amount*100:.3f}%")
             filters_to_prune = self.get_candidates_to_prune(num_filters_to_prune)
         else:
             filters_to_prune = prune_targets
-        # print(filters_to_prune)
-    
+
         # Handle case where no filters can be pruned
         if filters_to_prune is None or len(filters_to_prune) == 0:
             model_size = self.get_model_size(self.model)
@@ -440,16 +452,32 @@ class PruningFineTuner:
             self._log(f"Current metrics - Accuracy: 0.0%, Model size: {model_size:.2f}M, Comp time: {comp_time:.2f}ms")
             
             return False
-    
+
         if not only_model:
             no_filters = self.total_num_filters()
-            self._log(f"Pruning {len(filters_to_prune)} filters out of {no_filters} ({100 * len(filters_to_prune) / no_filters:.1f}%)") # type: ignore
+            self._log(f"Pruning {len(filters_to_prune)} filters out of {no_filters} ({100 * len(filters_to_prune) / no_filters:.1f}%)")
             
         # Use batch pruning for better performance
         pruner = Pruning(self.model)
         self.model = pruner.batch_prune_filters(self.model, filters_to_prune)
+        
+        # Validate model architecture after pruning
+        try:
+            # Test with a small batch to ensure model still works
+            test_input = torch.randn(1, 3, 224, 224).to(self.device)
+            with torch.no_grad():
+                test_output = self.model(test_input)
+                if test_output.size(1) != 33:
+                    print(f"Error: Model output size is {test_output.size(1)}, expected 33")
+                    return False
+                print(f"Model validation passed: output shape {test_output.shape}")
+        except Exception as e:
+            print(f"Model validation failed after pruning: {e}")
+            return False
+        
+        # Create new pruner for the updated model
         self.pruner = FilterPruner(self.model)
-    
+
         self._clear_memory()
         return True
     
