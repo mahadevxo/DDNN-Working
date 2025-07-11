@@ -145,7 +145,6 @@ class PruningFineTuner:
                 filepaths_new.extend(current_filepaths[rand_idx[i]*self.num_views:(rand_idx[i]+1)*self.num_views])
             dataset.filepaths = filepaths_new
 
-        # lr = self.optimizer.state_dict()['param_groups'][0]['lr'] # type: ignore
         out_data = None
         in_data = None
 
@@ -168,9 +167,11 @@ class PruningFineTuner:
             else:
                 self.model.zero_grad()
 
-            self.pruner.reset()
+            # DON'T reset the pruner here - we need to accumulate rankings!
+            # self.pruner.reset()  # REMOVED THIS LINE
 
-            out_data = self.model.forward(in_data)
+            # Use pruner's forward method to accumulate filter importance rankings
+            out_data = self.pruner.forward(in_data)
 
             loss = self.criterion(out_data, target)
 
