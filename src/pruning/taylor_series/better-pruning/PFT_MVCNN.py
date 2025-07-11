@@ -131,11 +131,30 @@ class PruningFineTuner:
     
     def train_batch(self, train_loader, optimizer=None):
         self.model.train()
-        rand_idx = np.random.permutation(len(train_loader.dataset.filepaths) // 12)
+        
+        # Handle both Subset and direct dataset access
+        dataset = train_loader.dataset
+        if hasattr(dataset, 'dataset'):  # It's a Subset
+            base_dataset = dataset.dataset
+            subset_indices = dataset.indices
+            # Get filepaths for subset indices only
+            all_filepaths = base_dataset.filepaths
+            current_filepaths = [all_filepaths[i] for i in subset_indices]
+        else:  # Direct dataset
+            current_filepaths = dataset.filepaths
+    
+        rand_idx = np.random.permutation(len(current_filepaths) // 12)
         filepaths_new = []
         for i in range(len(rand_idx)):
-            filepaths_new.extend(train_loader.dataset.filepaths[rand_idx[i]*self.num_views:(rand_idx[i]+1)*self.num_views])
-        train_loader.dataset.filepaths = filepaths_new
+            filepaths_new.extend(current_filepaths[rand_idx[i]*self.num_views:(rand_idx[i]+1)*self.num_views])
+    
+        # Update the appropriate filepaths
+        if hasattr(dataset, 'dataset'):  # It's a Subset
+            # For Subset, we need to update the base dataset's filepaths
+            # but only use the subset portion
+            dataset.dataset.filepaths = filepaths_new
+        else:  # Direct dataset
+            dataset.filepaths = filepaths_new
 
         # lr = self.optimizer.state_dict()['param_groups'][0]['lr'] # type: ignore
         out_data = None
@@ -183,11 +202,30 @@ class PruningFineTuner:
     
     def train_model(self, train_loader, optimizer=None):
         self.model.train()
-        rand_idx = np.random.permutation(len(train_loader.dataset.filepaths) // 12)
+        
+        # Handle both Subset and direct dataset access
+        dataset = train_loader.dataset
+        if hasattr(dataset, 'dataset'):  # It's a Subset
+            base_dataset = dataset.dataset
+            subset_indices = dataset.indices
+            # Get filepaths for subset indices only
+            all_filepaths = base_dataset.filepaths
+            current_filepaths = [all_filepaths[i] for i in subset_indices]
+        else:  # Direct dataset
+            current_filepaths = dataset.filepaths
+    
+        rand_idx = np.random.permutation(len(current_filepaths) // 12)
         filepaths_new = []
         for i in range(len(rand_idx)):
-            filepaths_new.extend(train_loader.dataset.filepaths[rand_idx[i]*self.num_views:(rand_idx[i]+1)*self.num_views])
-        train_loader.dataset.filepaths = filepaths_new
+            filepaths_new.extend(current_filepaths[rand_idx[i]*self.num_views:(rand_idx[i]+1)*self.num_views])
+    
+        # Update the appropriate filepaths
+        if hasattr(dataset, 'dataset'):  # It's a Subset
+            # For Subset, we need to update the base dataset's filepaths
+            # but only use the subset portion
+            dataset.dataset.filepaths = filepaths_new
+        else:  # Direct dataset
+            dataset.filepaths = filepaths_new
 
         # lr = self.optimizer.state_dict()['param_groups'][0]['lr'] # type: ignore
         out_data = None
@@ -255,7 +293,7 @@ class PruningFineTuner:
     
     def validate_model(self,
                    single_view: bool = False,
-                   view_idx: int = 0):
+                   view_idx: int = 0):  # sourcery skip: low-code-quality
         all_correct = 0
         all_samples = 0
         all_loss = 0.0
