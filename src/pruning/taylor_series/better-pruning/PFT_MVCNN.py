@@ -80,7 +80,7 @@ class PruningFineTuner:
             num_samples=100
             full_dataset = MultiviewImgDataset(root_dir=self.train_path,
                                                scale_aug=False,
-                                               rot_aug=False
+                                               rot_aug=False,
                                                num_models=0,
                                                num_views=12)
             dataset_indices = random.sample(range(len(full_dataset)), num_samples)
