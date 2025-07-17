@@ -158,13 +158,12 @@ Used in [this notebook (v2).](https://github.com/mahadevxo/DDNN-Working/blob/mai
 
 - Global Accuracy ≥ 71.20%
 - No Size Violations
-- Inference Time ≤ 1.33x
 
 #### FINAL STATUS - Experiment 1
 
 - Global Accuracy: 71.20%
 - Size Constraint Violations: 0
-- Inference Time: 1.33x
+- Inference Time: 1.33x faster
 
 ### Result 2
 
@@ -189,13 +188,12 @@ Used in [this notebook (v2).](https://github.com/mahadevxo/DDNN-Working/blob/mai
 
 - Global Accuracy ≥ 55.20%
 - No Size Violations
-- Inference Time ≤ 1.34x
 
 #### FINAL STATUS - Experiment 2
 
 - Global Accuracy: 55.20%
 - Size Constraint Violations: 0
-- Inference Time: 1.34x
+- Inference Time: 1.34x faster
 
 ### Result 3
 
@@ -220,13 +218,12 @@ Used in [this notebook (v2).](https://github.com/mahadevxo/DDNN-Working/blob/mai
 
 - Global Accuracy ≥ 77.00%
 - No Size Violations
-- Inference Time ≤ 1.24x
 
 #### FINAL STATUS - Experiment 3
 
 - Global Accuracy: 77.40%
 - Size Constraint Violations: 0
-- Inference Time: 1.24x
+- Inference Time: 1.24x faster
 
 ### Result 4
 
@@ -251,13 +248,12 @@ Used in [this notebook (v2).](https://github.com/mahadevxo/DDNN-Working/blob/mai
 
 - Global Accuracy ≥ 71.50%
 - No Size Violations
-- Inference Time ≤ 1.35x
 
 #### FINAL STATUS - Experiment 4
 
 - Global Accuracy: 71.50%
 - Size Constraint Violations: 0
-- Inference Time: 1.35x
+- Inference Time: 1.35x faster
 
 ### Result 5
 
@@ -282,12 +278,11 @@ Used in [this notebook (v2).](https://github.com/mahadevxo/DDNN-Working/blob/mai
 
 - Global Accuracy ≥ 76.00%
 - No Size Violations
-- Inference Time ≤ 1.34x
 
 #### FINAL STATUS - Experiment 5
 
 - Global Accuracy: 76.50%
 - Size Constraint Violations: 0
-- Inference Time: 1.34x
+- Inference Time: 1.34x faster
 
 These results demonstrate controllability and effectiveness of the pruning method across deployment targets.
