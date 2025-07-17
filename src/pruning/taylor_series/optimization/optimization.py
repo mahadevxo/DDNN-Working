@@ -5,7 +5,7 @@
 
 # ## Imports
 
-# In[93]:
+# In[114]:
 
 
 import numpy as np
@@ -21,7 +21,7 @@ from scipy.optimize import root_scalar
 
 # ### Pruning vs Accuracy
 
-# In[94]:
+# In[115]:
 
 
 def get_accuracy(p):
@@ -35,7 +35,7 @@ def get_accuracy(p):
 
 # ### Pruning vs Model Size
 
-# In[95]:
+# In[116]:
 
 
 def get_size(p):
@@ -46,25 +46,25 @@ def get_size(p):
 
 # ### Pruning vs Inference Time
 
-# In[96]:
+# In[117]:
 
 
-def get_time(p):
+def get_time(p, device_perf):
     b0 = 0.06386
     b1 = -0.06386
-
-    return (b0 + b1 * p)*10
+    t = (b0 + b1 * p)*10
+    return t - (device_perf*t)
 
 
 # ### Plot Curves
 
-# In[97]:
+# In[118]:
 
 
 p = np.linspace(0, 1, 100)
 sizes = get_size(p)
 accuracies = [get_accuracy(p) for p in p]
-times = get_time(p)
+times = get_time(p=p, device_perf=0)
 
 plt.style.use('default')
 plt.figure(figsize=(12, 4))
@@ -101,7 +101,7 @@ plt.show()
 
 # ### Accuracy Rewards
 
-# In[98]:
+# In[119]:
 
 
 def get_accuracy_reward(curr_accuracy, min_accuracy, sigma_right=4, sigma_left=2):
@@ -114,7 +114,7 @@ def get_accuracy_reward(curr_accuracy, min_accuracy, sigma_right=4, sigma_left=2
 
 # ### Inference Time Reward
 
-# In[99]:
+# In[120]:
 
 
 def get_comp_time_reward(current_comp_time, sigma=0.8):
@@ -123,7 +123,7 @@ def get_comp_time_reward(current_comp_time, sigma=0.8):
 
 # ### Model Size Reward
 
-# In[100]:
+# In[121]:
 
 
 def get_model_size_reward(current_model_size, max_model_size, sigma_left=2):
@@ -138,7 +138,7 @@ def get_model_size_reward(current_model_size, max_model_size, sigma_left=2):
 
 # ### Better Pruning Reward
 
-# In[101]:
+# In[122]:
 
 
 def more_acc_less_size(accuracy, min_accuracy, size, max_model_size):
@@ -149,12 +149,12 @@ def more_acc_less_size(accuracy, min_accuracy, size, max_model_size):
 
 # ### Final Reward
 
-# In[102]:
+# In[123]:
 
 
 def get_reward(p, min_accuracy=80.0, max_model_size=350.0, x=10, y=1, z=1) -> float:
     accuracy = get_accuracy(p)
-    time = get_time(p)
+    time = get_time(p, device_perf=0)
     size = get_size(p)
 
     acc_reward = np.array(get_accuracy_reward(accuracy, min_accuracy))
@@ -171,7 +171,7 @@ def get_reward(p, min_accuracy=80.0, max_model_size=350.0, x=10, y=1, z=1) -> fl
 
 # ## Importance Values
 
-# In[103]:
+# In[124]:
 
 
 i_org = np.array([0.03044561, 0.02201545, 0.12376647, 0.09755174, 0.04860051,
@@ -182,18 +182,19 @@ i = i_org.copy()
 
 # ## Params
 
-# In[104]:
+# In[125]:
 
 
 MAX_MODEL_SIZES = [0]*12
 GLOBAL_MIN_ACCURACY = 0.0
+DEVICES_PERF = [0]*12
 
 
-# In[105]:
+# In[126]:
 
 
 def init():
-    global MAX_MODEL_SIZES, GLOBAL_MIN_ACCURACY
+    global MAX_MODEL_SIZES, GLOBAL_MIN_ACCURACY, DEVICES_PERF
     MAX_MODEL_SIZES = [100.0] * 12
 
     for j in range(12):
@@ -201,9 +202,13 @@ def init():
 
     GLOBAL_MIN_ACCURACY = 10 * np.random.uniform(5, 8.0)
 
+    DEVICES_PERF = np.random.uniform(0.0, 0.5, 12)
+
+
     print("\n" + "="*60)
     print(f"MAX_MODEL_SIZES: {np.round(MAX_MODEL_SIZES, 2)}")
     print(f"GLOBAL_MIN_ACCURACY: {GLOBAL_MIN_ACCURACY:.2f}%")
+    print(f"DEVICES_PERF: {np.round(DEVICES_PERF, 2)}")
     print("="*60)
 
 
@@ -211,7 +216,7 @@ def init():
 
 # ### Problem Def
 
-# In[106]:
+# In[127]:
 
 
 class MultiViewProblem(Problem):
@@ -237,8 +242,8 @@ class MultiViewProblem(Problem):
                 vals[k] = -weighted_r  # minimize negative reward
             F[:, j] = vals
 
-        worst_time = get_time(0.0)
-        time_arrs = [get_time(X[:, j]) for j in range(12)]
+        worst_time = get_time(0.0, 0.0)
+        time_arrs = [get_time(X[:, j], DEVICES_PERF[j]) for j in range(12)]
         mean_time = np.mean(time_arrs, axis=0)
         F[:, 12] = mean_time/worst_time
 
@@ -248,7 +253,7 @@ class SingleObjectiveProblem(Problem):
     def __init__(self):
         super().__init__(n_var=12, n_obj=1, xl=np.zeros(12), xu=np.ones(12))
         # cache worst‐case time once
-        self._worst_time = get_time(0.0)
+        self._worst_time = get_time(0.0, device_perf=0)
 
     def _evaluate(self, X, out, *args, **kwargs):
         pop_size, _ = X.shape
@@ -264,7 +269,7 @@ class SingleObjectiveProblem(Problem):
             for j, p in enumerate(p_vec):
                 acc   = get_accuracy(p)
                 size  = get_size(p)
-                total_time += get_time(p)
+                total_time += get_time(p, device_perf=DEVICES_PERF[j])
 
                 if np.round(size, 2) > np.round(MAX_MODEL_SIZES[j], 2):
                     penalty += (size - MAX_MODEL_SIZES[j])**2 * 100
@@ -286,7 +291,7 @@ class SingleObjectiveProblem(Problem):
 
 # ### Check if feasible
 
-# In[107]:
+# In[128]:
 
 
 def is_feasible_corrected(p_vec):
@@ -307,7 +312,7 @@ def is_feasible_corrected(p_vec):
 
 # ### Optimize with relaxed contraints
 
-# In[108]:
+# In[129]:
 
 
 def optimize_with_relaxed_constraints(min_acc, max_sizes):
@@ -336,7 +341,7 @@ def optimize_with_relaxed_constraints(min_acc, max_sizes):
                 for j, p in enumerate(p_vec):
                     acc   = get_accuracy(p)
                     size  = get_size(p)
-                    total_time += get_time(p)             # ← new
+                    total_time += get_time(p, device_perf=DEVICES_PERF[j])             # ← new
 
                     # size violation penalty
                     if np.round(size, 2) > np.round(max_sizes[j], 2):
@@ -352,7 +357,7 @@ def optimize_with_relaxed_constraints(min_acc, max_sizes):
                     penalty += (min_acc - weighted_acc) ** 2 * 5000
 
                 # now include a mean‐time penalty
-                norm_time = (total_time / 12.0)/ get_time(0.0)  # normalize by worst time
+                norm_time = (total_time / 12.0)/ get_time(0.0, device_perf=0)  # normalize by worst time
                 F[k, 0]   = -(total_reward - penalty) + alpha * norm_time  # ← modified
 
             out["F"] = F
@@ -411,47 +416,54 @@ def optimize_with_relaxed_constraints(min_acc, max_sizes):
 
 # ### Relax Contraints
 
-# In[109]:
+# In[ ]:
 
 
-def relax_constraints_progressively():
-    """Progressively relax constraints to find a feasible solution via GA."""
-    print("\n" + "="*60)
-    print("PROGRESSIVE CONSTRAINT RELAXATION")
-    print("="*60)
+def adaptive_relaxation(
+        max_acc_relax=15, max_size_relax=1.5,
+        margin_acc=1.0, margin_size=0.05):
+    current_acc_relax  = 0.0
+    current_size_relax = 1.0
 
-    relaxation_scenarios = [
-        {"acc_relax": 0,  "size_relax": 1.00, "desc": "Original constraints"},
-        {"acc_relax": 2,  "size_relax": 1.05, "desc": "Relax accuracy by 2%, size by 5%"},
-        {"acc_relax": 5,  "size_relax": 1.10, "desc": "Relax accuracy by 5%, size by 10%"},
-        {"acc_relax": 8,  "size_relax": 1.15, "desc": "Relax accuracy by 8%, size by 15%"},
-        {"acc_relax": 10, "size_relax": 1.20, "desc": "Relax accuracy by 10%, size by 20%"},
-    ]
+    while current_acc_relax <= max_acc_relax \
+      and current_size_relax <= max_size_relax:
 
-    for scenario in relaxation_scenarios:
-        desc = scenario["desc"]
-        relaxed_min_acc   = GLOBAL_MIN_ACCURACY - scenario["acc_relax"]
-        relaxed_max_sizes = [s * scenario["size_relax"] for s in MAX_MODEL_SIZES]
+        target_acc   = GLOBAL_MIN_ACCURACY - current_acc_relax
+        target_sizes = [s * current_size_relax for s in MAX_MODEL_SIZES]
 
-        print(f"\n--- {desc} ---")
-        print(f"Target accuracy: {relaxed_min_acc:.2f}%")
-        print(f"Max sizes:       {np.round(relaxed_max_sizes,1)}")
+        result = optimize_with_relaxed_constraints(
+                    target_acc, target_sizes)
 
-        # directly run the relaxed GA
-        result = optimize_with_relaxed_constraints(relaxed_min_acc, relaxed_max_sizes)
-        if result is not None and result[4] is not None:
-            print(f"\nFeasible under '{desc}'")
+        if result and result[4] is not None:
+            print(f"Feasible with "
+                  f"acc_relax={current_acc_relax:.1f}%, "
+                  f"size_relax={current_size_relax:.2f}")
             return result
-        else:
-            print(f"No feasible solution under '{desc}'")
 
-    print("\nEven with maximum relaxation, no feasible solution found.")
+        # unpack the last run’s metrics
+        _, _, sizes, weighted_acc, _ = result
+        # compute how far off we were
+        deficit_acc     = max(0, GLOBAL_MIN_ACCURACY - weighted_acc)
+        violation_ratio = max(s / m for s, m in
+                              zip(sizes, MAX_MODEL_SIZES)) - 1.0
+
+        # bump up just enough (plus margin)
+        current_acc_relax  = min(
+            max_acc_relax, deficit_acc + margin_acc)
+        current_size_relax = min(
+            max_size_relax, 1.0 + violation_ratio + margin_size)
+
+        print(f"  → next try: "
+              f"acc_relax={current_acc_relax:.1f}%, "
+              f"size_relax={current_size_relax:.2f}")
+
+    print("Reached max allowed relaxation without finding a feasible solution.")
     return None
 
 
 # ### Multi Objective Pruning
 
-# In[110]:
+# In[132]:
 
 
 def optimize_pruning():  # sourcery skip: low-code-quality
@@ -555,7 +567,7 @@ def optimize_pruning():  # sourcery skip: low-code-quality
             print("="*60)
 
             # Try progressive relaxation
-            relaxation_result = relax_constraints_progressively()
+            relaxation_result = adaptive_relaxation()
             if relaxation_result is not None:
                 return relaxation_result
 
@@ -564,7 +576,7 @@ def optimize_pruning():  # sourcery skip: low-code-quality
 
 # ### Find a Feasible Starting Point
 
-# In[111]:
+# In[133]:
 
 
 def find_feasible_starting_point():
@@ -607,7 +619,7 @@ def find_feasible_starting_point():
 
 # ### Redistribute Accuracy Loss Between Views
 
-# In[112]:
+# In[134]:
 
 
 def redistribute_accuracy_loss(p_vec, violating_views, target_sizes, i, GLOBAL_MIN_ACCURACY):
@@ -689,7 +701,7 @@ def redistribute_accuracy_loss(p_vec, violating_views, target_sizes, i, GLOBAL_M
 
 # ### Handle Size Violations
 
-# In[113]:
+# In[135]:
 
 
 def handle_size_violations(p_vec, i, global_min_accuracy, MAX_MODEL_SIZES):
@@ -749,7 +761,7 @@ def handle_size_violations(p_vec, i, global_min_accuracy, MAX_MODEL_SIZES):
 
 # ### Check if redistribution was successful
 
-# In[114]:
+# In[136]:
 
 
 def successful_redist(adjusted_p_vec, i, metrics, total_r):
@@ -771,7 +783,7 @@ def successful_redist(adjusted_p_vec, i, metrics, total_r):
 
 # ### Optimize with Redist
 
-# In[115]:
+# In[137]:
 
 
 def optimize_pruning_with_redistribution():
@@ -812,77 +824,91 @@ def optimize_pruning_with_redistribution():
     return result
 
 
-# ### Params
-
-# In[116]:
-
-
-init()
-
-
-# In[117]:
-
-
-input("Start?")
-
-
 # ### Main Loop
 
 # In[ ]:
 
 
-print("Testing redistribution approach...")
-print("="*70)
-print("Global minimum accuracy:", np.round(GLOBAL_MIN_ACCURACY, 2))
-print("Max model sizes:", np.round(MAX_MODEL_SIZES, 2))
-print("="*70)
+def main():
+    print("Testing redistribution approach...")
+    print("="*70)
+    print("Global minimum accuracy:", np.round(GLOBAL_MIN_ACCURACY, 2))
+    print("Max model sizes:", np.round(MAX_MODEL_SIZES, 2))
+    print("="*70)
 
-test_result = find_feasible_starting_point()
-if test_result[0] is not None:
-    print("Running optimization with redistribution...")
-    final_result = optimize_pruning_with_redistribution()
+    test_result = find_feasible_starting_point()
+    if test_result[0] is not None:
+        print("Running optimization with redistribution...")
+        final_result = optimize_pruning_with_redistribution()
 
-    if final_result is not None:
-        print("\nFINAL OPTIMIZED SOLUTION WITH REDISTRIBUTION COMPLETE")
-        print("Adjusted p values:        ", np.round(final_result[0], 3))
-        print("View accuracies %:        ", np.round(final_result[1], 2))
-        print("Weighted accuracy %:      ", np.round(final_result[3], 2))
-        print("Required global accuracy: ", GLOBAL_MIN_ACCURACY)
-        print("Model sizes:              ", np.round(final_result[2], 1))
-        print("Max sizes:                ", np.round(MAX_MODEL_SIZES, 1))
-        print("Total reward:             ", np.round(final_result[4], 2)) if final_result[4] is not None else print("No total reward calculated.")
+        if final_result is not None:
+            show_results(final_result)
+    else:
+        print("Constraints appear too tight even for redistribution approach.")
 
-        print(f"{'View':<6} {'Size':<10} {'Max Size':<12} {'Accuracy (%)':<20} {'Time':<14} {'Importance':<12} {'Prune':<10}")
-        print("-" * 90)
 
-        views_violated = []
+def show_results(final_result):
+    print("\nFINAL OPTIMIZED SOLUTION WITH REDISTRIBUTION COMPLETE")
+    print("Adjusted p values:        ", np.round(final_result[0], 3))
+    print("View accuracies %:        ", np.round(final_result[1], 2))
+    print("Weighted accuracy %:      ", np.round(final_result[3], 2))
+    print("Required global accuracy: ", np.round(GLOBAL_MIN_ACCURACY, 2))
+    print("Model sizes:              ", np.round(final_result[2], 1))
+    print("Max sizes:                ", np.round(MAX_MODEL_SIZES, 1))
+    print("Total reward:             ", np.round(final_result[4], 2)) if final_result[4] is not None else print("No total reward calculated.")
 
-        for view in range(12):
-            size = final_result[2][view]
-            max_size = MAX_MODEL_SIZES[view]
-            acc = final_result[1][view]
-            importance = i[view]
-            prune = final_result[0][view]
-            if np.round(size, 1) > np.round(max_size, 1):
-                views_violated.append(view + 1)
-            print(f"{view+1:<6}, {size:<10.1f}, {max_size:<12.1f}, {acc:<16.2f}, {get_time(prune):<14.2f}, {importance*100:<10.2f}, {prune*100:<10.3f}")
-        print("\n" + "="*90)
-        print("Final Weighted Accuracy: ", np.round(final_result[3], 1), "Required:", np.round(GLOBAL_MIN_ACCURACY, 1))
-        print("Views violating size constraints:", views_violated if views_violated else "None")
-        if np.round(final_result[3], 1) >= np.round(GLOBAL_MIN_ACCURACY, 1):
-            print("Solution meets global accuracy requirement!")
-        else:
-            print("Solution does NOT meet global accuracy requirement.")
+    print("-" * 110 + "\n")
 
-        print(f'Average Inference Time: {np.round(np.mean([get_time(final_result[0][view]) for view in range(12)]), 2)} ms')
-        print(f"Original Inference Time: {np.round(get_time(0.0))}")
 
-else:
-    print("Constraints appear too tight even for redistribution approach.")
+    print(f"{'View':<6} {'Size':<10} {'Max Size':<12} {'Accuracy (%)':<20} {'Time':<14} {'Importance':<12} {'Prune':<10}, {'Device Perf':<12}")
+
+    views_violated = []
+
+    for view in range(12):
+        size = final_result[2][view]
+        max_size = MAX_MODEL_SIZES[view]
+        acc = final_result[1][view]
+        importance = i[view]
+        prune = final_result[0][view]
+        if np.round(size, 1) > np.round(max_size, 1):
+            views_violated.append(view + 1)
+        print(f"{view+1:<6}, {size:<10.1f}, {max_size:<12.1f}, {acc:<16.2f}, {get_time(prune, device_perf=DEVICES_PERF[view]):<14.2f}, {importance*100:<10.2f}, {prune*100:<10.3f}, {DEVICES_PERF[view]:<10.3f}")
+    print("\n" + "="*110)
+    print("Final Weighted Accuracy: ", np.round(final_result[3], 1), "Required:", np.round(GLOBAL_MIN_ACCURACY, 1))
+    print("Views violating size constraints:", views_violated if views_violated else "None")
+    if np.round(final_result[3], 1) >= np.round(GLOBAL_MIN_ACCURACY, 1):
+        print("Solution meets global accuracy requirement!")
+    else:
+        print("Solution does NOT meet global accuracy requirement.")
+
+    avg_inf_time = np.mean([get_time(final_result[0][view], device_perf=DEVICES_PERF[view]) for view in range(12)])
+    org_inf_time = get_time(0.0, device_perf=0)
+
+    print(f'Average Inference Time: {np.round(avg_inf_time, 2)} ms')
+    print(f"Original Inference Time: {np.round(org_inf_time, 2)} ms")
+    print(f"Inference is {np.round(1+(org_inf_time - avg_inf_time) / org_inf_time, 2)}x faster than original model.")
+
+
+# In[175]:
+
+
+init()
+
+
+# In[176]:
+
+
+main() if input("Run optimization? (y/n): ").strip().lower() == 'y' else None
+
+
+# In[177]:
+
+
+get_ipython().system('jupyter nbconvert --to script optimization.ipynb')
 
 
 # In[ ]:
 
 
-get_ipython().system('jupyter nbconvert --to script optimization.ipynb')
+
 

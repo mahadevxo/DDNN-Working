@@ -1,0 +1,70 @@
+flowchart TD
+  %% Start
+  A[Start Script] --> B[Load Libraries]
+  
+  %% Imports
+  B --> B1[numpy as np]
+  B --> B2[matplotlib.pyplot as plt]
+  B --> B3[pymoo NSGA2 GA Problem minimize]
+  B --> B4[scipy.optimize root_scalar]
+  
+  %% Model Curves
+  B4 --> C[Define Model Curve Functions]
+  C --> C1[get_accuracy p polynomial to accuracy]
+  C --> C2[get_size p polynomial to model size]
+  C --> C3[get_time p device perf linear to inference time]
+  
+  %% Plotting
+  C3 --> D[Plot Model Curves]
+  D --> D1[Generate p array linspace 0 to 1]
+  D --> D2[Plot Accuracy vs p]
+  D --> D3[Plot Size vs p]
+  D --> D4[Plot Time vs p]
+  D --> D5[Show or save figure]
+  
+  %% Reward Definitions
+  D5 --> E[Define Reward Components]
+  E --> E1[Accuracy Reward uses asymmetric gaussian below threshold]
+  E --> E2[Model Size Reward uses exponential penalty above limit]
+  E --> E3[Latency Reward uses exponential penalty above limit]
+  
+  %% Combine Rewards
+  E3 --> F[Combine into total reward function]
+  F --> F1[Evaluate curves at p]
+  F --> F2[Compute each component reward]
+  F --> F3[Apply weights w acc w size w time]
+  F --> F4[Return total reward]
+  
+  %% Pymoo Problem
+  F4 --> G[Define Optimization Problem Class]
+  G --> G1[Subclass pymoo core problem]
+  G1 --> G2[Implement evaluate method]
+  G2 --> G3[Objective negative of total reward]
+  G3 --> G4[Constraints accuracy above min size below max latency below max]
+  G4 --> G5[Bounds for p variable between 0 and 1]
+  
+  %% Optimization Loop
+  G5 --> H[Select Algorithm and Run]
+  H --> H1{Single objective or multi objective}
+  H1 -->|Single| H2[Use GA]
+  H1 -->|Multi| H3[Use NSGA2]
+  H2 --> H4[Call minimize with GA]
+  H3 --> H4[Call minimize with NSGA2]
+  H4 --> H5[Extract best pruning ratio]
+  
+  %% Feasibility Check
+  H5 --> I{Constraints satisfied}
+  I -->|Yes| J[Proceed to analysis]
+  I -->|No| K[Constraint relaxation]
+  K --> K1[Increase gauss sigmas or loosen limits]
+  K1 --> K2[Re run minimize]
+  
+  %% Post-optimization
+  J --> L[Post optimization analysis]
+  L --> L1[Compute final accuracy size latency at optimal p]
+  L --> L2[Print metrics to console]
+  L --> L3[Plot optimized point on curves]
+  L --> L4[Optionally save results]
+  
+  %% End
+  L4 --> Z[End Script]
