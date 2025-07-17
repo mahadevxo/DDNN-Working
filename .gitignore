@@ -1,20 +1,12 @@
-src/pruning_taylor/imagenet-mini
-src/pruning_RL/__pycache__
-src/pruning_RL/imagenet-mini
-src/MVCNN_org/MVCNN-Jetson_stage_1
-src/MVCNN_org/MVCNN-Jetson_stage_2
 **.DS_Store
 **.ipynb_checkpoints
 **/__pycache__
 **/*.numbers
 **/imagenet-mini
 **/*.pth
-**/ModelNet40_Org
 **/ModelNet40-12View
-**/AlexNetPruned
 **/data
 **/trained-models
-/src/pruning/taylor_series/tests/outputs
 **/*.tar
 **/*.tar.gz
 **/*.zip
@@ -25,4 +17,3 @@ src/MVCNN_org/MVCNN-Jetson_stage_2
 **/outcmaes
 **/intermediate-results/
 **/.vscode
-.vscode/
