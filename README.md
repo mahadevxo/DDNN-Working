@@ -2,93 +2,126 @@
 
 ## Directory Structure
 
-```
-DDNN-Working
+```text
+.
 ├── initialise_remote_machine.sh
 ├── README.md
 └── src
-    ├── MVCNN
-    │   ├── __init__.py
+    ├── MVCNN							[1]
+    │   ├── convert_multi.py
+    │   ├── convert.py
     │   ├── models
-    │   │   ├── __init__.py
     │   │   ├── Model.py
     │   │   └── MVCNN.py
     │   ├── MVCNN
-    │   │   └── config.json
+    │   │   └── model-mvcnn-00050.pth
+    │   ├── pytorch3d_render.py
     │   ├── reorganise.py
+    │   ├── SVCNN
+    │   │   └── model-svcnn-00050.pth
     │   ├── tools
-    │   │   ├── __init__.py
     │   │   ├── ImgDataset.py
     │   │   └── Trainer.py
     │   └── train_mvcnn.py
-    ├── pruning
-    │   ├── RL
-    │   │   ├── ComprehensiveVGGPruner.py
-    │   │   ├── diagrams.pu
-    │   │   ├── GetAccuracy.py
-    │   │   └── PPO.py
-    │   └── taylor_series
-    │       ├── FilterPruner.py
-    │       ├── main.py
-    │       ├── Pruning.py
-    │       ├── PruningFineTuner.py
-    │       ├── RewardFuntion.py
-    │       ├── Search.py
-    │       ├── SearchAlgorithm.py
-    │       └── tests
-    │           ├── create_data.ipynb
-    │           ├── finding_relation.ipynb
-    │           ├── local_test.py
-    │           ├── multi_model_test.py
-    │           ├── plot_results.ipynb
-    │           ├── pre_vs_post_finetune.ipynb
-    │           ├── test.py
-    │           ├── testing_alexnet_jetson.py
-    │           └── testing.ipynb
-    └── tests
-        ├── inference_time_vgg
-        │   ├── vgg16_cpu.csv
-        │   ├── vgg16_cuda.csv
-        │   ├── vgg16_cuda.pdf
-        │   ├── vgg16_features_inference.py
-        │   ├── vgg16.csv
-        │   └── vgg16.pdf
-        ├── MVCNN
-        │   └── MVCNN_delays
-        └── MVCNN_delays
-            ├── jetson_transmission.py
-            ├── jetson.py
-            ├── JetsonClient.py
-            ├── mac_transmission.py
-            ├── mac.py
-            ├── MacServer.py
-            ├── models
-            │   ├── __init__.py
-            │   ├── Model.py
-            │   └── MVCNN.py
-            └── pruning.py
+    └── pruning							[2]
+        ├── RL							[3]
+        │   ├── ComprehensiveVGGPruner.py
+        │   ├── diagrams.pu
+        │   ├── GetAccuracy.py
+        │   └── PPO.py
+        └── taylor_series					[4]
+            ├── incremental-pruning				[5]
+            │   ├── FilterPruner.py
+            │   ├── importance.py
+            │   ├── main_mvcnn.py
+            │   ├── main-general-cnns.py
+            │   ├── PFT_MVCNN.py
+            │   ├── PFT.py
+            │   ├── Pruning.py
+            │   ├── reorganise-modelnet40.py
+            │   ├── results
+            │   │   ├── MVCNN Results.prism
+            │   │   └── pruning-results-20250702-124835.csv
+            │   └── Rewards.py
+            ├── intermediate-tests-results
+            │   ├── computation_time_alexnet.ipynb
+            │   ├── intermediate-tests
+            │   │   ├── FilterPruner.py
+            │   │   ├── main.py
+            │   │   ├── model_info.ipynb
+            │   │   ├── MVCNN
+            │   │   │   ├── convert_multi.py
+            │   │   │   ├── convert.py
+            │   │   │   ├── models
+            │   │   │   │   ├── Model.py
+            │   │   │   │   └── MVCNN.py
+            │   │   │   ├── pytorch3d_render.py
+            │   │   │   ├── reorganise.py
+            │   │   │   ├── testing.ipynb
+            │   │   │   ├── tools
+            │   │   │   │   ├── ImgDataset.py
+            │   │   │   │   └── Trainer.py
+            │   │   │   ├── train_mvcnn.py
+            │   │   │   └── trained-models
+            │   │   │       ├── MVCNN
+            │   │   │       └── SVCNN
+            │   │   ├── PFT.py
+            │   │   ├── Pruning.py
+            │   │   ├── pytorch-pruning
+            │   │   │   ├── dataset.py
+            │   │   │   ├── finetune.py
+            │   │   │   ├── prune.py
+            │   │   │   └── README.md
+            │   │   ├── reorganise.py
+            │   │   ├── res1.csv
+            │   │   ├── results_again.csv
+            │   │   ├── results_mvcnn.csv
+            │   │   ├── results_vgg11.csv
+            │   │   └── tests.py
+            │   ├── LearnData.ipynb
+            │   ├── pre_accuracy-post_accuracy_relation.ipynb
+            │   ├── pre_vs_post_finetune.ipynb
+            │   ├── Rewards.ipynb
+            │   └── VGG11_final_results.csv
+            ├── mvcnn-optimization				[6]
+            │   ├── flowchart.mmd
+            │   ├── mvcnn-optimization-v1.ipynb
+            │   ├── mvcnn-optimization-v2.ipynb
+            │   └── view-importance-calculator.ipynb
+            └── searching-algorithm-v1				[7]
+                ├── curve-finding.ipynb
+                ├── FilterPruner.py
+                ├── infogetter.py
+                ├── models
+                │   ├── Model.py
+                │   └── MVCNN.py
+                ├── PFT.py
+                ├── Pruning.py
+                ├── reorganise.py
+                ├── Rewards.py
+                ├── searchAlgo.py
+                ├── sorted_view_importance_scores.csv
+                ├── tools
+                │   ├── ImgDataset.py
+                │   └── Trainer.py
+                └── viewImportance.ipynb
 
-16 directories, 48 files
+25 directories, 77 files
+
 ```
 
----
-
-### src/MVCNN
-
-MVCNN contains the original MVCNN code which was used for training the model. The code was adjusted to account for the newer pytorch versions.
-
----
-
-### src/pruning/RL
-
-Tried a PPO approach to find the optimal pruning amount. Took too much time and was not feasible. So this method was abandoned.
+1. Original MVCNN implimentation [https://github.com/jongchyisu/mvcnn_pytorch](https://github.com/jongchyisu/mvcnn_pytorch)
+2. Pruning Experiments
+3. Reinforement Based Approach (not feasible)
+4. Using Taylor Series Approximation to Find Prunable Filters
+5. Prune Models Incrementally rather than All at Once
+6. **Final Optimization Algorithm**
+7. V1 Searching Algorithm
 
 ---
 
-### src/pruning/taylor_series
+## Final Algorithm
 
-Contains the code for pruning the model using the taylor series approximation. This also adds a search algorithm based on gradient ascend.
+Final algorithm is in 
 
-#### ./tests
-
-Consists of random tests that i conducted
+---
