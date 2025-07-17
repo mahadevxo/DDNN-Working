@@ -24,3 +24,5 @@ src/MVCNN_org/MVCNN-Jetson_stage_2
 **/.vscode
 **/outcmaes
 **/intermediate-results/
+**/.vscode
+.vscode/
