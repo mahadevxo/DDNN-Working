@@ -27,6 +27,8 @@ def show_results(final_result):
     
     passed=False
     
+    # final_result: [adjusted_p_values, view_accuracies, model_sizes, weighted_accuracy, total_reward]
+    
     statfn = ModelStats()
     i = optimizer.I
     
