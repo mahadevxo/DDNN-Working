@@ -25,7 +25,7 @@ class MultiViewProblem(Problem):
         self.rewardfn = Rewards()
         global MAX_MODEL_SIZES, GLOBAL_MIN_ACCURACY, DEVICES_PERF
 
-    def _evaluate(self, X, out, *args, **kwargs):
+    def _evaluate(self, X, out):
         pop_size, _ = X.shape
         F = np.zeros((pop_size, 13))
 
