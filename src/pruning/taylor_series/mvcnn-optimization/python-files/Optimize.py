@@ -581,7 +581,7 @@ class Optimizer:
         global MAX_MODEL_SIZES, GLOBAL_MIN_ACCURACY, DEVICES_PERF
 
         acc_raw = np.random.beta(a=3.0, b=2.0)
-        GLOBAL_MIN_ACCURACY = np.random.uniform(450.0, 55.0) + acc_raw * np.random.uniform(20.0, 35.0)
+        GLOBAL_MIN_ACCURACY = np.random.uniform(45.0, 55.0) + acc_raw * np.random.uniform(20.0, 35.0)
 
         size_multiplier = [1.0 + acc_raw * (4 - np.random.uniform(0.3, 1.3)) for _ in range(12)]
 
@@ -591,7 +591,7 @@ class Optimizer:
 
         print("\n" + "="*60)
         print(f"GLOBAL_MIN_ACCURACY: {GLOBAL_MIN_ACCURACY:.2f}%")
-        print(f"SIZE_MULTIPLIER (from beta): {size_multiplier:.2f}")
+        print(f"SIZE_MULTIPLIER (from beta): {np.round(size_multiplier, 2)}")
         print(f"MAX_MODEL_SIZES: {np.round(MAX_MODEL_SIZES, 2)}")
         print(f"DEVICES_PERF: {np.round(DEVICES_PERF, 2)}")
         print("="*60)
