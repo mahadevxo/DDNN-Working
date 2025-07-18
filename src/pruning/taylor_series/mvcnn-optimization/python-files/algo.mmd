@@ -1,0 +1,70 @@
+flowchart TB
+  %% MAIN
+  subgraph MAIN
+    A[start] --> B[run]
+    B --> C[init optimizer state]
+    C --> D[find feasible starting point]
+    D --> E{initial vector found?}
+    E -- yes --> F[optimize pruning with redistribution]
+    E -- no --> G[abort run]
+    F --> H[show results]
+    H --> I[write CSV]
+    I --> J[end]
+  end
+
+  %% OPTIMIZER
+  subgraph OPTIMIZER
+    direction TB
+    C --> K[Optimizer init  
+ set model_stats and rewardfn]
+    D --> L[find_feasible_starting_point  
+ loop sample p_vec  
+ call is_feasible]
+    L --> M[is_feasible  
+ compute accs via ModelStats.get_accuracy  
+ compute sizes via ModelStats.get_size  
+ compute weighted_acc  
+ compare to GLOBAL_MIN_ACCURACY and MAX_MODEL_SIZES]
+    M -- feasible --> E
+    M -- infeasible --> L
+
+    F --> N[optimize_pruning_with_redistribution  
+ call optimize_pruning  
+ if violations then reset constraints and return]
+    N --> O[optimize_pruning  
+ run NSGA2 multiobjective  
+ collect pareto solutions  
+ evaluate each via is_feasible]
+    O -- some feasible --> P[select best by reward]
+    O -- none feasible --> Q[call adaptive_relaxation  
+ try progressive constraint relaxation]
+    P --> R[return p_vec, accs, sizes, weighted_acc, total_reward]
+    Q --> R
+
+    R --> F
+
+    %% inside optimize_with_relaxed_constraints
+    R --> S[optimize_with_relaxed_constraints  
+ initialize population and sigma  
+ loop: eval_population → selection → recombination → mutation → update_sigma → adaptive_relaxation → compute_rewards → update best until budget exhausted  
+ return best solution]
+  end
+
+  %% EVALUATION & REWARDS
+  subgraph EVAL_REWARDS
+    direction TB
+    T[eval_population] --> U[problem.evaluate  
+ MultiViewProblem or SingleObjectiveProblem  
+ compute objectives matrix]
+    U --> V[extract metrics  
+ call ModelStats.get_accuracy  
+ call ModelStats.get_size  
+ call ModelStats.get_time]
+    V --> W[compute_rewards via Rewards.get_reward  
+ get_accuracy_reward  
+ get_comp_time_reward  
+ get_model_size_reward  
+ more_acc_less_size  
+ combine weighted components]
+    W --> S
+  end

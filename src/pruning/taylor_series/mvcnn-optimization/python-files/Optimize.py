@@ -215,8 +215,7 @@ class Optimizer:
         current_acc_relax  = 0.0
         current_size_relax = 1.0
 
-        while current_acc_relax <= max_acc_relax \
-        and current_size_relax <= max_size_relax:
+        while current_acc_relax <= max_acc_relax and current_size_relax <= max_size_relax:
 
             target_acc   = GLOBAL_MIN_ACCURACY - current_acc_relax
             target_sizes = [s * current_size_relax for s in MAX_MODEL_SIZES]
@@ -309,7 +308,7 @@ class Optimizer:
             best_p_vec = single_res.X
             valid, accs, sizes = self.is_feasible(best_p_vec)
 
-            accs = np.array([self.model_statsget_accuracy(p) for p in best_p_vec]) # type: ignore
+            accs = np.array([self.model_stats.get_accuracy(p) for p in best_p_vec]) # type: ignore
             sizes = np.array([self.model_stats.get_size(p) for p in best_p_vec]) # type: ignore
             weighted_acc = np.sum(accs * I)
 
@@ -581,14 +580,14 @@ class Optimizer:
     def init(self):
         global MAX_MODEL_SIZES, GLOBAL_MIN_ACCURACY, DEVICES_PERF
 
-        acc_raw = np.random.beta(a=7.0, b=2.0)
-        GLOBAL_MIN_ACCURACY = np.random.uniform(45.0, 55.0) + acc_raw * np.random.uniform(28.0, 32.0)
+        acc_raw = np.random.beta(a=3.0, b=2.0)
+        GLOBAL_MIN_ACCURACY = np.random.uniform(450.0, 55.0) + acc_raw * np.random.uniform(20.0, 35.0)
 
-        size_multiplier = 1.0 + acc_raw * (4.5 - np.random.uniform(0.7, 1.3))
+        size_multiplier = [1.0 + acc_raw * (4 - np.random.uniform(0.3, 1.3)) for _ in range(12)]
 
-        MAX_MODEL_SIZES = [100.0 * size_multiplier * np.random.uniform(0.8, 1.2) for _ in range(12)]
+        MAX_MODEL_SIZES = [100.0 * size_multiplier[i] * np.random.uniform(0.8, 1.1) for i in range(12)]
 
-        DEVICES_PERF = np.random.uniform(0.0, 1, 12)
+        DEVICES_PERF = np.random.uniform(0.0, 1.0, 12)
 
         print("\n" + "="*60)
         print(f"GLOBAL_MIN_ACCURACY: {GLOBAL_MIN_ACCURACY:.2f}%")
