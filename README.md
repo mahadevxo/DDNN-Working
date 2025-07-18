@@ -110,7 +110,7 @@
 
 ```
 
-1. Original MVCNN implimentation [https://github.com/jongchyisu/mvcnn_pytorch](https://github.com/jongchyisu/mvcnn_pytorch)
+1. Original MVCNN implimentation [MVCNN PyTorch Implimentation](https://github.com/jongchyisu/mvcnn_pytorch)
 2. Pruning Experiments
 3. Reinforement Based Approach (not feasible)
 4. Using Taylor Series Approximation to Find Prunable Filters
@@ -120,7 +120,7 @@
 
 ---
 
-## Final Algorithm
+## Algorithm
 
 Final algorithm is in [this notebook (v2)](https://github.com/mahadevxo/DDNN-Working/blob/main/src/pruning/taylor_series/mvcnn-optimization/mvcnn-optimization-v2.ipynb), with initial tests in [this notebook (v1)](https://github.com/mahadevxo/DDNN-Working/blob/main/src/pruning/taylor_series/mvcnn-optimization/mvcnn-optimization-v1.ipynb).
 
