@@ -6,9 +6,21 @@ from pymoo.core.problem import Problem
 from scipy.optimize import root_scalar
 from StatsRewards import ModelStats, Rewards
 
-I: np.ndarray = np.array([0.03044561, 0.02201545, 0.12376647, 0.09755174, 0.04860051,  # noqa: E741
-       0.00832497, 0.03501421, 0.00934147, 0.05674529, 0.15345743,
-       0.237974  , 0.17676284]) # Importance weights for each view
+I: np.ndarray = np.array([
+                0.0308751,
+                0.0161968,
+                0.1028691,
+                0.0553428,
+                0.0588390,
+                0.0038936,
+                0.0186269,
+                0.0056457,
+                0.1271117,
+                0.1669608,
+                0.2656634,
+                0.1479751
+                ])
+
 
 MAX_MODEL_SIZES = [0]*12
 GLOBAL_MIN_ACCURACY = 0.0
