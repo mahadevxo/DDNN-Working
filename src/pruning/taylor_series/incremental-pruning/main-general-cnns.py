@@ -26,30 +26,17 @@ def forward_override(self, x):
     x = self.net_2(x)
     return x
 
-def get_exp_curve(total_sum) -> list[float]:
+def get_exp_curve(total_sum: float=0.5) -> list[float]:
     if total_sum == 0:
         return [0.0] * 10
-    
-    # Limit total_sum to a reasonable range to avoid excessive pruning in one step
-    total_sum = min(total_sum, 0.99)  # Never prune more than 99% in a single curve
-    
+
     x = np.arange(10)
-    decay_target_ratio = 0.01
-    
-    k_rate = -np.log(decay_target_ratio) / 9
-    curve_raw = np.exp(-k_rate * x)
-    shift_amount = curve_raw[-1]    
-    curve_shifted = curve_raw - shift_amount
-    sum_of_shifted = np.sum(curve_shifted)
-    scaling_factor = total_sum / sum_of_shifted
-    final_curve = curve_shifted * scaling_factor
-    final_curve[-1] = 0.0
-    
-    # Ensure no step has more than 15% pruning
-    max_step_prune = 0.15
-    final_curve: list[float] = np.array([min(v, max_step_prune) for v in final_curve]).tolist() # type: ignore
-    
-    return final_curve
+    k = 0.4  # controls decay rate; smaller = flatter
+    curve = np.exp(-k * x)
+    curve /= curve.sum()
+    curve *= total_sum
+    # curve = np.array([curve*100 for curve in curve])
+    return curve.tolist()
 
 def fine_tune_model(model, curve_value) -> tuple[float, float, float]:
     if curve_value < 0:
@@ -171,7 +158,7 @@ def main() -> None:
                     continue
                 
                 # Get exponential curve values for progressive pruning
-                curve = get_exp_curve(pruning_amount)
+                curve = get_exp_curve(float(pruning_amount))
                 curve = [c for c in curve if c > 0]  # Filter out zeros
                 
                 if not curve:
