@@ -9,7 +9,7 @@ class ModelStats:
         
         acc = sum(c * p**i for i, c in enumerate(coeffs))
 
-        return max(acc, 0)
+        return max(acc, 0) # in percentage
 
     def get_size(self, p):
         coeffs = [496.7, -706.2, 276.9, 4.020]

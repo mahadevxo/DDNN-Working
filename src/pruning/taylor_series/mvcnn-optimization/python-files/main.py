@@ -1,14 +1,16 @@
 from StatsRewards import ModelStats
 import numpy as np
 import Optimize as optimizer
+import time
 
 optim = optimizer.Optimizer()
 
 results_file = "results.csv"
 with open(results_file, 'w') as f:
-    f.write("Adjusted p values,View accuracies %,Weighted accuracy %,Required global accuracy,Model sizes, Max sizes,Inference time\n")
+    f.write("Adjusted p values,View accuracies %,Weighted accuracy %,Required global accuracy,Model sizes, Max sizes,Inference time, Device Perfs, Passed\n")
 
 def run():
+    print("Starting optimization...")
     optim.init()
     test_result = optim.find_feasible_starting_point()
     if test_result[0] is not None:
@@ -77,19 +79,23 @@ def show_results(final_result):
     print(f"Inference is {np.round(1+(org_inf_time - max_inf_time) / org_inf_time, 2)}x faster than original model.")
     
     with open(results_file, 'a') as f:
-        f.write(f"{np.round(final_result[0], 3)}, {np.round(final_result[1], 2)}, {np.round(final_result[3], 2)}, {np.round(optimizer.GLOBAL_MIN_ACCURACY, 2)}, {np.round(final_result[2], 1)}, {np.round(optimizer.MAX_MODEL_SIZES, 1)}, {np.round(1+(org_inf_time - max_inf_time) / org_inf_time, 2)}\n\n")
+        f.write(f"{np.round(final_result[0], 3)}, {np.round(final_result[1], 2)}, {np.round(final_result[3], 2)}, {np.round(optimizer.GLOBAL_MIN_ACCURACY, 2)}, {np.round(final_result[2], 1)}, {np.round(optimizer.MAX_MODEL_SIZES, 1)}, {np.round(1+(org_inf_time - max_inf_time) / org_inf_time, 2)}, {np.array2string(optimizer.DEVICES_PERF, separator=' ')}, {str(passed)},\n")
     return passed
 
 if __name__ == "__main__":
     iters = int(input("Enter number of iterations to run: ")) or 1
     print(f"Running optimization for {iters} iterations...")
     passed_count = 0
+    t_t = time.time()
     for i in range(iters):
         print(f"\nIteration {i+1}/{iters}")
+        t0 = time.time()
         passed = run()
+        print(f"Elapsed time: {np.round(time.time() - t0, 2)} seconds")
         if passed:
             passed_count += 1
         print("-" * 110)
+    print(f"Total elapsed time: {np.round(time.time() - t_t, 2)} seconds")
     print(f"Results saved to {results_file}")
     print("Optimization complete.")
     print(f"Total iterations passed: {passed_count}/{iters}")

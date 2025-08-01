@@ -6,7 +6,7 @@ from pymoo.core.problem import Problem
 from scipy.optimize import root_scalar
 from StatsRewards import ModelStats, Rewards
 
-I: np.ndarray = np.array([
+I: np.ndarray = np.array([  # noqa: E741
                 0.0308751,
                 0.0161968,
                 0.1028691,
@@ -25,6 +25,22 @@ I: np.ndarray = np.array([
 MAX_MODEL_SIZES = [0]*12
 GLOBAL_MIN_ACCURACY = 0.0
 DEVICES_PERF = [0]*12
+N_GEN = 100
+POP_SIZE = 200
+X_TOL = 1e-6
+
+'''
+Time Complexity:
+NSGA=II: O((POP_SIZE * 13)^2) per generation
+GA: O(POP_SIZE * 12) per generation
+toms748: O(log_2(1/X_TOL)) for root finding
+
+1x NSGA-II
+2x GA
+2x toms748
+
+Total: O(N_GEN X ((POP_SIZE X 13)^2 + 2 X POP_SIZE X 12)) =  O( N_GEN · POP_SIZE² )
+'''
 
 class MultiViewProblem(Problem):
     def __init__(self):
@@ -93,7 +109,6 @@ class SingleObjectiveProblem(Problem):
             if np.round(weighted_acc, 2) < np.round(GLOBAL_MIN_ACCURACY, 2):
                 penalty += (GLOBAL_MIN_ACCURACY - weighted_acc)**2 * 10000
 
-            # **normalize** mean time BEFORE applying alpha
             max_time = max([self.statsfn.get_time(p, device_perf=DEVICES_PERF[j]) for j, p in enumerate(p_vec)])
             max_time_norm = max_time / self._worst_time
             alpha          = 0.01
@@ -148,7 +163,7 @@ class Optimizer:
                     for j, p in enumerate(p_vec):
                         _   = self.optimizer.model_stats.get_accuracy(p)
                         size  = self.optimizer.model_stats.get_size(p)
-                        total_time += self.optimizer.model_stats.get_time(p, device_perf=DEVICES_PERF[j])             # ← new
+                        total_time += self.optimizer.model_stats.get_time(p, device_perf=DEVICES_PERF[j]) 
 
                         # size violation penalty
                         if np.round(size, 2) > np.round(max_sizes[j], 2):
@@ -173,12 +188,12 @@ class Optimizer:
 
         # Run optimization with relaxed constraints
         problem   = RelaxedSingleObjectiveProblem()
-        algorithm = GA(pop_size=200)
+        algorithm = GA(pop_size=POP_SIZE)
 
         res = minimize(
             problem,
             algorithm,
-            termination=('n_gen', 500),
+            termination=('n_gen', N_GEN),
             verbose=False
         )
 
@@ -264,12 +279,12 @@ class Optimizer:
     def optimize_pruning(self):  # sourcery skip: low-code-quality
         print("Running multi-objective optimization (NSGA-II)...")
         problem = MultiViewProblem()
-        algorithm = NSGA2(pop_size=500)  # Increased population size
+        algorithm = NSGA2(pop_size=POP_SIZE)
 
         res = minimize(
             problem,
             algorithm,
-            termination=('n_gen', 1000),  # Increased generations
+            termination=('n_gen', N_GEN),
             verbose=False
         )
 
@@ -308,12 +323,12 @@ class Optimizer:
         else:
             print("\nNo feasible solution found with NSGA-II. Trying single-objective optimization...")
             single_problem = SingleObjectiveProblem()
-            single_algorithm = GA(pop_size=200)  # Increased population size
+            single_algorithm = GA(pop_size=POP_SIZE)  # Increased population size
 
             single_res = minimize(
                 single_problem,
                 single_algorithm,
-                termination=('n_gen', 1000),  # Increased generations
+                termination=('n_gen', N_GEN),
                 verbose=False
             )
 
@@ -421,7 +436,7 @@ class Optimizer:
             # Define function for root finding
             def f_size(p):
                 return self.model_stats.get_size(p) - target_size
-            sol = root_scalar(f_size, bracket=[0.0, 1.0], method='brentq', xtol=1e-6)
+            sol = root_scalar(f_size, bracket=[0.0, 1.0], method='toms748', xtol=X_TOL)
             best_p = sol.root
 
             # Compute accuracy loss
@@ -432,7 +447,8 @@ class Optimizer:
             total_accuracy_loss += weighted_acc_loss
 
             new_p_vec[view_idx] = best_p
-            print(f"View {view_idx+1}: pruned p to {best_p:.4f}, size→{self.model_stats.get_size(best_p):.1f}, acc→{new_acc:.2f}% (loss {acc_loss:.2f}%, weighted {weighted_acc_loss:.2f}%)")
+            print(f"View {view_idx+1}: pruned p to {best_p:.4f}, size→{self.model_stats.get_size(best_p):.1f},\
+                acc→{new_acc:.2f}% (loss {acc_loss:.2f}%, weighted {weighted_acc_loss:.2f}%)")
 
         print(f"\nTotal weighted accuracy loss: {total_accuracy_loss:.2f}%")
 
@@ -464,7 +480,7 @@ class Optimizer:
             def g_acc(p):
                 return self.model_stats.get_accuracy(p) - target_acc
             try:
-                sol = root_scalar(g_acc, bracket=[0.0, current_p], method='brentq', xtol=1e-6)
+                sol = root_scalar(g_acc, bracket=[0.0, current_p], method='toms748', xtol=X_TOL)
                 best_p = sol.root
             except ValueError:
                 continue
