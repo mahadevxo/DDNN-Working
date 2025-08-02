@@ -160,19 +160,16 @@ class FilterPruner:
         
         print(f"Excluded {final_excluded_count} filters from protected layer {excluded_layers}")
         
-        # Build final plan (half‐per‐layer cap + 1)
+        # Build final plan — drop the per-layer cap so we can reach exactly num_filters_to_prune
         valid = []
         total = 0
         for layer_n in sorted(filters_to_prune_per_layer):
-            lst = filters_to_prune_per_layer[layer_n]
-            cap = len(lst)//2 + 1
-            for f in sorted(lst[:cap]):
+            for f in sorted(filters_to_prune_per_layer[layer_n]):
                 valid.append((layer_n, f))
                 total += 1
                 if total >= num_filters_to_prune:
                     break
             if total >= num_filters_to_prune:
                 break
-        
         print(f"Final pruning plan: {total}/{num_filters_to_prune} filters (protected last conv layer)")
         return valid[:num_filters_to_prune]
