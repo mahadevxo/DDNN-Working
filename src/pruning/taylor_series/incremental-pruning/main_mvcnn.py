@@ -260,8 +260,15 @@ def main() -> None:
                     print(model)
                     if save_models:
                         model_save_path = f"models/mvcnn_pruned_{pruning_amount:.2f}.pth"
+                        # Remove or comment out attributes that break scripting
+                        if hasattr(model, 'class_names'):
+                            delattr(model, 'class_names')
+                        if hasattr(model, 'mean'):
+                            delattr(model, 'mean')
+                        if hasattr(model, 'std'):
+                            delattr(model, 'std')
                         scripted_model = torch.jit.script(model)
-                        torch.save(scripted_model, model_save_path)
+                        scripted_model.save(model_save_path)
                         
                     del model  # Clear model from memory
                     del final_metrics  # Clear metrics from memory

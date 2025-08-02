@@ -24,12 +24,6 @@ class SVCNN(nn.Module):
         # sourcery skip: low-code-quality
         super(SVCNN, self).__init__()
 
-        self.class_names=['airplane','bed','bench','bookshelf','bottle','bowl','car','chair',
-                         'cone','cup','curtain','door','flower_pot','glass_box',
-                         'guitar','keyboard','lamp','laptop','mantel', 'person','piano',
-                         'plant','radio','range_hood','sink','stairs',
-                         'stool','tent','toilet','tv_stand','vase','wardrobe','xbox']
-
         self.nclasses = nclasses
         self.pretraining = pretraining
         self.cnn_name = cnn_name
@@ -71,6 +65,14 @@ class SVCNN(nn.Module):
             MY MODELNET DATASET HAS ONLY 33 MODELS
             '''
 
+    @torch.jit.ignore # type: ignore
+    def class_names(self):
+        return ['airplane','bed','bench','bookshelf','bottle','bowl','car','chair',
+                         'cone','cup','curtain','door','flower_pot','glass_box',
+                         'guitar','keyboard','lamp','laptop','mantel', 'person','piano',
+                         'plant','radio','range_hood','sink','stairs',
+                         'stool','tent','toilet','tv_stand','vase','wardrobe','xbox']
+
     def forward(self, x):
         if self.use_resnet:
             return self.net(x)
@@ -89,12 +91,6 @@ class MVCNN(nn.Module):
 
     def __init__(self, name, model, nclasses=33, cnn_name='vgg11', num_views=12, device = None):
         super(MVCNN, self).__init__()
-
-        self.class_names=['airplane','bed','bench','bookshelf','bottle','bowl','car','chair',
-                         'cone','cup','curtain','door','flower_pot','glass_box',
-                         'guitar','keyboard','lamp','laptop','mantel', 'person','piano',
-                         'plant','radio','range_hood','sink','stairs',
-                         'stool','tent','toilet','tv_stand','vase','wardrobe','xbox']
 
         self.nclasses = nclasses
         self.num_views = num_views
@@ -138,4 +134,3 @@ class MVCNN(nn.Module):
             y = y.view(y.size(0), -1)
         
         return self.net_2(y)
-
