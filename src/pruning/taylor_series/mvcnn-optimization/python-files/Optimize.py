@@ -24,7 +24,7 @@ I: np.ndarray = np.array([  # noqa: E741
 
 MAX_MODEL_SIZES = [0]*12
 GLOBAL_MIN_ACCURACY = 0.0
-DEVICES_PERF = [0]*12
+DEVICES_PERF = [1]*12
 N_GEN = 100
 POP_SIZE = 200
 X_TOL = 1e-6
@@ -620,6 +620,24 @@ class Optimizer:
         print("\n" + "="*60)
         print(f"GLOBAL_MIN_ACCURACY: {GLOBAL_MIN_ACCURACY:.2f}%")
         print(f"SIZE_MULTIPLIER (from beta): {np.round(size_multiplier, 2)}")
+        print(f"MAX_MODEL_SIZES: {np.round(MAX_MODEL_SIZES, 2)}")
+        print(f"DEVICES_PERF: {np.round(DEVICES_PERF, 2)}")
+        print("="*60)
+    
+    def init_homo(self):
+        global MAX_MODEL_SIZES, GLOBAL_MIN_ACCURACY, DEVICES_PERF
+
+        acc_raw = np.random.beta(a=3.0, b=2.0)
+        GLOBAL_MIN_ACCURACY = np.random.uniform(45.0, 55.0) + acc_raw * np.random.uniform(20.0, 35.0)
+        
+        size_multiplier = 1.0 + acc_raw * (4 - np.random.uniform(0.3, 1.3))
+        MAX_MODEL_SIZES = [100.0 * size_multiplier for _ in range(12)]
+
+        device_perf_mul = np.random.uniform(0.0, 1.0)
+        DEVICES_PERF = np.array([device_perf_mul for _ in range(12)])
+
+        print("\n" + "="*60)
+        print(f"GLOBAL_MIN_ACCURACY: {GLOBAL_MIN_ACCURACY:.2f}%")
         print(f"MAX_MODEL_SIZES: {np.round(MAX_MODEL_SIZES, 2)}")
         print(f"DEVICES_PERF: {np.round(DEVICES_PERF, 2)}")
         print("="*60)

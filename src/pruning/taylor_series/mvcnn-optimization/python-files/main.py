@@ -9,9 +9,9 @@ results_file = "results.csv"
 with open(results_file, 'w') as f:
     f.write("Adjusted p values,View accuracies %,Weighted accuracy %,Required global accuracy,Model sizes, Max sizes,Inference time, Device Perfs, Passed\n")
 
-def run():
+def run(homo=False):
     print("Starting optimization...")
-    optim.init()
+    optim.init() if not homo else optim.init_homo()
     test_result = optim.find_feasible_starting_point()
     if test_result[0] is not None:
         print("Running optimization with redistribution...")
@@ -84,13 +84,14 @@ def show_results(final_result):
 
 if __name__ == "__main__":
     iters = int(input("Enter number of iterations to run: ")) or 1
+    homo = input("Run in homogeneous mode? (y/n): ").strip().lower() == 'y'
     print(f"Running optimization for {iters} iterations...")
     passed_count = 0
     t_t = time.time()
     for i in range(iters):
         print(f"\nIteration {i+1}/{iters}")
         t0 = time.time()
-        passed = run()
+        passed = run(homo=homo)
         print(f"Elapsed time: {np.round(time.time() - t0, 2)} seconds")
         if passed:
             passed_count += 1
