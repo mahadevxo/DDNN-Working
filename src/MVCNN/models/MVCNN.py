@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import torchvision.models as models
-from .Model import Model
+# from .Model import Model
 
 device = 'mps' if torch.backends.mps.is_available() else 'cuda' if torch.cuda.is_available() else 'cpu'
 
@@ -17,7 +17,8 @@ def flip(x, dim):
     return x.view(xsize)
 
 
-class SVCNN(Model):
+# class SVCNN(Model):
+class SVCNN(nn.Module):
 
     def __init__(self, name, nclasses=33, pretraining=True, cnn_name='vgg11', device=None):
         # sourcery skip: low-code-quality
@@ -83,7 +84,8 @@ class SVCNN(Model):
         return self.net_2(y)
 
 
-class MVCNN(Model):
+# class MVCNN(Model):
+class MVCNN(nn.Module):
 
     def __init__(self, name, model, nclasses=33, cnn_name='vgg11', num_views=12, device = None):
         super(MVCNN, self).__init__(name)

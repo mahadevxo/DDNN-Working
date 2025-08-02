@@ -228,6 +228,7 @@ def main() -> None:
                     logger.info(f"\n{'='*50}\nProcessing pruning ratio: {pruning_amount:.2f}\nTrainable Filters: {sum(layer.out_channels for layer in model.net_1 if isinstance(layer, torch.nn.modules.conv.Conv2d))}\n{'='*50}\n")  # type: ignore # Fixed: conv, not conv2d
                     
                     if pruning_amount == 0.0:
+                        _ = torch.jit.script(model)
                         # Baseline (unpruned) evaluation
                         model, final_acc, model_size, comp_time = fine_tune_model(model=model, curve_value=0.0, org_num_filters=total_num_filters, only_val=False)
                         num_filters_present = sum(layer.out_channels for layer in model.net_1 if isinstance(layer, torch.nn.modules.Conv2d))  # type: ignore # Fixed: conv, not conv2d
@@ -261,6 +262,7 @@ def main() -> None:
                         model_save_path = f"models/mvcnn_pruned_{pruning_amount:.2f}.pth"
                         scripted_model = torch.jit.script(model)
                         torch.save(scripted_model, model_save_path)
+                        
                     del model  # Clear model from memory
                     del final_metrics  # Clear metrics from memory
                         
