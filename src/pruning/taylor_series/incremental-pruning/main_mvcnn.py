@@ -225,10 +225,6 @@ def main() -> None:
                     logger.info(f"\n{'='*50}\nProcessing pruning ratio: {pruning_amount:.2f}\nTrainable Filters: {sum(layer.out_channels for layer in model.net_1 if isinstance(layer, torch.nn.modules.conv.Conv2d))}\n{'='*50}\n")  # type: ignore # Fixed: conv, not conv2d
                     
                     if pruning_amount == 0.0:
-                        model_save_path = f"models/mvcnn_pruned_{pruning_amount:.2f}.pth"
-                        scripted_model = torch.jit.script(model)
-                        scripted_model.save(model_save_path)
-                        
                         # Baseline (unpruned) evaluation
                         model, final_acc, model_size, comp_time = fine_tune_model(
                             model=model, curve_value=-1,
@@ -238,6 +234,11 @@ def main() -> None:
                         print(f"Baseline model size: {model_size:.4f} MB, Accuracy: {final_acc:.4f}, Computation Time: {comp_time:.4f} seconds")
                         with open(result_path, 'a') as f:
                             f.write(f"{pruning_amount:.2f},{final_acc:.4f},{model_size:.4f},{comp_time:.4f},{num_filters_present}\n")
+                        
+                        model_save_path = f"models/mvcnn_pruned_{pruning_amount:.2f}.pth"
+                        scripted_model = torch.jit.script(model)
+                        scripted_model.save(model_save_path)
+                        
                         continue
                     
                     # Get exponential curve values for progressive pruning
