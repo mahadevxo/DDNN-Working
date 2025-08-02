@@ -22,7 +22,7 @@ class SVCNN(nn.Module):
 
     def __init__(self, name, nclasses=33, pretraining=True, cnn_name='vgg11', device=None):
         # sourcery skip: low-code-quality
-        super(SVCNN, self).__init__(name)
+        # super(SVCNN, self).__init__(name)
 
         self.class_names=['airplane','bed','bench','bookshelf','bottle','bowl','car','chair',
                          'cone','cup','curtain','door','flower_pot','glass_box',
@@ -88,7 +88,7 @@ class SVCNN(nn.Module):
 class MVCNN(nn.Module):
 
     def __init__(self, name, model, nclasses=33, cnn_name='vgg11', num_views=12, device = None):
-        super(MVCNN, self).__init__(name)
+        # super(MVCNN, self).__init__(name)
 
         self.class_names=['airplane','bed','bench','bookshelf','bottle','bowl','car','chair',
                          'cone','cup','curtain','door','flower_pot','glass_box',
