@@ -186,10 +186,8 @@ def get_model() -> torch.nn.Module:
 
 def main() -> None:
     
-    save_models = True
-    pruning_amounts = np.array([
-        0.1, 0.3, 0.5, 0.7
-    ])
+    save_models = False
+    pruning_amounts = np.arange(0.0, 1, 0.05).tolist()
     # pruning_amounts = list(np.random.permutation(pruning_amounts))
     
     for part_my_part_prune in [False]:
