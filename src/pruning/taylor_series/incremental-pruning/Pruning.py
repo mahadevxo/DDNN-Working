@@ -274,18 +274,24 @@ class Pruning:
             print("Warning: No targets to prune")
             return model
 
-        # Find the last Conv2d layer index
-        last_conv_layer_idx = None
+        # Find the last TWO Conv2d layers to be extra careful
+        conv_layers = []
         for layer_idx, layer in enumerate(model.net_1):
             if isinstance(layer, torch.nn.Conv2d):
-                last_conv_layer_idx = layer_idx
+                conv_layers.append(layer_idx)
+        
+        protected_layers = set()
+        if len(conv_layers) >= 1:
+            protected_layers.add(conv_layers[-1])  # Last conv layer
+        if len(conv_layers) >= 2:
+            protected_layers.add(conv_layers[-2])  # Second-to-last conv layer for safety
 
         # Group filters by layer and remove duplicates
         filters_by_layer = {}
         for layer_idx, filter_idx in prune_targets:
-            # Skip last Conv2d layer to preserve FC layer compatibility
-            if layer_idx == last_conv_layer_idx:
-                print(f"Skipping filter pruning in last Conv2d layer {layer_idx} to preserve FC layer")
+            # Skip protected layers
+            if layer_idx in protected_layers:
+                print(f"Skipping protected Conv2d layer {layer_idx}")
                 continue
                 
             if layer_idx not in filters_by_layer:
@@ -293,12 +299,12 @@ class Pruning:
             filters_by_layer[layer_idx].add(filter_idx)
 
         if not filters_by_layer:
-            print("Warning: No valid layers to prune (last Conv2d layer excluded)")
+            print("Warning: No valid layers to prune (protected layers excluded)")
             return model
 
-        print(f": Pruning filters from {len(filters_by_layer)} layers (excluding last Conv2d)")
+        print(f"Pruning filters from {len(filters_by_layer)} layers (protected: {protected_layers})")
 
-        # Process layers in order (not reverse) to avoid dependency issues
+        # Process layers in order
         for layer_idx in sorted(filters_by_layer.keys()):
             filter_indices = sorted(list(filters_by_layer[layer_idx]))
             modules = list(model.net_1)
@@ -313,13 +319,12 @@ class Pruning:
                 print(f"Warning: Layer {layer_idx} is not Conv2d, skipping")
                 continue
 
-            print(f" Layer {layer_idx}: Pruning {len(filter_indices)} filters from {conv.out_channels} total")
+            print(f"Layer {layer_idx}: Pruning {len(filter_indices)} filters from {conv.out_channels} total")
 
-            # REMOVE MOST SAFETY CHECKS - only keep the absolute minimum
+            # Ensure we don't prune too many filters
             if len(filter_indices) >= conv.out_channels:
-                # Only leave 1 filter minimum instead of refusing
                 filter_indices = filter_indices[:conv.out_channels-1]
-                print(f": Limiting to {len(filter_indices)} filters to leave 1 remaining")
+                print(f"Limiting to {len(filter_indices)} filters to leave 1 remaining")
 
             # Verify indices are in bounds
             valid_indices = [idx for idx in filter_indices if 0 <= idx < conv.out_channels]
@@ -327,13 +332,13 @@ class Pruning:
                 print(f"Warning: Some filter indices for layer {layer_idx} are out of bounds")
                 filter_indices = valid_indices
 
-            if not filter_indices:  # No valid indices to prune
+            if not filter_indices:
                 continue
 
             # Create new conv with reduced output channels
             new_out_channels = conv.out_channels - len(filter_indices)
             if new_out_channels <= 0:
-                print(f": Would result in {new_out_channels} filters for layer {layer_idx}, setting to 1")
+                print(f"Would result in {new_out_channels} filters for layer {layer_idx}, setting to 1")
                 new_out_channels = 1
                 filter_indices = filter_indices[:conv.out_channels-1]
 
@@ -349,12 +354,15 @@ class Pruning:
             modules[layer_idx] = new_conv
             model.net_1 = torch.nn.Sequential(*modules)
 
-            # Only update next conv layer if it's not the last conv layer
+            # Update next conv layer ONLY if it's not in protected layers
             next_conv_idx = self.layer_info.get(layer_idx, {}).get("next_conv_index")
-            if next_conv_idx is not None and next_conv_idx != last_conv_layer_idx:
+            if next_conv_idx is not None and next_conv_idx not in protected_layers:
+                print(f"Updating next conv layer {next_conv_idx}")
                 model = self._update_next_conv_layer(model, next_conv_idx, filter_indices)
+            else:
+                print(f"Skipping next conv layer update (next_conv_idx: {next_conv_idx}, protected: {protected_layers})")
 
-            print(f" Layer {layer_idx}: Successfully pruned to {new_conv.out_channels} filters")
+            print(f"Layer {layer_idx}: Successfully pruned to {new_conv.out_channels} filters")
 
         # Final memory cleanup
         self._clear_memory()
