@@ -107,24 +107,12 @@ def fine_tune_model(model: torch.nn.Module, curve_value: float, org_num_filters:
     # Give ALL pruned models a small chance to recover - but very limited
     if curve_value > 0.0:
         logger.info(f"Giving pruned model ({curve_value:.1%}) a small chance to study...")
-        
-        # VERY minimal fine-tuning - just a tiny chance
-        if curve_value > 0.8:
-            epochs = 1  # Heavily pruned models get almost nothing
-            base_lr = 0.000005  # Extremely low LR
-            max_lr = 0.00005
-        elif curve_value > 0.5:
-            epochs = 1  # Moderately pruned models get a tiny bit more
-            base_lr = 0.00001  # Very low LR  
-            max_lr = 0.0001
-        else:
-            epochs = 2  # Lightly pruned models get slightly more chance
-            base_lr = 0.00005  # Still very low LR
-            max_lr = 0.0005
+        epochs = 2 
+        base_lr = 0.001
+        max_lr = 0.005
         
         optimizer = torch.optim.SGD(pruner.model.parameters(), lr=base_lr, momentum=0.9, weight_decay=1e-4)
         
-        # Minimal scheduler
         scheduler = torch.optim.lr_scheduler.OneCycleLR(
             optimizer, max_lr=max_lr,
             steps_per_epoch=1, epochs=epochs,
@@ -197,7 +185,17 @@ def main() -> None:
         result_path = f"results/FINAL-pruning_results_mvcnn-{current_time_str}-partbypart-{str(part_my_part_prune)}.csv"
         
         print(f"Pruning amounts to be tested: {pruning_amounts}")
-        total_num_filters = sum(layer.out_channels for layer in get_model().net_1 if isinstance(layer, torch.nn.modules.conv.Conv2d))  # type: ignore
+        # total filters before any pruning, excluding last conv2d
+        conv_layers = [
+            l for l in get_model().net_1 # type: ignore
+            if isinstance(l, torch.nn.modules.conv.Conv2d)
+        ]
+        if conv_layers:
+            counts = [l.out_channels for l in conv_layers[:-1]]
+        else:
+            counts = []
+        total_num_filters = sum(counts)  # type: ignore
+    
         logger.info(f"Starting pruning experiment with {len(pruning_amounts)} pruning ratios")
         # np.random.shuffle(pruning_amounts)
         # print(f"Pruning amounts to be tested: {pruning_amounts}")

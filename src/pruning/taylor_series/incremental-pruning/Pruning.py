@@ -274,35 +274,26 @@ class Pruning:
             print("Warning: No targets to prune")
             return model
 
-        # Find the last TWO Conv2d layers to be extra careful
-        conv_layers = []
-        for layer_idx, layer in enumerate(model.net_1):
-            if isinstance(layer, torch.nn.Conv2d):
-                conv_layers.append(layer_idx)
-        
+        # Find conv layers; protect only the last one
+        conv_layers = [i for i, l in enumerate(model.net_1)
+                       if isinstance(l, torch.nn.Conv2d)]
         protected_layers = set()
-        if len(conv_layers) >= 1:
-            protected_layers.add(conv_layers[-1])  # Last conv layer
-        if len(conv_layers) >= 2:
-            protected_layers.add(conv_layers[-2])  # Second-to-last conv layer for safety
+        if conv_layers:
+            protected_layers.add(conv_layers[-1])  # only last conv
 
-        # Group filters by layer and remove duplicates
+        # Group filters by layer
         filters_by_layer = {}
         for layer_idx, filter_idx in prune_targets:
-            # Skip protected layers
             if layer_idx in protected_layers:
                 print(f"Skipping protected Conv2d layer {layer_idx}")
                 continue
-                
-            if layer_idx not in filters_by_layer:
-                filters_by_layer[layer_idx] = set()
-            filters_by_layer[layer_idx].add(filter_idx)
+            filters_by_layer.setdefault(layer_idx, set()).add(filter_idx)
 
         if not filters_by_layer:
             print("Warning: No valid layers to prune (protected layers excluded)")
             return model
 
-        print(f"Pruning filters from {len(filters_by_layer)} layers (protected: {protected_layers})")
+        print(f"Pruning filters from {len(filters_by_layer)} layers (protected last conv layer: {protected_layers})")
 
         # Process layers in order
         for layer_idx in sorted(filters_by_layer.keys()):
@@ -481,6 +472,15 @@ class Pruning:
             if torch.isnan(new_fc.weight.data).any() or torch.isinf(new_fc.weight.data).any():
                 print("Warning: NaN/inf detected in FC weights, reinitializing")
                 torch.nn.init.xavier_uniform_(new_fc.weight.data)
+                torch.nn.init.zeros_(new_fc.bias.data)
+        
+        # Update model
+        fc_modules[fc_idx] = new_fc # type: ignore
+        model.net_2 = torch.nn.Sequential(*fc_modules)
+        
+        return model
+        
+        return model
                 torch.nn.init.zeros_(new_fc.bias.data)
         
         # Update model

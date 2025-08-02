@@ -120,86 +120,59 @@ class FilterPruner:
     def get_pruning_plan(self, num_filters_to_prune):
         # Apply smoothing before ranking
         self.smooth_distributions()
-        
         # Apply normalization
         self.normalize_ranks_per_layer()
         
-        # Find the last Conv2d layer to exclude it from pruning
-        last_conv_layer_idx = None
-        second_to_last_conv_idx = None
-        conv_layers = []
-        
-        for layer_idx, layer in enumerate(self.model.net_1):
-            if isinstance(layer, torch.nn.Conv2d):
-                conv_layers.append(layer_idx)
-        
-        if len(conv_layers) >= 2:
-            last_conv_layer_idx = conv_layers[-1]
-            second_to_last_conv_idx = conv_layers[-2]
-        elif len(conv_layers) == 1:
-            last_conv_layer_idx = conv_layers[0]
+        # Identify conv layers and protect only the last one
+        conv_layers = [idx for idx, layer in enumerate(self.model.net_1)
+                       if isinstance(layer, torch.nn.Conv2d)]
+        last_conv_layer_idx = conv_layers[-1] if conv_layers else None
         
         print(f"Conv layers found: {conv_layers}")
-        print(f"Last conv layer: {last_conv_layer_idx}, Second-to-last: {second_to_last_conv_idx}")
+        print(f"Excluding last conv layer from pruning: {last_conv_layer_idx}")
         
-        # Get MORE filters than requested to compensate for excluded layers
-        all_filters = self.lowest_ranking_filters(num_filters_to_prune * 3)  # Get even more candidates
+        # Get extra candidates
+        all_filters = self.lowest_ranking_filters(num_filters_to_prune * 3)
         
-        # Count how many would be from excluded layers
-        excluded_layers = {last_conv_layer_idx}
-        if second_to_last_conv_idx is not None:
-            excluded_layers.add(second_to_last_conv_idx)  # Also exclude second-to-last to be safe
+        # Exclude only the last conv layer
+        excluded_layers = {last_conv_layer_idx} if last_conv_layer_idx is not None else set()
+        excluded_count = sum(1 for (layer_n, _, _) in all_filters
+                             if layer_n in excluded_layers)
         
-        excluded_count = sum(1 for (layer_n, f, _) in all_filters if layer_n in excluded_layers)
-        
-        # Request additional filters to compensate
-        compensated_request = min(num_filters_to_prune + excluded_count, len(all_filters))
-        
+        # Compensate for exclusions
+        compensated_request = min(num_filters_to_prune + excluded_count,
+                                  len(all_filters))
         print(f"Original request: {num_filters_to_prune}")
         print(f"Excluded layers would contribute: {excluded_count}")
         print(f"Compensated request: {compensated_request}")
         
-        # Get the compensated number of filters
+        # Re‐rank with compensation
         filters_to_prune = self.lowest_ranking_filters(compensated_request)
         
-        # Group by layer for safety checking
+        # Skip any filters in the last conv layer
         filters_to_prune_per_layer = {}
         final_excluded_count = 0
-        
-        for (layer_n, f, _) in filters_to_prune:
-            # Skip excluded layers to avoid touching FC layer
+        for layer_n, f, _ in filters_to_prune:
             if layer_n in excluded_layers:
                 final_excluded_count += 1
                 continue
-                
-            if layer_n not in filters_to_prune_per_layer:
-                filters_to_prune_per_layer[layer_n] = []
-            filters_to_prune_per_layer[layer_n].append(f)
+            filters_to_prune_per_layer.setdefault(layer_n, []).append(f)
         
-        print(f"Excluded {final_excluded_count} filters from protected layers {excluded_layers}")
+        print(f"Excluded {final_excluded_count} filters from protected layer {excluded_layers}")
         
-        # Build final pruning plan with better layer-wise balancing
-        valid_filters_to_prune = []
-        total_planned = 0
-        
-        # Sort layers to ensure we prune from earlier layers first (safer)
-        for layer_n in sorted(filters_to_prune_per_layer.keys()):
-            filters_for_this_layer = filters_to_prune_per_layer[layer_n]
-            
-            # Limit pruning per layer to avoid over-pruning any single layer
-            max_per_layer = len(filters_for_this_layer) // 2 + 1  # Don't prune more than half + 1
-            
-            for f in sorted(filters_for_this_layer[:max_per_layer]):
-                valid_filters_to_prune.append((layer_n, f))
-                total_planned += 1
-                
-                # Stop when we reach our target
-                if total_planned >= num_filters_to_prune:
+        # Build final plan (half‐per‐layer cap + 1)
+        valid = []
+        total = 0
+        for layer_n in sorted(filters_to_prune_per_layer):
+            lst = filters_to_prune_per_layer[layer_n]
+            cap = len(lst)//2 + 1
+            for f in sorted(lst[:cap]):
+                valid.append((layer_n, f))
+                total += 1
+                if total >= num_filters_to_prune:
                     break
-            
-            if total_planned >= num_filters_to_prune:
+            if total >= num_filters_to_prune:
                 break
         
-        print(f"Final pruning plan: {total_planned}/{num_filters_to_prune} filters (protected last 2 conv layers)")
-        
-        return valid_filters_to_prune[:num_filters_to_prune]  # Ensure exact count
+        print(f"Final pruning plan: {total}/{num_filters_to_prune} filters (protected last conv layer)")
+        return valid[:num_filters_to_prune]

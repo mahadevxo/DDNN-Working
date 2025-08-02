@@ -421,12 +421,17 @@ class PruningFineTuner:
         return pruning_plan
     
     def total_num_filters(self):
-        """Count total filters in model"""
-        return sum(
+        """Count total filters in model, excluding the last Conv2d layer"""
+        # gather all conv layers' filter counts
+        conv_counts = [
             layer.out_channels
             for layer in self.model.net_1
             if isinstance(layer, torch.nn.modules.conv.Conv2d)
-        )
+        ]
+        # drop last conv
+        if conv_counts:
+            conv_counts = conv_counts[:-1]
+        return sum(conv_counts)
     
     def get_model_size(self, model):
         """Calculate model size in MB"""
