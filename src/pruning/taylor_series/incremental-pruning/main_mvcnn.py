@@ -162,15 +162,25 @@ def fine_tune_model(model: torch.nn.Module, curve_value: float, org_num_filters:
 
 
 def get_model() -> torch.nn.Module:
-    model = MVCNN.SVCNN(
+    # Instantiate single‐view backbone
+    base_cnn = MVCNN.SVCNN(
         name="svcnn",
         nclasses=33,
         cnn_name="vgg11"
     )
     weights = torch.load("../../../MVCNN/MVCNN/model-mvcnn-00050.pth", map_location=device)
-    model.load_state_dict(weights, strict=False)
-    model = model.to(device)
-    return model
+    base_cnn.load_state_dict(weights, strict=False)
+    base_cnn = base_cnn.to(device)
+    
+    # Wrap into MVCNN so forward() never touches base_cnn.net
+    mvcnn = MVCNN.MVCNN(
+        name="mvcnn",
+        model=base_cnn,
+        nclasses=33,
+        cnn_name="vgg11",
+        num_views=12
+    )
+    return mvcnn.to(device)
 
 def main() -> None:
     
