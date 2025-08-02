@@ -227,10 +227,13 @@ def main() -> None:
                     if pruning_amount == 0.0:
                         model_save_path = f"models/mvcnn_pruned_{pruning_amount:.2f}.pth"
                         scripted_model = torch.jit.script(model)
-                        torch.save(scripted_model, model_save_path)
+                        scripted_model.save(model_save_path)
                         
                         # Baseline (unpruned) evaluation
-                        model, final_acc, model_size, comp_time = fine_tune_model(model=model, curve_value=-1, org_num_filters=total_num_filters, only_val=False)
+                        model, final_acc, model_size, comp_time = fine_tune_model(
+                            model=model, curve_value=-1,
+                            org_num_filters=total_num_filters, only_val=False
+                        )
                         num_filters_present = sum(layer.out_channels for layer in model.net_1 if isinstance(layer, torch.nn.modules.Conv2d))  # type: ignore
                         print(f"Baseline model size: {model_size:.4f} MB, Accuracy: {final_acc:.4f}, Computation Time: {comp_time:.4f} seconds")
                         with open(result_path, 'a') as f:
@@ -260,13 +263,7 @@ def main() -> None:
                     print(model)
                     if save_models:
                         model_save_path = f"models/mvcnn_pruned_{pruning_amount:.2f}.pth"
-                        # Remove or comment out attributes that break scripting
-                        if hasattr(model, 'class_names'):
-                            delattr(model, 'class_names')
-                        if hasattr(model, 'mean'):
-                            delattr(model, 'mean')
-                        if hasattr(model, 'std'):
-                            delattr(model, 'std')
+                        # Ensure TorchScript module is saved via .save(), not torch.save
                         scripted_model = torch.jit.script(model)
                         scripted_model.save(model_save_path)
                         
