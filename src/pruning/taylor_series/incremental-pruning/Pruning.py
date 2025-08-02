@@ -350,19 +350,17 @@ class Pruning:
             # Prune the current layer
             self._prune_conv_layer(conv, new_conv, filter_indices)
 
-            # Update model with new conv layer
+            # Create and apply the pruned conv
             modules[layer_idx] = new_conv
             model.net_1 = torch.nn.Sequential(*modules)
 
-            # Update next conv layer ONLY if it's not in protected layers
+            # Always update the very next Conv2d’s in_channels (out_channels remains unchanged)
             next_conv_idx = self.layer_info.get(layer_idx, {}).get("next_conv_index")
-            if next_conv_idx is not None and next_conv_idx not in protected_layers:
+            if next_conv_idx is not None:
                 print(f"Updating next conv layer {next_conv_idx}")
                 model = self._update_next_conv_layer(model, next_conv_idx, filter_indices)
             else:
-                print(f"Skipping next conv layer update (next_conv_idx: {next_conv_idx}, protected: {protected_layers})")
-
-            print(f"Layer {layer_idx}: Successfully pruned to {new_conv.out_channels} filters")
+                print(f"No next conv to update for layer {layer_idx}")
 
         # Final memory cleanup
         self._clear_memory()
@@ -488,6 +486,8 @@ class Pruning:
         # Update model
         fc_modules[fc_idx] = new_fc # type: ignore
         model.net_2 = torch.nn.Sequential(*fc_modules)
+        
+        return model
         
         return model
 

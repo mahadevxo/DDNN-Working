@@ -190,7 +190,7 @@ def main() -> None:
     pruning_amounts = np.array([
         0.1, 0.3, 0.5, 0.7
     ])
-    pruning_amounts = list(np.random.permutation(pruning_amounts))
+    # pruning_amounts = list(np.random.permutation(pruning_amounts))
     
     for part_my_part_prune in [False]:
         current_time_str = time.strftime("%Y%m%d-%H%M%S")
