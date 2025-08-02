@@ -174,9 +174,9 @@ def get_model() -> torch.nn.Module:
 
 def main() -> None:
     
-    # save_models = True; pruning_amounts = [0.0, 0.1, 0.3, 0.5, 0.9]  # noqa: E702
-    save_models=False; pruning_amounts = np.arange(0.0, 1, 0.05).tolist()  # noqa: E702
-    # pruning_amounts = list(np.random.permutation(pruning_amounts))
+    save_models = True; pruning_amounts = [0.0, 0.1, 0.3, 0.5, 0.9]  # noqa: E702
+    # save_models=False; pruning_amounts = np.arange(0.0, 1, 0.05).tolist()  # noqa: E702
+    
     
     for part_my_part_prune in [False]:
         current_time_str = time.strftime("%Y%m%d-%H%M%S")
