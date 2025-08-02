@@ -124,52 +124,65 @@ class FilterPruner:
         # Apply normalization
         self.normalize_ranks_per_layer()
         
-        # Get the lowest ranking filters
-        filters_to_prune = self.lowest_ranking_filters(num_filters_to_prune)
+        # Find the last Conv2d layer to exclude it from pruning
+        last_conv_layer_idx = None
+        last_conv_filters = 0
+        for layer_idx, layer in enumerate(self.model.net_1):
+            if isinstance(layer, torch.nn.Conv2d):
+                last_conv_layer_idx = layer_idx
+                last_conv_filters = layer.out_channels
         
-        # If no filters can be pruned, return empty list
-        if not filters_to_prune:
-            print("Warning: No filters available for pruning.")
-            return []
+        # Get MORE filters than requested to compensate for excluded last layer
+        # Calculate how many filters would have been pruned from last layer
+        all_filters = self.lowest_ranking_filters(num_filters_to_prune * 2)  # Get more candidates
+        
+        # Count how many would be from last layer
+        last_layer_candidates = sum(1 for (layer_n, f, _) in all_filters if layer_n == last_conv_layer_idx)
+        
+        # Request additional filters to compensate
+        compensated_request = num_filters_to_prune + last_layer_candidates
+        
+        print(f"Original request: {num_filters_to_prune}, Last layer would contribute: {last_layer_candidates}")
+        print(f"Compensated request: {compensated_request} to maintain target pruning")
+        
+        # Get the compensated number of filters
+        filters_to_prune = self.lowest_ranking_filters(compensated_request)
         
         # Group by layer for safety checking
         filters_to_prune_per_layer = {}
+        excluded_count = 0
+        
         for (layer_n, f, _) in filters_to_prune:
+            # Skip the last Conv2d layer to avoid touching FC layer
+            if layer_n == last_conv_layer_idx:
+                excluded_count += 1
+                continue
+                
             if layer_n not in filters_to_prune_per_layer:
                 filters_to_prune_per_layer[layer_n] = []
             filters_to_prune_per_layer[layer_n].append(f)
         
-        # BRUTALLY AGGRESSIVE PRUNING - remove almost ALL safety checks
+        print(f"Excluded {excluded_count} filters from last Conv2d layer {last_conv_layer_idx}")
+        
+        # Build final pruning plan
         valid_filters_to_prune = []
+        total_planned = 0
         
         for layer_n in filters_to_prune_per_layer:
-            # Find the total number of filters in this layer
-            layer_found = False
-            total_filters = 0
-            for layer_idx, layer in enumerate(self.model.net_1):
-                if layer_idx == layer_n and isinstance(layer, torch.nn.Conv2d):
-                    total_filters = layer.out_channels
-                    layer_found = True
-                    break
-            
-            if not layer_found:
-                print(f"Warning: Layer {layer_n} not found, skipping")
-                continue
-                
-            # BRUTALLY AGGRESSIVE: Allow pruning up to 99% of filters per layer
             filters_for_this_layer = filters_to_prune_per_layer[layer_n]
-            max_prunable = max(1, int(total_filters * 0.99))  # Keep only 1% minimum
             
-            # DON'T limit the number - take whatever was requested
-            # if len(filters_for_this_layer) > max_prunable:
-            #     filters_for_this_layer = filters_for_this_layer[:max_prunable]
-            
-            print(f"Layer {layer_n}: BRUTALLY pruning {len(filters_for_this_layer)}/{total_filters} filters")
-            
-            # Add ALL requested filters to the pruning plan (remove safety)
+            # Add to pruning plan
             for f in sorted(filters_for_this_layer):
                 valid_filters_to_prune.append((layer_n, f))
+                total_planned += 1
+                
+                # Stop when we reach our target
+                if total_planned >= num_filters_to_prune:
+                    break
+            
+            if total_planned >= num_filters_to_prune:
+                break
         
-        print(f"BRUTAL Pruning plan: {len(valid_filters_to_prune)} filters requested: {num_filters_to_prune}")
+        print(f"Final pruning plan: {total_planned}/{num_filters_to_prune} filters (excluded last Conv2d layer)")
         
-        return valid_filters_to_prune
+        return valid_filters_to_prune[:num_filters_to_prune]  # Ensure exact count
