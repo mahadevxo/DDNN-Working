@@ -34,7 +34,6 @@ class FilterPruner:
         self.grad_index = 0
         self.model.eval()
         self.model.zero_grad()
-        org = x.clone()
         activation_index = 0
         
         for layer_index, layer in enumerate(self.model.net_1): 
@@ -49,6 +48,7 @@ class FilterPruner:
             x = self.model.net_2(x)
             return x
         else:
+            print(x.shape)
             y = F.adaptive_avg_pool2d(x, (7, 7)).view(8, 12, -1)
             y = torch.max(y, 1)[0]
             y = self.model.net_2(y)
