@@ -50,13 +50,13 @@ class FilterPruner:
         else:
             print(x.shape)
             y = F.adaptive_avg_pool2d(x, (7, 7))
-            print(f"Adaptive pooling output shape: {y.shape}")
+            # print(f"Adaptive pooling output shape: {y.shape}")
             y = y.view(8, 12, -1)
-            print(f"View output shape: {y.shape}")
+            # print(f"View output shape: {y.shape}")
             y = torch.max(y, 1)[0]
-            print(f"Max pooling output shape: {y.shape}")
+            # print(f"Max pooling output shape: {y.shape}")
             y = self.model.net_2(y)
-            print(f"Final output shape: {y.shape}")
+            # print(f"Final output shape: {y.shape}")
             return y
 
     def compute_rank(self, grad, activation_index):

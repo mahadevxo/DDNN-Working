@@ -129,10 +129,6 @@ class PruningFineTuner:
                 self.model.zero_grad()
 
             out_data = self.pruner.forward(in_data, self.model_name)
-            
-            if self.model_name == 'mvcnn':
-                out_data = F.adaptive_avg_pool2d(out_data, (7, 7)).view(N, V, -1) # type: ignore
-                out_data = torch.max(out_data, 1)[0]
 
             loss = self.criterion(out_data, target)
             
