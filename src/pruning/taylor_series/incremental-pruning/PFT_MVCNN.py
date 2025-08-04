@@ -116,7 +116,7 @@ class PruningFineTuner:
                                        num_views=12)
 
         if num_samples < 0:
-            num_samples = len(full_dataset) // 8  # Much smaller subset for more realistic ranking
+            num_samples = len(full_dataset) // 5  # Much smaller subset for more realistic ranking
         self._log(f"Total samples in ModelNet33 full train dataset: {len(full_dataset)}")
         self._log(f"Sub-sampling ModelNet33 train dataset to {num_samples} samples")
 
@@ -235,7 +235,7 @@ class PruningFineTuner:
             if self.model_name == 'mvcnn':
                 # Adaptive pooling to handle variable number of views
                 Y = F.adaptive_avg_pool2d(Y, (7, 7)).view(N, V, -1) # type: ignore
-                Y = torch.max(Y, 1)[0].unsqueeze(0)
+                Y = torch.max(Y, 1)[0][0]
                 
             out_data = self.model.net_2(Y)
             loss = self.criterion(out_data, target)
