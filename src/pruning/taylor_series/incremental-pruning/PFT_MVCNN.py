@@ -67,6 +67,12 @@ class PruningFineTuner:
                                           rot_aug=True,
                                           num_models=0,
                                           num_views=12)
+            
+            #use random sampling if num_samples is specified
+            if num_samples > 0:
+                dataset_indices = random.sample(range(len(dataset)), num_samples)
+                dataset = Subset(dataset, dataset_indices)
+            
             print(f"Dataset Size Training: {len(dataset)}")
         elif test_or_train == 'time':
             # num_samples=8
@@ -221,7 +227,7 @@ class PruningFineTuner:
         if rank_filter:
             train_loader = self.get_modelnet33_images('train', num_samples=300)
         else:
-            train_loader = self.get_modelnet33_images('train', num_samples=2000)
+            train_loader = self.get_modelnet33_images('train', num_samples=1000)
         
         if train_loader is None:
             self._log("Error: train_loader is None")
