@@ -188,7 +188,7 @@ class PruningFineTuner:
                 y = y.view((int(in_data.shape[0]/self.num_views),self.num_views,y.shape[-3],y.shape[-2],y.shape[-1]))
                 y = torch.max(y, dim=1)[0].view(y.shape[0], -1)
             out_data = self.model.net_2(y)
-            loss = self.criterion(y, target)
+            loss = self.criterion(out_data, target)
 
             # Check for NaN loss
             if torch.isnan(loss) or torch.isinf(loss):
