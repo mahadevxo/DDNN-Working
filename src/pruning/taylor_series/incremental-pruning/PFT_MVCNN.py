@@ -186,7 +186,7 @@ class PruningFineTuner:
             
             Y = self.model.net_1(in_data)
             if self.model_name == 'mvcnn':
-                Y = F.adaptive_avg_pool2d(Y, (7, 7)).view(N, V, -1) # type: ignore
+                Y = F.adaptive_avg_pool2d(Y, (7, 7))
                 Y = Y.view(N, V, Y.shape[-3], Y.shape[-2], Y.shape[-1]) # type: ignore
                 Y = torch.max(Y, 1)[0]
                 Y = Y.view(N, -1) # type: ignore
@@ -266,7 +266,7 @@ class PruningFineTuner:
                 tgt = labels
     
                 net_1_out = self.model.net_1(x)  # (N*V, 33)
-                y = F.adaptive_avg_pool2d(net_1_out, (7, 7)).view(N, V, -1)  # (N, V, 33)
+                y = F.adaptive_avg_pool2d(net_1_out, (7, 7))
                 y = y.view(N, V, y.shape[-3], y.shape[-2], y.shape[-1])
                 y = torch.max(y, dim=1)[0]
                 y = y.view(N, -1)
