@@ -165,13 +165,16 @@ def test_mvcnn():
             print(f"Pruning Amount: {P}, Mean Class Accuracy: {mean_class_acc:.4f}")
 
 if __name__ == "__main__":
-    whattodo = int(input("Enter 1 to prune and save models and then test, 2 to test models: "))
+    whattodo = int(input("Enter 1 to prune and save models and then test, 2 to test models and 3 to just save models: "))
     if whattodo == 1:
         prune_save_model()
         test_mvcnn()
         print("Pruning and testing completed.")
-    else:
+    elif whattodo == 2:
         test_mvcnn()
         print("Testing completed.")
-
+    elif whattodo == 3:
+        prune_save_model()
+        print("Models saved.")
+        
     print(f"Took {(time.time() - T)/3600} hours to run the script.")
