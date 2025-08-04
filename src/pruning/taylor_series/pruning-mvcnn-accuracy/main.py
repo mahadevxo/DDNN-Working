@@ -1,5 +1,5 @@
 import sys
-sys.path.append('../../MVCNN')
+sys.path.append('../../../MVCNN/')
 from models import MVCNN
 import torch
 import numpy as np
