@@ -35,7 +35,7 @@ class FilterPruner:
         self.model.eval()
         self.model.zero_grad()
         activation_index = 0
-        
+        print(f"Forward pass for {name} with input shape: {x.shape}")
         for layer_index, layer in enumerate(self.model.net_1): 
             x = layer(x)
             if isinstance(layer, torch.nn.modules.conv.Conv2d):
