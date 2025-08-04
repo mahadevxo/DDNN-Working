@@ -158,7 +158,7 @@ class PruningFineTuner:
             if self.model_name == 'mvcnn':
                 N, V, C, H, W = data[1].size()
                 in_data = data[1].view(-1, C, H, W).to(self.device)
-                target = data[0].to(self.device)
+                target = data[0].repeat_interleave(V).to(self.device)
             else:
                 in_data = data[1].to(self.device)
                 target = data[0].to(self.device)
@@ -308,10 +308,8 @@ class PruningFineTuner:
             labels, views = data[0].to(self.device), data[1].to(self.device)
             # views: (N, V, C, H, W)
             if self.model_name == 'mvcnn' and not single_view:
-                # —— full MVCNN voting as before ——
                 N, V, C, H, W = views.size()
                 x = views.view(-1, C, H, W)                # (N*V, C, H, W)
-                # tgt = labels.repeat_interleave(V, dim=0)   # (N*V,)
                 tgt = labels
     
                 net_1_out = self.model.net_1(x)  # (N*V, 33)
