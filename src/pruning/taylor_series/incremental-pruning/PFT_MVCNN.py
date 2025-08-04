@@ -212,7 +212,7 @@ class PruningFineTuner:
             if self.model_name == 'mvcnn':
                 # Adaptive pooling to handle variable number of views
                 Y = F.adaptive_avg_pool2d(Y, (7, 7)).view(N, V, -1) # type: ignore
-                Y = torch.max(Y, 1)[0][0]
+                Y = torch.max(Y, 1)[0]
                 
             out_data = self.model.net_2(Y)
             loss = self.criterion(out_data, target)
