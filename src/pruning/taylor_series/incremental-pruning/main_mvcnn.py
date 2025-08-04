@@ -181,7 +181,6 @@ def get_model() -> torch.nn.Module:
     return mvcnn.to(device)
 
 def main() -> None:
-    
     test_type = int(input("Enter test type (save model and all - 0/ normal test - 1): "))
     save_models = True if test_type == 0 else False
     pruning_amounts = [0.0, 0.1, 0.3, 0.5, 0.9] if save_models else np.arange(0.0, 1, 0.05).tolist()
