@@ -42,6 +42,7 @@ def prune_and_train(model, prune_amount, epochs=3):
     
     if prune_amount == 0.0:
         save_model(pruner.model, prune_amount)
+        
         return
     
     print("Retraining the model...")

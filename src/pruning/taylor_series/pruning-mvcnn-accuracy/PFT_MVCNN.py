@@ -216,7 +216,7 @@ class PruningFineTuner:
 
         train_loss = running_loss / total_steps
         train_acc = running_acc / total_steps
-        self._log(f"Training - Loss: {train_loss:.4f}, Accuracy: {train_acc:.2f}%")
+        self._log(f"Training - Loss: {train_loss:.4f}, Accuracy: {train_acc*100:.2f}%")
         self._clear_memory()
         return self.model
             
@@ -311,7 +311,7 @@ class PruningFineTuner:
         per_cls     = (samples_class - wrong_class) / np.maximum(samples_class, 1)
         mean_cls    = per_cls[samples_class>0].mean()
 
-        print(f'\nOverall Acc: {overall_acc:.4f}   Mean Class Acc: {mean_cls:.4f}')
+        print(f'\nOverall Acc: {overall_acc*100:.4f}%   Mean Class Acc: {mean_cls*100:.4f}%')
         print(f'Dataset contains {self.num_classes} classes')
 
         self._clear_memory()
