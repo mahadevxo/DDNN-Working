@@ -49,7 +49,7 @@ class CacheFeatures:
     def cache_features(self):
         
         print(f'Caching features in {self.FEATURE_DIR}...')
-        print(f"Model Paths: {list(self.models.keys())}")
+        print(f"Model Paths: {self.PRUNING_AMOUNTS}")
         
         with torch.no_grad():
             for idx, data in enumerate(tqdm(self.loader, desc='Caching features')):
