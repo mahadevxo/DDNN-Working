@@ -74,7 +74,7 @@ class PruneSaveModel:
 
     def prune_save_model(self):
         for prune_amount in tqdm(self.PRUNING_AMOUNTS, desc="Pruning Amounts"):
-            # print(f"Pruning amount: {prune_amount}")
+            print(f"Pruning amount: {prune_amount}")
             mvcnn = self.get_org_model()
             self.prune_and_train(mvcnn, prune_amount)
 

@@ -118,7 +118,7 @@ class PruningFineTuner:
         if optimizer is None:
             optimizer = self.optimizer
 
-        pbar = tqdm(train_loader, desc="Training")
+        pbar = tqdm(train_loader, desc="Ranking Filters")
         running_loss = 0.0
         running_acc = 0.0
         for data in pbar:
@@ -166,7 +166,7 @@ class PruningFineTuner:
         self.model.train()
         out_data = None
         in_data = None
-        pbar = tqdm(train_loader, desc="Training")
+        pbar = tqdm(train_loader, desc="Retraining Model")
         running_loss = 0.0
         running_acc = 0.0
         total_steps = 0
@@ -253,7 +253,7 @@ class PruningFineTuner:
         samples_class = np.zeros(self.num_classes, dtype=int)
 
         self.model.eval()
-        pbar = tqdm(self.val_dataset, desc=f'Val {self.model_name}'+(' (1 view)' if single_view else ''), unit='batch')
+        pbar = tqdm(self.val_dataset, desc=f'Validating {self.model_name}'+(' (1 view)' if single_view else ''), unit='batch')
         for batch_i, data in enumerate(pbar):
             labels, views = data[0].to(self.device), data[1].to(self.device)
             # views: (N, V, C, H, W)
