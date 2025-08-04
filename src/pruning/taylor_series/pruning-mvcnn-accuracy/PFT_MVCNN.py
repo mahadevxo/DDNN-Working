@@ -223,9 +223,9 @@ class PruningFineTuner:
     def train_epoch(self, optimizer=None, rank_filter=False):
         """Train model for one epoch"""
         if rank_filter:
-            train_loader = self.get_modelnet33_images('train', num_samples=300)
+            train_loader = self.get_modelnet33_images('train', num_samples=600)
         else:
-            train_loader = self.get_modelnet33_images('train', num_samples=1000)
+            train_loader = self.get_modelnet33_images('train', num_samples=600)
         
         if train_loader is None:
             self._log("Error: train_loader is None")

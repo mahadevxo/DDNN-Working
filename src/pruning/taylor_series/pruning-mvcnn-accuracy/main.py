@@ -26,7 +26,7 @@ def save_model(model, prune_amount):
     scripted_model.save(save_path)
     print(f'Model saved to {save_path}')
 
-def prune_and_train(model, prune_amount, epochs=3):
+def prune_and_train(model, prune_amount, epochs=2):
     from PFT_MVCNN import PruningFineTuner as pft
     pruner = pft(model, quiet=False)
     
