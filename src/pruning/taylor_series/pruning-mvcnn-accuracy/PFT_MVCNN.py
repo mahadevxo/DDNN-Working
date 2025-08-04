@@ -426,7 +426,7 @@ class PruningFineTuner:
         # Validate model architecture after pruning
         try:
             # Test with a small batch to ensure model still works
-            test_input = torch.randn(1, 3, 224, 224).to(self.device)
+            test_input = torch.randn(1, self.num_views, 3, 224, 224).to(self.device) if self.model_name == 'mvcnn' else torch.randn(1, 3, 224, 224).to(self.device)
             with torch.no_grad():
                 test_output = self.model(test_input)
                 if test_output.size(1) != 33:
