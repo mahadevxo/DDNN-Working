@@ -76,7 +76,11 @@ class PruningFineTuner:
         ])
 
         if test_or_train == 'train':
-            dataset = self.get_test_dataset(num_samples)
+            dataset = MultiviewImgDataset(root_dir=self.train_path,
+                                          scale_aug=True,
+                                          rot_aug=True,
+                                          num_models=0,
+                                          num_views=12)
         elif test_or_train == 'time':
             # num_samples=8
             full_dataset = MultiviewImgDataset(root_dir=self.train_path,
@@ -97,40 +101,13 @@ class PruningFineTuner:
 
         dataset.transform = transform  # type: ignore
     
-        # Enable shuffling for Subset datasets at DataLoader level
-        shuffle_data = hasattr(dataset, 'dataset')  # True if it's a Subset
-    
         return DataLoader(
             dataset,
             batch_size=8,
-            shuffle=shuffle_data,  # Enable shuffle for Subset datasets
+            shuffle=False,  # Enable shuffle for Subset datasets
             num_workers=4,
             pin_memory=True,
-        )
-
-    def get_test_dataset(self, num_samples):
-        full_dataset = MultiviewImgDataset(root_dir=self.train_path,
-                                       scale_aug=False,
-                                       rot_aug=False,
-                                       num_models=0,
-                                       num_views=12)
-
-        if num_samples < 0:
-            num_samples = len(full_dataset) // 5  # Much smaller subset for more realistic ranking
-        self._log(f"Total samples in ModelNet33 full train dataset: {len(full_dataset)}")
-        self._log(f"Sub-sampling ModelNet33 train dataset to {num_samples} samples")
-
-        indices = torch.randperm(len(full_dataset)).tolist()
-        split_point = int(len(indices) * 1)
-
-        dataset_indices = indices[:split_point]
-
-        # Sub-sample if needed for faster runs
-        if num_samples < len(dataset_indices):
-            dataset_indices = random.sample(dataset_indices, num_samples)
-
-        return Subset(full_dataset, dataset_indices)
-    
+        )    
     
     def train_batch(self, train_loader, optimizer=None): # FOR RANKS
         self.model.train()
@@ -246,7 +223,7 @@ class PruningFineTuner:
                 continue
 
             running_loss += loss.item()
-            pred = torch.max(out_data, 1)[1]
+            pred = out_data.argmax(dim=1)
             results = pred == target
             correct_points = torch.sum(results.long())
             acc = correct_points.float() / results.size()[0]
