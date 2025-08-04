@@ -165,3 +165,5 @@ if __name__ == "__main__":
     else:
         test_mvcnn()
         print("Testing completed.")
+
+    print(f"Took {(time.time() - T)/3600} hours to run the script.")
