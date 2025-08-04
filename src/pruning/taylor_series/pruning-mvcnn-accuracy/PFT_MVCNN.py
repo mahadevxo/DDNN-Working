@@ -226,7 +226,7 @@ class PruningFineTuner:
         if rank_filter:
             train_loader = self.get_modelnet33_images('train', num_samples=600)
         else:
-            train_loader = self.get_modelnet33_images('train', num_samples=600)
+            train_loader = self.get_modelnet33_images('train', num_samples=1200)
         
         if train_loader is None:
             self._log("Error: train_loader is None")
