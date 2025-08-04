@@ -4,12 +4,17 @@ class ModelStats:
     def __init__(self):
         pass
     def get_accuracy(self, p):
-        #6th order polynomial coefficients
-        coeffs = [85.28, -10.35, -28.44, -49.40]
+        #boltzman sigmoidal
         
-        acc = sum(c * p**i for i, c in enumerate(coeffs))
+        bottom = -0.01748
+        top = 0.8302
+        v50 = 88.02
+        slope = -2.660
+        denom = 1 + np.exp((v50-p)/slope)
+        
+        acc = bottom + (top/denom)
 
-        return max(acc, 0) # in percentage
+        return max(acc, 0)
 
     def get_size(self, p):
         coeffs = [496.7, -706.2, 276.9, 4.020]

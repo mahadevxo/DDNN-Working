@@ -2,6 +2,7 @@ from math import ceil
 from torch.utils.data import DataLoader, Subset
 from torchvision import transforms
 import torch
+import torch.nn.functional as F
 import random
 import gc
 import time
@@ -229,7 +230,14 @@ class PruningFineTuner:
             else:
                 self.model.zero_grad()
 
-            out_data = self.model(in_data)
+            
+            Y = self.model.net_1(in_data)
+            if self.model_name == 'mvcnn':
+                # Adaptive pooling to handle variable number of views
+                Y = F.adaptive_avg_pool2d(Y, (7, 7)).view(N, V, -1) # type: ignore
+                Y = torch.max(Y, 1)[0].unsqueeze(0)
+                
+            out_data = self.model.net_2(Y)
             loss = self.criterion(out_data, target)
             
             # Check for NaN loss
@@ -304,26 +312,26 @@ class PruningFineTuner:
                 N, V, C, H, W = views.size()
                 x = views.view(-1, C, H, W)                # (N*V, C, H, W)
                 tgt = labels.repeat_interleave(V, dim=0)   # (N*V,)
-                out = self.model(x)
-                preds = out.argmax(1)
+                
+                net_1_out = self.model.net_1(x)  # (N*V, 33)
+                y = F.adaptive_avg_pool2d(net_1_out, (7, 7)).view(N, V, -1)  # (N, V, 33)
+                y = torch.max(y, 1)[0]  # (N, 33)
 
+                out = self.model.net_2(y)
+                preds = out.argmax(dim=1)
+    
                 # compute batch loss
                 all_loss += torch.nn.functional.cross_entropy(out, tgt).item()
                 
-                # majority vote per object
-                batch_correct = 0
-                for i in range(N):
-                    vp = preds[i*V:(i+1)*V].cpu()
-                    voted = torch.mode(vp)[0]
-                    if voted == labels[i].cpu():
-                        batch_correct += 1
-                    else:
-                        wrong_class[labels[i].item()] += 1
-                    samples_class[labels[i].item()] += 1
-
+                batch_correct = (preds == tgt).sum().item()
                 all_correct += batch_correct
                 all_samples += N
                 acc = batch_correct / N
+                
+                for i in range(N):
+                    if preds[i] != tgt[i]:
+                        wrong_class[tgt[i].item()] += 1
+                    samples_class[tgt[i].item()] += 1
 
             else:
                 # —— single‐view branch (or any non-mvcnn model) ——
