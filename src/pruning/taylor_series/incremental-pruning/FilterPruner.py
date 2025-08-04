@@ -49,11 +49,11 @@ class FilterPruner:
             x = self.model.net_2(x)
             return x
         else:
-            N, V, C, H, W = org.size()
-            y = F.adaptive_avg_pool2d(x, (7, 7)).view(N, V, -1)
-            y = torch.max(y, 1)[0]
-            y = self.model.net_2(y)
-            return y
+            print(org.size())
+            # y = F.adaptive_avg_pool2d(x, (7, 7)).view(N, V, -1)
+            # y = torch.max(y, 1)[0]
+            # y = self.model.net_2(y)
+            # return y
 
     def compute_rank(self, grad, activation_index):
         # Safety check to ensure activation_index is valid
