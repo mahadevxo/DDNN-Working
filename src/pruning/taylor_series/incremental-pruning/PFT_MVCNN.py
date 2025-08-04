@@ -93,7 +93,7 @@ class PruningFineTuner:
             pin_memory=True,
         )    
     
-    def train_batch(self, train_loader, optimizer=None): # FOR RANKS
+    def rank_filter_train(self, train_loader, optimizer=None): # FOR RANKS
         self.model.train()
 
         # Skip filepath shuffling for Subset datasets to avoid index errors
@@ -128,11 +128,11 @@ class PruningFineTuner:
             else:
                 self.model.zero_grad()
 
-            out_data = self.pruner.forward(in_data)
+            out_data = self.pruner.forward(in_data, self.model_name)
             
             if self.model_name == 'mvcnn':
                 out_data = F.adaptive_avg_pool2d(out_data, (7, 7)).view(N, V, -1) # type: ignore
-                out_data = torch.max(out_data, 1)[0]  # Take max across
+                out_data = torch.max(out_data, 1)[0]
 
             loss = self.criterion(out_data, target)
             
@@ -232,7 +232,7 @@ class PruningFineTuner:
             return self.model
         
         if rank_filter:
-            self.train_batch(train_loader, optimizer)
+            self.rank_filter_train(train_loader, optimizer)
         else:
             self.train_model(train_loader, optimizer)
         

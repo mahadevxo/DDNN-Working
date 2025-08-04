@@ -29,17 +29,13 @@ class FilterPruner:
         elif torch.backends.mps.is_available():
             torch.mps.empty_cache()
         
-    def forward(self, x):
+    def forward(self, x, name):
         self.activations = []
         self.grad_index = 0
         self.model.eval()
         self.model.zero_grad()
         org = x.clone()
         activation_index = 0
-        
-        if self.model.name == 'mvcnn':
-            N, V, C, H, W = x.size()
-            x = x.view(-1, C, H, W)
         
         for layer_index, layer in enumerate(self.model.net_1): 
             x = layer(x)
@@ -48,7 +44,7 @@ class FilterPruner:
                 self.activation_to_layer[activation_index] = layer_index
                 x.register_hook(lambda grad, idx=activation_index: self.compute_rank(grad, idx))
                 activation_index += 1
-        if self.model.name == 'svcnn':
+        if name == 'svcnn':
             x = x.view(x.size(0), -1)
             x = self.model.net_2(x)
             return x
