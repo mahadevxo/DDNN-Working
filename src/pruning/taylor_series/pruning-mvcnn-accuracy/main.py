@@ -14,19 +14,19 @@ def main():
         pruner = PruneSaveModel()
         pruner.run()
 
-    print("Models pruned and saved successfully.")
+        print("Models pruned and saved successfully.")
     
     if skip_cache_features == 0:
         cacher = CacheFeatures()
         cacher.run()
     
-    print("Features cached successfully.")
+        print("Features cached successfully.")
     
     if skip_eval == 0:
         evaluator = EvalCombinations()
         evaluator.run()
     
-    print("Evaluation completed successfully.")
+        print("Evaluation completed successfully.")
 
 if __name__ == "__main__":
     main()

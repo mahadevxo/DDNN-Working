@@ -23,7 +23,7 @@ class CacheFeatures:
         for p in self.PRUNING_AMOUNTS:
             path = f'./pruned-models/pruned_mvcnn_{p}.pth'
             if os.path.exists(path):
-                m = torch.jit.load(path, map_location=self.device)
+                m = torch.jit.load(path, map_location=torch.device('cpu'))
                 m.eval()
                 models[p] = m
         return models
@@ -52,6 +52,7 @@ class CacheFeatures:
                 label = data[0].item()
                 views = data[1][0]  # shape [NUM_VIEWS, C, H, W]
                 for p, model in self.models.items():
+                    model = model.to(self.device)
                     feats = []
                     for v in range(self.NUM_VIEWS):
                         img = views[v].unsqueeze(0).to(self.device)
@@ -61,6 +62,7 @@ class CacheFeatures:
                     # save features and label
                     np.save(os.path.join(self.FEATURE_DIR, f'sample_{idx}_prune_{p}_feats.npy'), feats)
                     np.save(os.path.join(self.FEATURE_DIR, f'sample_{idx}_label.npy'), np.array(label))
+                    model = model.cpu()  # move back to CPU to save memory
     
     def run(self):
         self.cache_features()
