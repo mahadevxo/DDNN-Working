@@ -1,5 +1,4 @@
 import torch
-from torch.autograd import Variable
 import numpy as np
 from tensorboardX import SummaryWriter
 from tqdm import tqdm
@@ -27,7 +26,6 @@ class ModelNetTrainer(object):
         self.scaler = torch.GradScaler() if self.use_amp else None
 
     def train(self, n_epochs):
-
         best_acc = 0
         i_acc = 0
         self.model.train()
@@ -54,9 +52,12 @@ class ModelNetTrainer(object):
             total_steps = 0
             
             for i, data in enumerate(pbar):
-
-                in_data = data[1].to(self.device)
                 target = data[0].to(self.device)
+                if self.model_name == 'mvcnn':
+                    N, V, C, H, W = data[1].size()
+                    in_data = data[1].view(-1, C, H, W).to(self.device)
+                else:
+                    in_data = data[1].to(self.device)
 
                 self.optimizer.zero_grad()
 
@@ -130,88 +131,39 @@ class ModelNetTrainer(object):
         all_correct_points = 0
         all_points = 0
         all_loss = 0
-        wrong_class = np.zeros(33)  # Fix: Use 33 for ModelNet33
+        wrong_class = np.zeros(33)
         samples_class = np.zeros(33)
-
         self.model.eval()
+        avgpool = torch.nn.AvgPool1d(1, 1)
 
-        # Add progress bar for validation
         val_pbar = tqdm(self.val_loader, desc=f"Validation - Epoch {epoch+1}")
 
-        for _, data in enumerate(val_pbar, 0):
+        for _, data in enumerate(val_pbar):
             if self.model_name == 'mvcnn':
                 N, V, C, H, W = data[1].size()
                 in_data = data[1].view(-1, C, H, W).to(self.device)
-                target = data[0].to(self.device).repeat_interleave(V)
-            else: # 'svcnn'
+            else:
                 in_data = data[1].to(self.device)
-                target = data[0].to(self.device)
-
+            target = data[0].to(self.device)
+            
             out_data = self.model(in_data)
+            loss = self.loss_fn(out_data, target)
+            all_loss += loss.item()
             pred = torch.max(out_data, 1)[1]
-            all_loss += self.loss_fn(out_data, target).cpu().data.numpy()
-            # Fix: Handle MVCNN and SVCNN differently
-            if self.model_name == 'mvcnn':
-                # Count object-level accuracy using majority voting
-                obj_correct = 0
-                for i in range(N):
-                    obj_preds = pred[i*V:(i+1)*V]  # All predictions for object i
-                    obj_target = target[i*V]  # Target for object i
+            results = pred == target
+            
+            correct_points = torch.sum(results.long())
+            all_correct_points += correct_points.item()
+            all_points += results.size()[0]
+            for i in range(len(pred)):
+                if pred[i] != target[i]:
+                    wrong_class[target[i]] += 1
+                samples_class[target[i]] += 1
+            val_pbar.set_postfix({
+                'val_loss': f"{all_loss/(len(val_pbar)+1):.3f}",
+                'val_acc': f"{all_correct_points/all_points:.3f}"
+            })
 
-                    # Majority voting across views
-                    obj_pred = torch.mode(obj_preds)[0]
-
-                    # Update class-wise statistics
-                    if obj_pred != obj_target:
-                        wrong_class[obj_target.cpu().data.numpy().astype('int')] += 1
-                    else:
-                        obj_correct += 1
-                    samples_class[obj_target.cpu().data.numpy().astype('int')] += 1
-
-                # For MVCNN: count objects, not views
-                all_correct_points += obj_correct
-                all_points += N  # Count objects, not views
-
-                # Update progress bar with object-level accuracy
-                current_acc = obj_correct / N
-
-            else: # SVCNN
-                results = pred == target
-
-                for i in range(results.size()[0]):
-                    if not bool(results[i].cpu().data.numpy()):
-                        wrong_class[target.cpu().data.numpy().astype('int')[i]] += 1
-                    samples_class[target.cpu().data.numpy().astype('int')[i]] += 1
-
-                correct_points = torch.sum(results.long())
-                all_correct_points += correct_points
-                all_points += results.size()[0]
-
-                # Update progress bar with view-level accuracy
-                current_acc = correct_points.float() / results.size()[0]
-                current_acc = current_acc.item()
-
-            val_pbar.set_postfix({'acc': f"{current_acc:.3f}"})
-
-        # Calculate final metrics
-        print(samples_class)
-        val_mean_class_acc = np.mean((samples_class-wrong_class)/samples_class)
-        val_overall_acc = all_correct_points / all_points
-
-        # Convert to numpy if it's a tensor
-        if isinstance(val_overall_acc, torch.Tensor):
-            val_overall_acc = val_overall_acc.cpu().data.numpy()
-
-        loss = all_loss / len(self.val_loader)
-
-        # Print final validation results in a clean format
-        print(f"Validation Results - Epoch {epoch+1}:")
-        print(f"  Total samples: {all_points}")
-        print(f"  Mean Class Accuracy: {val_mean_class_acc:.4f}")
-        print(f"  Overall Accuracy: {val_overall_acc:.4f}")
-        print(f"  Loss: {loss:.4f}")
-        print("-" * 50)
-
+        print(f"Mean Class Accuracy: {np.mean((samples_class - wrong_class) / samples_class)}")
         self.model.train()
-        return loss, val_overall_acc, val_mean_class_acc
-
+        return all_loss, all_correct_points/all_points, wrong_class/samples_class

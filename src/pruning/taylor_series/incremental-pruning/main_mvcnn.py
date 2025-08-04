@@ -268,6 +268,7 @@ def main() -> None:
                         # Ensure TorchScript module is saved via .save(), not torch.save
                         scripted_model = torch.jit.script(model)
                         scripted_model.save(model_save_path)
+                        print("Saved Model to", model_save_path)
                         
                     del model  # Clear model from memory
                     del final_metrics  # Clear metrics from memory
