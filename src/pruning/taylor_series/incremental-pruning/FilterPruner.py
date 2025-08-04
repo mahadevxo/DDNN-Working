@@ -49,12 +49,14 @@ class FilterPruner:
             return x
         else:
             y = F.adaptive_avg_pool2d(x, (7, 7))
-            V=12
-            N=y.size(0)//V
+            V = 12
+            N = y.size(0) // V
             y = y.view(N, V, y.shape[-3], y.shape[-2], y.shape[-1])
             y = torch.max(y, 1)[0]
-            y = self.model.net_2(y)
-            return y
+            # flatten before classifier
+            y = y.view(N, -1)
+            x = self.model.net_2(y)
+            return x
 
     def compute_rank(self, grad, activation_index):
         # Safety check to ensure activation_index is valid

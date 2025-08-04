@@ -141,7 +141,7 @@ class PruningFineTuner:
             # Check for NaN loss
             if torch.isnan(loss) or torch.isinf(loss):
                 print(f"Warning: NaN/inf loss detected: {loss.item()}")
-                continue  # Skip this batch
+                continue 
 
             running_loss += loss.item()
             pred = torch.max(out_data, 1)[1]

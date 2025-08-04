@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 import torchvision.models as models
+from torch.nn import functional as F
 # from .Model import Model
 
 device = 'mps' if torch.backends.mps.is_available() else 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -100,37 +101,41 @@ class MVCNN(nn.Module):
         self.use_resnet = cnn_name.startswith('resnet')
 
         if self.use_resnet:
-            self.net_1 = nn.Sequential(*list(model.net.children())[:-1]).to(self.device)
+            # exclude ResNet's avgpool and fc from features
+            children = list(model.net.children())
+            self.net_1 = nn.Sequential(*children[:-2]).to(self.device)
+            self.pool = children[-2]  # this is AdaptiveAvgPool2d((1,1))
             self.net_2 = model.net.fc.to(self.device)
         else:
             self.net_1 = model.net_1.to(self.device)
             self.net_2 = model.net_2.to(self.device)
 
     def forward(self, x):
-        # If using MVCNN with multiple views
-        if x.size(1) > 3 and x.size(0) == 1:
-            # Reshape input for multiple views [1, views*channels, h, w] -> [views, channels, h, w]
-            x = x.view(self.num_views, 3, x.size(2), x.size(3))
-            
-            # Process each view
-            y = self.net_1(x)  # [views, features, h, w]
-            
-            # Apply adaptive pooling before flattening to ensure correct dimensions
+        # multi‐view case
+        if x.dim() == 5:
+            N, V, C, H, W = x.shape
+            x = x.view(N * V, C, H, W)
+            y = self.net_1(x)                   # (N*V, F, h, w)
             if not self.use_resnet:
-                y = nn.functional.adaptive_avg_pool2d(y, (7, 7))
-                
-            y = y.view(self.num_views, -1)
-            
-            # Pool over views (max pooling as in original MVCNN paper)
-            y = torch.max(y, 0)[0].unsqueeze(0)  # [1, features]
+                # only spatial‐pool per‐view in non‐ResNet branch
+                y = F.adaptive_avg_pool2d(y, (7, 7))
+
+            # now reshape and view‐pool across V
+            Fdim, Hdim, Wdim = y.size(1), y.size(2), y.size(3)
+            y = y.view(N, V, Fdim, Hdim, Wdim)
+            y, _ = torch.max(y, dim=1)         # (N, F, H, W)
+
+            if self.use_resnet:
+                # apply ResNet’s avgpool **after** view‐pooling
+                y = self.pool(y)               # (N, F, 1, 1)
+
+            y = y.view(N, -1)                   # flatten to (N, F*H*W) or (N, F)
+            return self.net_2(y)
+
+        # single‐view case (unchanged)
         else:
-            # Standard forward pass for single view
             y = self.net_1(x)
-            
-            # Apply adaptive pooling before flattening to ensure correct dimensions
             if not self.use_resnet:
-                y = nn.functional.adaptive_avg_pool2d(y, (7, 7))
-                
+                y = F.adaptive_avg_pool2d(y, (7, 7))
             y = y.view(y.size(0), -1)
-        
-        return self.net_2(y)
+            return self.net_2(y)
