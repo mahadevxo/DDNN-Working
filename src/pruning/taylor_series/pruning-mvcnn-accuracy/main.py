@@ -43,7 +43,6 @@ def prune_and_train(model, prune_amount, epochs=2):
     
     if prune_amount == 0.0:
         save_model(pruner.model, prune_amount)
-        
         return
     
     print("Retraining the model...")
@@ -118,7 +117,7 @@ def test_mvcnn():
         num_workers=4,
         pin_memory=True,)
     
-    P_matrix = np.random.choice(PRUNING_AMOUNTS, size=(1000, 12))
+    P_matrix = np.random.choice(PRUNING_AMOUNTS, size=(2000, 12))
     #views are as 0, 1, 10, 11, 2, 3, 4, 5, 6, 7, 8, 9
     with torch.no_grad():
         for P in P_matrix:
@@ -142,6 +141,8 @@ def test_mvcnn():
                     net_1_out = model.net_1(x)
                     
                     y[dataidx] = net_1_out.squeeze(0).to(device)
+                    model.to('cpu')
+                    torch.cuda.empty_cache()
 
                 y = y.view((int((BATCH_SIZE*NUM_VIEWS)/NUM_VIEWS),NUM_VIEWS,y.shape[-3],y.shape[-2],y.shape[-1]))
                 y = torch.max(y, dim=1)[0].view(y.shape[0], -1)
@@ -157,6 +158,7 @@ def test_mvcnn():
                 samples_class[label] += 1
                 if preds.item() != label:
                     wrong_class[label] += 1
+                torch.cuda.empty_cache()
 
             mean_class_acc = np.mean((samples_class - wrong_class) / samples_class)
             save_to_csv(P, mean_class_acc)
