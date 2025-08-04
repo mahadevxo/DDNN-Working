@@ -27,8 +27,7 @@ def get_exp_curve(total_sum: float, do_it: bool) -> list[float]:
     if total_sum == 0:
         return [0.0] * 10
     
-    # Limit total_sum to a reasonable range to avoid excessive pruning in one step
-    total_sum = min(total_sum, 0.99)  # Never prune more than 99% in a single curve
+    total_sum = min(total_sum, 0.99) 
     
     x = np.arange(7)
     decay_target_ratio = 0.01
