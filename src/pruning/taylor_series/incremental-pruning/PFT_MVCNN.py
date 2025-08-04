@@ -68,6 +68,7 @@ class PruningFineTuner:
                                           rot_aug=True,
                                           num_models=0,
                                           num_views=12)
+            print(f"Dataset Size Training: {len(dataset)}")
         elif test_or_train == 'time':
             # num_samples=8
             full_dataset = MultiviewImgDataset(root_dir=self.train_path,
@@ -90,7 +91,7 @@ class PruningFineTuner:
         return DataLoader(
             dataset,
             batch_size=8,
-            shuffle=False,  # Enable shuffle for Subset datasets
+            shuffle=False,
             num_workers=4,
             pin_memory=True,
         )    
@@ -161,21 +162,8 @@ class PruningFineTuner:
     
     def train_model(self, train_loader, optimizer=None):
         self.model.train()
-
-        # Skip filepath shuffling for Subset datasets to avoid index errors
-        dataset = train_loader.dataset
-        if not hasattr(dataset, 'dataset'):
-            current_filepaths = dataset.filepaths
-            rand_idx = np.random.permutation(len(current_filepaths) // 12)
-            filepaths_new = []
-            for i in range(len(rand_idx)):
-                filepaths_new.extend(current_filepaths[rand_idx[i]*self.num_views:(rand_idx[i]+1)*self.num_views])
-            dataset.filepaths = filepaths_new
-
-        # lr = self.optimizer.state_dict()['param_groups'][0]['lr'] # type: ignore
         out_data = None
         in_data = None
-
         pbar = tqdm(train_loader, desc="Training")
         running_loss = 0.0
         running_acc = 0.0
