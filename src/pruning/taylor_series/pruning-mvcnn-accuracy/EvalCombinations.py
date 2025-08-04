@@ -53,7 +53,7 @@ class EvalCombinations:
 
             for idx in sample_ids:
                 # load and stack features
-                views = [self.load_feats(idx, p) for p in combo]
+                views = [self.load_feats(idx, p)[v] for v, p in enumerate(combo)]
                 stack = torch.stack(views, dim=0).to(self.device)  # [V,512,7,7]
                 pooled = stack.max(dim=0)[0].view(1, -1)      # [1,512*7*7]
                 pred = net_2(pooled).argmax(dim=1).item()
