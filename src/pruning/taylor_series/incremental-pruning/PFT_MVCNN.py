@@ -16,7 +16,7 @@ class PruningFineTuner:
         # Dataset paths
         self.train_path = '../../../MVCNN/ModelNet40-12View/*/train'
         self.test_path = '../../../MVCNN/ModelNet40-12View/*/test'
-        self.num_classes = num_classes  # Support for 33 classes
+        self.num_classes = num_classes
         
         print("Initializing PruningFineTuner...")
 

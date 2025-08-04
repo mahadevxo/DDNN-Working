@@ -49,7 +49,9 @@ class FilterPruner:
             return x
         else:
             y = F.adaptive_avg_pool2d(x, (7, 7))
-            y = y.view(8, 12, -1)
+            V=12
+            N=y.size(0)//V
+            y = y.view(N, V, -1)
             y = torch.max(y, 1)[0]
             y = self.model.net_2(y)
             return y
