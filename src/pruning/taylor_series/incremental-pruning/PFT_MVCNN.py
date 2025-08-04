@@ -1,6 +1,5 @@
 from math import ceil
 from torch.utils.data import DataLoader, Subset
-from torchvision import transforms
 import torch
 import torch.nn.functional as F
 import random
@@ -85,9 +84,7 @@ class PruningFineTuner:
                                           rot_aug=False,
                                           test_mode=True,
                                           num_models=0,
-                                          num_views=12)
-
-    
+                                          num_views=12)    
         return DataLoader(
             dataset,
             batch_size=8,
@@ -131,8 +128,11 @@ class PruningFineTuner:
             else:
                 self.model.zero_grad()
 
-            # Use pruner's forward method to accumulate filter importance rankings
             out_data = self.pruner.forward(in_data)
+            
+            if self.model_name == 'mvcnn':
+                out_data = F.adaptive_avg_pool2d(out_data, (7, 7)).view(N, V, -1) # type: ignore
+                out_data = torch.max(out_data, 1)[0]  # Take max across
 
             loss = self.criterion(out_data, target)
             
