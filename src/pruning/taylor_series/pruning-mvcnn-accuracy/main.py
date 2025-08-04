@@ -97,6 +97,7 @@ def save_to_csv(p, mean_class_acc):
 
 def test_mvcnn():
     models = load_models()
+    org_model = get_org_model()
     test_path = '../../../MVCNN/ModelNet40-12View/*/test'
     dataset = MultiviewImgDataset(
         root_dir=test_path,
@@ -139,7 +140,7 @@ def test_mvcnn():
 
             y = y.view((int((BATCH_SIZE*NUM_VIEWS)/NUM_VIEWS),NUM_VIEWS,y.shape[-3],y.shape[-2],y.shape[-1]))
             y = torch.max(y, dim=1)[0].view(y.shape[0], -1)
-            preds = models['0.0'].net_2(y)
+            preds = org_model.net_2(y)
             preds = preds.argmax(dim=1)     
             
             batch_correct = (preds == data[0].to(device)).sum().item()
