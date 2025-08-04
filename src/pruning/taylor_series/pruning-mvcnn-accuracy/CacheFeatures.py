@@ -23,7 +23,7 @@ class CacheFeatures:
         for p in self.PRUNING_AMOUNTS:
             path = f'./pruned-models/pruned_mvcnn_{p}.pth'
             if os.path.exists(path):
-                m = torch.jit.load(path, map_location=torch.device('cpu'))
+                m = torch.jit.load(path, map_location=torch.device('cuda'))
                 m.eval()
                 models[p] = m
         return models
@@ -45,25 +45,30 @@ class CacheFeatures:
         )
         return loader
 
-# Cache features and labels
+    # Cache features and labels
     def cache_features(self):
         with torch.no_grad():
             for idx, data in enumerate(tqdm(self.loader, desc='Caching features')):
                 label = data[0].item()
-                views = data[1][0]  # shape [NUM_VIEWS, C, H, W]
+                views = data[1][0]  # [12, C, H, W]
+
                 for p, model in self.models.items():
                     model = model.to(self.device)
+
                     feats = []
                     for v in range(self.NUM_VIEWS):
                         img = views[v].unsqueeze(0).to(self.device)
-                        out = model.net_1(img)  # shape [1,512,7,7]
+                        out = model.net_1(img)
                         feats.append(out.cpu().numpy())
+
                     feats = np.stack(feats, axis=0)
-                    # save features and label
+
                     np.save(os.path.join(self.FEATURE_DIR, f'sample_{idx}_prune_{p}_feats.npy'), feats)
                     np.save(os.path.join(self.FEATURE_DIR, f'sample_{idx}_label.npy'), np.array(label))
-                    model = model.cpu()  # move back to CPU to save memory
-    
+
+                    model.to('cpu')
+                    torch.cuda.empty_cache()
+        
     def run(self):
         self.cache_features()
         print(f'Features cached in {self.FEATURE_DIR}')
