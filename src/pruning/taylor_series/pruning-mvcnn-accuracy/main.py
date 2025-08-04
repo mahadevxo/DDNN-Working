@@ -1,8 +1,8 @@
-import numpy as np
 import sys
 sys.path.append('../../MVCNN')
 from models import MVCNN
 import torch
+import numpy as np
 import os
 from tqdm import tqdm
 import time
@@ -62,7 +62,7 @@ def get_org_model():
         nclasses=33,
         cnn_name='vgg11'
     )
-    weights = torch.load('../../MVCNN/MVCNN/model-mvcnn-00050.pth', map_location=device)
+    weights = torch.load('../../MVCNN/MVCNN/mvcnn-00050.pth', map_location=device)
     base_cnn.load_state_dict(weights)
     base_cnn = base_cnn.to(device)
     
@@ -114,48 +114,47 @@ def test_mvcnn():
     
     P_matrix = np.random.choice(PRUNING_AMOUNTS, size=(1000, 12))
     #views are as 0, 1, 10, 11, 2, 3, 4, 5, 6, 7, 8, 9
-    
-    for P in P_matrix:
-        all_correct = 0
-        all_samples = 0
-        wrong_class = np.zeros(33, dtype=int)
-        samples_class = np.zeros(33, dtype=int)
-        
-        y = torch.zeros((NUM_VIEWS, 512, 7, 7)).to(device)
-        pbar = tqdm(test_loader, desc="Testing Models")
-        for batch_idx, data in enumerate(pbar):
-            label = data[0].to(device)
-            for dataidx, p in enumerate(P):
-                model = models[str(p)]
-                model = model.to(device)
-        
-                images = data[1][0][dataidx].to(device)
-                
-                x = images.unsqueeze(0).to(device)
-                
-                with torch.no_grad():
+    with torch.no_grad():
+        for P in P_matrix:
+            all_correct = 0
+            all_samples = 0
+            wrong_class = np.zeros(33, dtype=int)
+            samples_class = np.zeros(33, dtype=int)
+            
+            y = torch.zeros((NUM_VIEWS, 512, 7, 7)).to(device)
+            pbar = tqdm(test_loader, desc="Testing Models")
+            for batch_idx, data in enumerate(pbar):
+                label = data[0].to(device)
+                for dataidx, p in enumerate(P):
+                    model = models[str(p)]
+                    model = model.to(device)
+            
+                    images = data[1][0][dataidx].to(device)
+                    
+                    x = images.unsqueeze(0).to(device)
+                    
                     net_1_out = model.net_1(x)
+                    
+                    y[dataidx] = net_1_out.squeeze(0).to(device)
+
+                y = y.view((int((BATCH_SIZE*NUM_VIEWS)/NUM_VIEWS),NUM_VIEWS,y.shape[-3],y.shape[-2],y.shape[-1]))
+                y = torch.max(y, dim=1)[0].view(y.shape[0], -1)
+                preds = org_model.net_2(y)
+                preds = preds.argmax(dim=1)     
                 
-                y[dataidx] = net_1_out.squeeze(0).to(device)
+                batch_correct = (preds == data[0].to(device)).sum().item()
+                all_correct += batch_correct
+                all_samples += BATCH_SIZE
+                
+                label = label.item()
+                
+                samples_class[label] += 1
+                if preds.item() != label:
+                    wrong_class[label] += 1
 
-            y = y.view((int((BATCH_SIZE*NUM_VIEWS)/NUM_VIEWS),NUM_VIEWS,y.shape[-3],y.shape[-2],y.shape[-1]))
-            y = torch.max(y, dim=1)[0].view(y.shape[0], -1)
-            preds = org_model.net_2(y)
-            preds = preds.argmax(dim=1)     
-            
-            batch_correct = (preds == data[0].to(device)).sum().item()
-            all_correct += batch_correct
-            all_samples += BATCH_SIZE
-            
-            label = label.item()
-            
-            samples_class[label] += 1
-            if preds.item() != label:
-                wrong_class[label] += 1
-
-        mean_class_acc = np.mean((samples_class - wrong_class) / samples_class)
-        save_to_csv(P, mean_class_acc)
-        print(f"Pruning Amount: {P}, Mean Class Accuracy: {mean_class_acc:.4f}")
+            mean_class_acc = np.mean((samples_class - wrong_class) / samples_class)
+            save_to_csv(P, mean_class_acc)
+            print(f"Pruning Amount: {P}, Mean Class Accuracy: {mean_class_acc:.4f}")
 
 if __name__ == "__main__":
     whattodo = int(input("Enter 1 to prune and save models and then test, 2 to test models: "))
