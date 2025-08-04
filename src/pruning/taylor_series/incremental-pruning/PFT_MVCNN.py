@@ -311,7 +311,8 @@ class PruningFineTuner:
                 # —— full MVCNN voting as before ——
                 N, V, C, H, W = views.size()
                 x = views.view(-1, C, H, W)                # (N*V, C, H, W)
-                tgt = labels.repeat_interleave(V, dim=0)   # (N*V,)
+                # tgt = labels.repeat_interleave(V, dim=0)   # (N*V,)
+                tgt = labels
                 
                 net_1_out = self.model.net_1(x)  # (N*V, 33)
                 y = F.adaptive_avg_pool2d(net_1_out, (7, 7)).view(N, V, -1)  # (N, V, 33)
