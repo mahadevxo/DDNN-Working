@@ -62,7 +62,7 @@ def get_org_model():
         nclasses=33,
         cnn_name='vgg11'
     )
-    weights = torch.load('../../MVCNN/MVCNN/mvcnn-00050.pth', map_location=device)
+    weights = torch.load('../../MVCNN/MVCNN/MVCNN/mvcnn-00050.pth', map_location=device)
     base_cnn.load_state_dict(weights)
     base_cnn = base_cnn.to(device)
     
