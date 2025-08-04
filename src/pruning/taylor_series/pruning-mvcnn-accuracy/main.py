@@ -120,10 +120,10 @@ def test_mvcnn():
             all_samples = 0
             wrong_class = np.zeros(33, dtype=int)
             samples_class = np.zeros(33, dtype=int)
-            
-            y = torch.zeros((NUM_VIEWS, 512, 7, 7)).to(device)
             pbar = tqdm(test_loader, desc="Testing Models")
+
             for batch_idx, data in enumerate(pbar):
+                y = torch.zeros((NUM_VIEWS, 512, 7, 7)).to(device)
                 label = data[0].to(device)
                 for dataidx, p in enumerate(P):
                     model = models[str(p)]
