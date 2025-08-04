@@ -34,7 +34,7 @@ class FilterPruner:
         self.grad_index = 0
         self.model.eval()
         self.model.zero_grad()
-        org = x.copy()
+        org = x.clone()
         activation_index = 0
         
         if self.model.name == 'mvcnn':
