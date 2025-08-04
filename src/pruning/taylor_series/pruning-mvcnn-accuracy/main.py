@@ -8,7 +8,7 @@ def main():
     skip_cache_features = int(input("Skip caching features? (1 for yes, 0 for no): "))
     skip_eval = int(input("Skip evaluation? (1 for yes, 0 for no): "))
     
-    print("-"*50)
+    print("-"*300)
     
     if skip_save_model == 0:
         pruner = PruneSaveModel()
