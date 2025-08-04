@@ -1,6 +1,6 @@
 import torch
 import numpy as np
-from tensorboardX import SummaryWriter
+# from tensorboardX import SummaryWriter
 from tqdm import tqdm
 
 class ModelNetTrainer(object):
@@ -19,8 +19,8 @@ class ModelNetTrainer(object):
         self.device = 'mps' if torch.backends.mps.is_available() else 'cuda' if torch.cuda.is_available() else 'cpu'
 
         self.model.to(self.device)
-        if self.log_dir is not None:
-            self.writer = SummaryWriter(log_dir)
+        # if self.log_dir is not None:
+            # self.writer = SummaryWriter(log_dir)
         # Use AMP only if device is cuda
         self.use_amp = (self.device == 'cuda')
         self.scaler = torch.GradScaler() if self.use_amp else None
@@ -38,8 +38,8 @@ class ModelNetTrainer(object):
             self.train_loader.dataset.filepaths = filepaths_new
 
             # plot learning rate
-            lr = self.optimizer.state_dict()['param_groups'][0]['lr']
-            self.writer.add_scalar('params/lr', lr, epoch)
+            # lr = self.optimizer.state_dict()['param_groups'][0]['lr']
+            # self.writer.add_scalar('params/lr', lr, epoch)
 
             # train one epoch
             out_data = None
@@ -71,7 +71,7 @@ class ModelNetTrainer(object):
 
                 running_loss += loss.item()
 
-                self.writer.add_scalar('train/train_loss', loss, i_acc+i+1)
+                # self.writer.add_scalar('train/train_loss', loss, i_acc+i+1)
 
                 pred = torch.max(out_data, 1)[1]
                 results = pred == target
@@ -81,7 +81,7 @@ class ModelNetTrainer(object):
                 running_acc += acc.item()
                 total_steps += 1
                 
-                self.writer.add_scalar('train/train_overall_acc', acc, i_acc+i+1)
+                # self.writer.add_scalar('train/train_overall_acc', acc, i_acc+i+1)
 
                 if self.use_amp:
                     self.scaler.scale(loss).backward()
@@ -106,9 +106,9 @@ class ModelNetTrainer(object):
             if (epoch+1)%1==0:
                 with torch.no_grad():
                     loss, val_overall_acc, val_mean_class_acc = self.update_validation_accuracy(epoch)
-                self.writer.add_scalar('val/val_mean_class_acc', val_mean_class_acc, epoch+1)
-                self.writer.add_scalar('val/val_overall_acc', val_overall_acc, epoch+1)
-                self.writer.add_scalar('val/val_loss', loss, epoch+1)
+                # self.writer.add_scalar('val/val_mean_class_acc', val_mean_class_acc, epoch+1)
+                # self.writer.add_scalar('val/val_overall_acc', val_overall_acc, epoch+1)
+                # self.writer.add_scalar('val/val_loss', loss, epoch+1)
 
             # save best model
             if val_overall_acc > best_acc:
@@ -124,8 +124,8 @@ class ModelNetTrainer(object):
             torch.cuda.empty_cache()
 
         # export scalar data to JSON for external processing
-        self.writer.export_scalars_to_json(f"{self.log_dir}/all_scalars.json")
-        self.writer.close()
+        # self.writer.export_scalars_to_json(f"{self.log_dir}/all_scalars.json")
+        # self.writer.close()
 
     def update_validation_accuracy(self, epoch):
         all_correct_points = 0
@@ -134,7 +134,7 @@ class ModelNetTrainer(object):
         wrong_class = np.zeros(33)
         samples_class = np.zeros(33)
         self.model.eval()
-        avgpool = torch.nn.AvgPool1d(1, 1)
+        # avgpool = torch.nn.AvgPool1d(1, 1)
 
         val_pbar = tqdm(self.val_loader, desc=f"Validation - Epoch {epoch+1}")
 
