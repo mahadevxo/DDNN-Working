@@ -23,7 +23,7 @@ class CacheFeatures:
         for p in self.PRUNING_AMOUNTS:
             path = f'./pruned-models/pruned_mvcnn_{p}.pth'
             if os.path.exists(path):
-                m = torch.jit.load(path, map_location=torch.device('cuda'))
+                m = torch.jit.load(path, map_location=torch.device('cpu'))
                 m.eval()
                 models[p] = m
         return models
@@ -60,7 +60,6 @@ class CacheFeatures:
 
                 for p, model in self.models.items():
                     model = model.to(self.device)
-
                     feats = []
                     for v in range(self.NUM_VIEWS):
                         img = views[v].unsqueeze(0).to(self.device)
