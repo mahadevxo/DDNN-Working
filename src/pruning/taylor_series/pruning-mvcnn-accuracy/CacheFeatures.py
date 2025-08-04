@@ -47,6 +47,10 @@ class CacheFeatures:
 
     # Cache features and labels
     def cache_features(self):
+        
+        print(f'Caching features in {self.FEATURE_DIR}...')
+        print(f"Model Paths: {list(self.models.keys())}")
+        
         with torch.no_grad():
             for idx, data in enumerate(tqdm(self.loader, desc='Caching features')):
                 label = data[0].item()
