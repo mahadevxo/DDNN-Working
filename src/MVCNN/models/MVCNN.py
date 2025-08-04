@@ -106,6 +106,8 @@ class MVCNN(Model):
 
     def forward(self, x):
         y = self.net_1(x)
+        # Reshape y to (batch_size, num_views, channels, height, width)
         y = y.view((int(x.shape[0]/self.num_views),self.num_views,y.shape[-3],y.shape[-2],y.shape[-1]))
+        # Apply max pooling across the views
         y = torch.max(y, dim=1)[0].view(y.shape[0], -1)
         return self.net_2(y)
