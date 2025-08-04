@@ -21,7 +21,7 @@ with open(f"test-log-{T}.csv", 'w') as f:
     f.write(header)
 
 def save_model(model, prune_amount):
-    save_path = f'./pruned_mvcnn_{str(prune_amount)}.pth'
+    save_path = f'./pruned-models/pruned_mvcnn_{str(prune_amount)}.pth'
     scripted_model = torch.jit.script(model)
     scripted_model.save(save_path)
     print(f'Model saved to {save_path}')
@@ -83,7 +83,7 @@ def prune_save_model():
 def load_models():
     models = {}
     for prune_amount in PRUNING_AMOUNTS:
-        model_path = f'./pruned_mvcnn_{prune_amount}.pth'
+        model_path = f'./pruned-models/pruned_mvcnn_{prune_amount}.pth'
         if os.path.exists(model_path):
             models[str(prune_amount)] = torch.jit.load(model_path, map_location=device)
             print(f"Loaded model for pruning amount {prune_amount}")
