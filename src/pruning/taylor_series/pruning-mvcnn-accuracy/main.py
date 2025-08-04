@@ -9,7 +9,7 @@ import time
 from tools.ImgDataset import MultiviewImgDataset
 
 device = torch.device('mps') if torch.backends.mps.is_available() else torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-PRUNING_AMOUNTS = np.array([0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.95, 0.99]).tolist()
+PRUNING_AMOUNTS = np.arange(0.0, 1.05, 0.05).tolist()
 NUM_VIEWS = 12
 BATCH_SIZE = 1
 
