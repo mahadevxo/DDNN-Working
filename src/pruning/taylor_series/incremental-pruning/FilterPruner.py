@@ -48,7 +48,7 @@ class FilterPruner:
             x = self.model.net_2(x)
             return x
         else:
-            print(x.shape)
+            # print(x.shape)
             y = F.adaptive_avg_pool2d(x, (7, 7))
             # print(f"Adaptive pooling output shape: {y.shape}")
             y = y.view(8, 12, -1)
