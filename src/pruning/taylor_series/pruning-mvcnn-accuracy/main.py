@@ -12,11 +12,12 @@ device = torch.device('mps') if torch.backends.mps.is_available() else torch.dev
 PRUNING_AMOUNTS = np.arange(0.0, 1.05, 0.05).tolist()
 NUM_VIEWS = 12
 BATCH_SIZE = 1
+VIEW_ORDER = [0, 1, 10, 11, 2, 3, 4, 5, 6, 7, 8, 9]
 
 T = time.time()
 with open(f"test-log-{T}.csv", 'w') as f:
     header = ",".join(
-        f"prune_amount_view_{i}" for i in range(NUM_VIEWS)
+        f"prune_amount_view_{v}" for v in VIEW_ORDER
         ) + ",mean_class_acc\n"
     f.write(header)
 
