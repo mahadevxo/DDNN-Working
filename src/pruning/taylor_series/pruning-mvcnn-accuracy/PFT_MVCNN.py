@@ -425,13 +425,30 @@ class PruningFineTuner:
         
         # Validate model architecture after pruning
         try:
-            # Test with a small batch to ensure model still works
-            test_input = torch.randn(1, self.num_views, 3, 224, 224).to(self.device) if self.model_name == 'mvcnn' else torch.randn(1, 3, 224, 224).to(self.device)
+            # create dummy input
+            if self.model_name == 'mvcnn':
+                test_input = torch.randn(1, self.num_views, 3, 224, 224, device=self.device)
+            else:
+                test_input = torch.randn(1, 3, 224, 224, device=self.device)
+
             with torch.no_grad():
-                test_output = self.model(test_input)
-                if test_output.size(1) != 33:
-                    print(f"Error: Model output size is {test_output.size(1)}, expected 33")
+                if self.model_name == 'mvcnn':
+                    # flatten views and run through conv trunk
+                    N, V, C, H, W = test_input.shape
+                    flat = test_input.view(-1, C, H, W)
+                    feat = self.model.net_1(flat)
+                    # ensure same pooling as forward
+                    feat = torch.nn.functional.adaptive_avg_pool2d(feat, (7, 7))
+                    feat = feat.view(N, V, feat.size(-3), feat.size(-2), feat.size(-1))
+                    agg = torch.max(feat, dim=1)[0].view(N, -1)
+                    test_output = self.model.net_2(agg)
+                else:
+                    test_output = self.model(test_input)
+
+                if test_output.size(1) != self.num_classes:
+                    print(f"Error: Model output size is {test_output.size(1)}, expected {self.num_classes}")
                     return False
+
                 print(f"Model validation passed: output shape {test_output.shape}")
         except Exception as e:
             print(f"Model validation failed after pruning: {e}")
