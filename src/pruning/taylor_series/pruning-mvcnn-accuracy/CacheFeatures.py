@@ -50,6 +50,7 @@ class CacheFeatures:
         
         print(f'Caching features in {self.FEATURE_DIR}...')
         print(f"Length of pruning amounts: {len(self.PRUNING_AMOUNTS)}")
+        print(f"Pruning amounts: {self.PRUNING_AMOUNTS}")
         print(f"Number of Models: {len(self.models)}")
         
         with torch.no_grad():
