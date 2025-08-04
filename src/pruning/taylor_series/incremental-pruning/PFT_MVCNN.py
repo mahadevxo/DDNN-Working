@@ -61,19 +61,6 @@ class PruningFineTuner:
         return self.imp
     
     def get_modelnet33_images(self, test_or_train, num_samples=-1):
-        transform = transforms.Compose([
-            transforms.Resize((224, 224)),
-            transforms.RandomHorizontalFlip(),
-            transforms.RandomRotation(10),
-            transforms.ToTensor(),
-            transforms.Normalize(mean=[0.485, 0.456, 0.406], 
-                                 std=[0.229, 0.224, 0.225])
-        ]) if test_or_train == 'train' else transforms.Compose([
-            transforms.Resize((224, 224)),
-            transforms.ToTensor(),
-            transforms.Normalize(mean=[0.485, 0.456, 0.406], 
-                                 std=[0.229, 0.224, 0.225])
-        ])
 
         if test_or_train == 'train':
             dataset = MultiviewImgDataset(root_dir=self.train_path,
@@ -99,7 +86,6 @@ class PruningFineTuner:
                                           num_models=0,
                                           num_views=12)
 
-        dataset.transform = transform  # type: ignore
     
         return DataLoader(
             dataset,
@@ -210,7 +196,6 @@ class PruningFineTuner:
             
             Y = self.model.net_1(in_data)
             if self.model_name == 'mvcnn':
-                # Adaptive pooling to handle variable number of views
                 Y = F.adaptive_avg_pool2d(Y, (7, 7)).view(N, V, -1) # type: ignore
                 Y = torch.max(Y, 1)[0]
                 
@@ -232,13 +217,10 @@ class PruningFineTuner:
             
             if optimizer is not None:
                 loss.backward()
-                # Add gradient clipping to prevent explosion
-                torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_norm=1.0)
                 optimizer.step()
             else:
                 self.model.zero_grad()
                 loss.backward()
-                torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_norm=1.0)
                 self.model.step()
             pbar.set_postfix({"loss": f"{loss.item():.4f}", "acc": f"{acc.item():.4f}"})
 
@@ -310,8 +292,6 @@ class PruningFineTuner:
                     samples_class[tgt[i].item()] += 1
 
             else:
-                # —— single‐view branch (or any non-mvcnn model) ——
-                # pick one view:
                 x     = views[:, view_idx, ...]    # (N, C, H, W)
                 tgt   = labels                     # (N,)
                 out   = self.model(x)
@@ -363,7 +343,7 @@ class PruningFineTuner:
                 if self.model_name == 'mvcnn' and len(image.shape) == 5:
                     # image shape: [batch_size, num_views, channels, height, width]
                     N, V, C, H, W = image.size()
-                    image = image.view(-1, C, H, W)  # Reshape to [batch_size * num_views, channels, height, width]
+                    image = image.view(-1, C, H, W)
                 
                 image = image.to('cpu', non_blocking=False)
                 _ = model(image)
