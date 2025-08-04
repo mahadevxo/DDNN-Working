@@ -78,7 +78,7 @@ class PruneSaveModel:
             mvcnn = self.get_org_model()
             self.prune_and_train(mvcnn, prune_amount)
             print(f"Model pruned and saved for amount: {prune_amount}")
-            print("-"*300)
+            print("-"*150)
 
     def run(self):
         self.prune_save_model()
