@@ -158,7 +158,7 @@ class PruningFineTuner:
             if self.model_name == 'mvcnn':
                 N, V, C, H, W = data[1].size()
                 in_data = data[1].view(-1, C, H, W).to(self.device)
-                target = data[0].to(self.device) if len(data) == 2 else data[0].repeat_interleave(V)
+                target = data[0].to(self.device)
             else:
                 in_data = data[1].to(self.device)
                 target = data[0].to(self.device)
@@ -221,7 +221,7 @@ class PruningFineTuner:
             if self.model_name == 'mvcnn':
                 N, V, C, H, W = data[1].size()
                 in_data = data[1].view(-1, C, H, W).to(self.device)
-                target = data[0].to(self.device) if len(data) == 2 else data[0].repeat_interleave(V)
+                target = data[0].to(self.device)
             else:
                 in_data = data[1].to(self.device)
                 target = data[0].to(self.device)
@@ -312,8 +312,8 @@ class PruningFineTuner:
                 N, V, C, H, W = views.size()
                 x = views.view(-1, C, H, W)                # (N*V, C, H, W)
                 # tgt = labels.repeat_interleave(V, dim=0)   # (N*V,)
-                tgt = labels if len(labels) == 2 else labels.repeat_interleave(V)  # (N*V,)
-                
+                tgt = labels
+    
                 net_1_out = self.model.net_1(x)  # (N*V, 33)
                 y = F.adaptive_avg_pool2d(net_1_out, (7, 7)).view(N, V, -1)  # (N, V, 33)
                 y = torch.max(y, 1)[0]  # (N, 33)
