@@ -1,5 +1,6 @@
 from heapq import nsmallest
 from operator import itemgetter
+from torch.nn import functional as F
 import torch
 import gc
 
@@ -33,19 +34,31 @@ class FilterPruner:
         self.grad_index = 0
         self.model.eval()
         self.model.zero_grad()
-        
+        org = x.copy()
         activation_index = 0
-        for layer_index, layer in enumerate(self.model.net_1):   
+        
+        if self.model.name == 'mvcnn':
+            N, V, C, H, W = x.size()
+            x = x.view(-1, C, H, W)
+        
+        for layer_index, layer in enumerate(self.model.net_1): 
             x = layer(x)
             if isinstance(layer, torch.nn.modules.conv.Conv2d):
                 self.activations.append(x)
                 self.activation_to_layer[activation_index] = layer_index
                 x.register_hook(lambda grad, idx=activation_index: self.compute_rank(grad, idx))
                 activation_index += 1
-        x = x.view(x.size(0), -1)
-        x = self.model.net_2(x)
-        return x
-    
+        if self.model.name == 'svcnn':
+            x = x.view(x.size(0), -1)
+            x = self.model.net_2(x)
+            return x
+        else:
+            N, V, C, H, W = org.size()
+            y = F.adaptive_avg_pool2d(x, (7, 7)).view(N, V, -1)
+            y = torch.max(y, 1)[0]
+            y = self.model.net_2(y)
+            return y
+
     def compute_rank(self, grad, activation_index):
         # Safety check to ensure activation_index is valid
         if activation_index >= len(self.activations) or activation_index < 0:
