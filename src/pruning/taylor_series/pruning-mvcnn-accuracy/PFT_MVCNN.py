@@ -17,7 +17,7 @@ class PruningFineTuner:
         self.test_path = '../../../MVCNN/ModelNet40-12View/*/test'
         self.num_classes = num_classes
         
-        print("Initializing PruningFineTuner...")
+        # print("Initializing PruningFineTuner...")
 
         # Device selection
         self.device = 'mps' if torch.backends.mps.is_available() else 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -53,7 +53,8 @@ class PruningFineTuner:
     def _log(self, message):
         """Conditionally print messages based on quiet mode"""
         if not self.quiet:
-            print(message)
+            pass
+            # print(message)
     
     def get_imp_set(self):
         return self.imp
@@ -72,7 +73,7 @@ class PruningFineTuner:
                 dataset_indices = random.sample(range(len(dataset)), num_samples)
                 dataset = Subset(dataset, dataset_indices)
             
-            print(f"Dataset Size Training: {len(dataset)}")
+            # print(f"Dataset Size Training: {len(dataset)}")
         elif test_or_train == 'time':
             # num_samples=8
             full_dataset = MultiviewImgDataset(root_dir=self.train_path,
@@ -312,14 +313,14 @@ class PruningFineTuner:
         mean_cls    = per_cls[samples_class>0].mean()
 
         print(f'\nOverall Acc: {overall_acc*100:.4f}%   Mean Class Acc: {mean_cls*100:.4f}%')
-        print(f'Dataset contains {self.num_classes} classes')
+        # print(f'Dataset contains {self.num_classes} classes')
 
         self._clear_memory()
         return mean_cls
     
     def get_comp_time(self, model):
         """Measure computation time"""
-        print("Measuring computation time...")
+        # print("Measuring computation time...")
         start_time = time.time()
         model.eval()
         model.to('cpu')
@@ -449,7 +450,7 @@ class PruningFineTuner:
                     print(f"Error: Model output size is {test_output.size(1)}, expected {self.num_classes}")
                     return False
 
-                print(f"Model validation passed: output shape {test_output.shape}")
+                # print(f"Model validation passed: output shape {test_output.shape}")
         except Exception as e:
             print(f"Model validation failed after pruning: {e}")
             return False

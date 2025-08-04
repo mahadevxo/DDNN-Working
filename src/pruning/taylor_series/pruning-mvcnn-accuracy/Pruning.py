@@ -285,15 +285,15 @@ class Pruning:
         filters_by_layer = {}
         for layer_idx, filter_idx in prune_targets:
             if layer_idx in protected_layers:
-                print(f"Skipping protected Conv2d layer {layer_idx}")
+                # print(f"Skipping protected Conv2d layer {layer_idx}")
                 continue
             filters_by_layer.setdefault(layer_idx, set()).add(filter_idx)
 
         if not filters_by_layer:
-            print("Warning: No valid layers to prune (protected layers excluded)")
+            # print("Warning: No valid layers to prune (protected layers excluded)")
             return model
 
-        print(f"Pruning filters from {len(filters_by_layer)} layers (protected last conv layer: {protected_layers})")
+        # print(f"Pruning filters from {len(filters_by_layer)} layers (protected last conv layer: {protected_layers})")
 
         # Process layers in order
         for layer_idx in sorted(filters_by_layer.keys()):
@@ -310,17 +310,17 @@ class Pruning:
                 print(f"Warning: Layer {layer_idx} is not Conv2d, skipping")
                 continue
 
-            print(f"Layer {layer_idx}: Pruning {len(filter_indices)} filters from {conv.out_channels} total")
+            # print(f"Layer {layer_idx}: Pruning {len(filter_indices)} filters from {conv.out_channels} total")
 
             # Ensure we don't prune too many filters
             if len(filter_indices) >= conv.out_channels:
                 filter_indices = filter_indices[:conv.out_channels-1]
-                print(f"Limiting to {len(filter_indices)} filters to leave 1 remaining")
+                # print(f"Limiting to {len(filter_indices)} filters to leave 1 remaining")
 
             # Verify indices are in bounds
             valid_indices = [idx for idx in filter_indices if 0 <= idx < conv.out_channels]
             if len(valid_indices) != len(filter_indices):
-                print(f"Warning: Some filter indices for layer {layer_idx} are out of bounds")
+                # print(f"Warning: Some filter indices for layer {layer_idx} are out of bounds")
                 filter_indices = valid_indices
 
             if not filter_indices:
@@ -329,7 +329,7 @@ class Pruning:
             # Create new conv with reduced output channels
             new_out_channels = conv.out_channels - len(filter_indices)
             if new_out_channels <= 0:
-                print(f"Would result in {new_out_channels} filters for layer {layer_idx}, setting to 1")
+                # print(f"Would result in {new_out_channels} filters for layer {layer_idx}, setting to 1")
                 new_out_channels = 1
                 filter_indices = filter_indices[:conv.out_channels-1]
 
@@ -348,10 +348,11 @@ class Pruning:
             # Always update the very next Conv2d’s in_channels (out_channels remains unchanged)
             next_conv_idx = self.layer_info.get(layer_idx, {}).get("next_conv_index")
             if next_conv_idx is not None:
-                print(f"Updating next conv layer {next_conv_idx}")
+                # print(f"Updating next conv layer {next_conv_idx}")
                 model = self._update_next_conv_layer(model, next_conv_idx, filter_indices)
             else:
-                print(f"No next conv to update for layer {layer_idx}")
+                # print(f"No next conv to update for layer {layer_idx}")
+                pass
 
         # Final memory cleanup
         self._clear_memory()

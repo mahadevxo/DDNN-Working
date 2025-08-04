@@ -140,8 +140,8 @@ class FilterPruner:
                        if isinstance(layer, torch.nn.Conv2d)]
         last_conv_layer_idx = conv_layers[-1] if conv_layers else None
         
-        print(f"Conv layers found: {conv_layers}")
-        print(f"Excluding last conv layer from pruning: {last_conv_layer_idx}")
+        # print(f"Conv layers found: {conv_layers}")
+        # print(f"Excluding last conv layer from pruning: {last_conv_layer_idx}")
         
         # Get extra candidates
         all_filters = self.lowest_ranking_filters(num_filters_to_prune * 3)
@@ -154,9 +154,9 @@ class FilterPruner:
         # Compensate for exclusions
         compensated_request = min(num_filters_to_prune + excluded_count,
                                   len(all_filters))
-        print(f"Original request: {num_filters_to_prune}")
-        print(f"Excluded layers would contribute: {excluded_count}")
-        print(f"Compensated request: {compensated_request}")
+        # print(f"Original request: {num_filters_to_prune}")
+        # print(f"Excluded layers would contribute: {excluded_count}")
+        # print(f"Compensated request: {compensated_request}")
         
         # Re‐rank with compensation
         filters_to_prune = self.lowest_ranking_filters(compensated_request)
@@ -170,7 +170,7 @@ class FilterPruner:
                 continue
             filters_to_prune_per_layer.setdefault(layer_n, []).append(f)
         
-        print(f"Excluded {final_excluded_count} filters from protected layer {excluded_layers}")
+        # print(f"Excluded {final_excluded_count} filters from protected layer {excluded_layers}")
         
         # Build final plan — drop the per-layer cap so we can reach exactly num_filters_to_prune
         valid = []
@@ -183,5 +183,5 @@ class FilterPruner:
                     break
             if total >= num_filters_to_prune:
                 break
-        print(f"Final pruning plan: {total}/{num_filters_to_prune} filters (protected last conv layer)")
+        # print(f"Final pruning plan: {total}/{num_filters_to_prune} filters (protected last conv layer)")
         return valid[:num_filters_to_prune]
