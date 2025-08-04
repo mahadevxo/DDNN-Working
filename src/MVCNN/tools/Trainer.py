@@ -64,7 +64,7 @@ class ModelNetTrainer(object):
                 self.optimizer.zero_grad()
 
                 if self.use_amp:
-                    with torch.amp.autocast('cuda'):
+                    with torch.amp.autocast('cuda'): # type: ignore
                         out_data = self.model(in_data)
                         loss = self.loss_fn(out_data, target)
                 else:

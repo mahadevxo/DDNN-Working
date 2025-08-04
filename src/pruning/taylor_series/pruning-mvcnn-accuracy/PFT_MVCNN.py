@@ -1,7 +1,6 @@
 from math import ceil
 from torch.utils.data import DataLoader, Subset
 import torch
-import torch.nn.functional as F
 import random
 import gc
 import time
@@ -184,16 +183,13 @@ class PruningFineTuner:
                 self.model.zero_grad()
 
             
-            Y = self.model.net_1(in_data)
+            y = self.model.net_1(in_data)
             if self.model_name == 'mvcnn':
-                Y = F.adaptive_avg_pool2d(Y, (7, 7))
-                Y = Y.view(N, V, Y.shape[-3], Y.shape[-2], Y.shape[-1]) # type: ignore
-                Y = torch.max(Y, 1)[0]
-                Y = Y.view(N, -1) # type: ignore
-                
-            out_data = self.model.net_2(Y)
-            loss = self.criterion(out_data, target)
-            
+                y = y.view((int(in_data.shape[0]/self.num_views),self.num_views,y.shape[-3],y.shape[-2],y.shape[-1]))
+                y = torch.max(y, dim=1)[0].view(y.shape[0], -1)
+            out_data = self.model.net_2(y)
+            loss = self.criterion(y, target)
+
             # Check for NaN loss
             if torch.isnan(loss) or torch.isinf(loss):
                 print(f"Warning: NaN/inf loss detected: {loss.item()}, skipping batch")
@@ -265,12 +261,9 @@ class PruningFineTuner:
                 x = views.view(-1, C, H, W)                # (N*V, C, H, W)
                 tgt = labels
     
-                net_1_out = self.model.net_1(x)  # (N*V, 33)
-                y = F.adaptive_avg_pool2d(net_1_out, (7, 7))
-                y = y.view(N, V, y.shape[-3], y.shape[-2], y.shape[-1])
-                y = torch.max(y, dim=1)[0]
-                y = y.view(N, -1)
-
+                y = self.model.net_1(x)  # (N*V, 33)
+                y = y.view((int(x.shape[0]/self.num_views),self.num_views,y.shape[-3],y.shape[-2],y.shape[-1]))
+                y = torch.max(y, dim=1)[0].view(y.shape[0], -1)
                 out = self.model.net_2(y)
                 preds = out.argmax(dim=1)
     
