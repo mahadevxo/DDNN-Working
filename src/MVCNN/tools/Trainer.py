@@ -1,6 +1,7 @@
 import torch
 import numpy as np
 # from tensorboardX import SummaryWriter
+from torch.optim.lr_scheduler import StepLR
 from tqdm import tqdm
 
 class ModelNetTrainer(object):
@@ -24,6 +25,7 @@ class ModelNetTrainer(object):
         # Use AMP only if device is cuda
         self.use_amp = (self.device == 'cuda')
         self.scaler = torch.GradScaler() if self.use_amp else None
+        self.scheduler = StepLR(self.optimizer, step_size=10, gamma=0.5)
 
     def train(self, n_epochs):
         best_acc = 0
@@ -84,12 +86,13 @@ class ModelNetTrainer(object):
                 # self.writer.add_scalar('train/train_overall_acc', acc, i_acc+i+1)
 
                 if self.use_amp:
-                    self.scaler.scale(loss).backward()
-                    self.scaler.step(self.optimizer)
-                    self.scaler.update()
+                    self.scaler.scale(loss).backward() # type: ignore
+                    self.scaler.step(self.optimizer) # type: ignore
+                    self.scaler.update() # type: ignore
                 else:
                     loss.backward()
                     self.optimizer.step()
+                    
 
                 # Update progress bar
                 pbar.set_postfix({
@@ -100,7 +103,8 @@ class ModelNetTrainer(object):
             # Print final statistics for the epoch
             print(f"Epoch {epoch+1}/{n_epochs} - Avg Loss: {running_loss/total_steps:.3f}, Avg Accuracy: {running_acc/total_steps:.3f}")
             
-            i_acc += i
+            i_acc += i # type: ignore
+            self.scheduler.step()
 
             # evaluation
             if (epoch+1)%1==0:
@@ -111,14 +115,9 @@ class ModelNetTrainer(object):
                 # self.writer.add_scalar('val/val_loss', loss, epoch+1)
 
             # save best model
-            if val_overall_acc > best_acc:
-                best_acc = val_overall_acc
+            if val_overall_acc > best_acc: # type: ignore
+                best_acc = val_overall_acc # type: ignore
                 self.model.save(self.log_dir, epoch)
-
-            # adjust learning rate manually
-            if epoch > 0 and (epoch+1) % 10 == 0:
-                for param_group in self.optimizer.param_groups:
-                    param_group['lr'] = param_group['lr']*0.5
 
             # Free up unused GPU memory at the end of each epoch
             torch.cuda.empty_cache()

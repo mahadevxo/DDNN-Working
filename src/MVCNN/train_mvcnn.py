@@ -17,7 +17,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument("-name", "--name", type=str, help="Name of the experiment", default="MVCNN")
 parser.add_argument("-bs", "--batchSize", type=int, help="Batch size for the second stage", default=8)# it will be *12 images in each batch for mvcnn
 parser.add_argument("-num_models", type=int, help="number of models per class", default=0)
-parser.add_argument("-lr", type=float, help="learning rate", default=1e-3)
+parser.add_argument("-lr", type=float, help="learning rate", default=1e-4)
 parser.add_argument("-weight_decay", type=float, help="weight decay", default=0.0)
 parser.add_argument("-no_pretraining", dest='no_pretraining', action='store_true')
 parser.add_argument("-cnn_name", "--cnn_name", type=str, help="cnn model name", default="vgg11")
@@ -62,7 +62,7 @@ if __name__ == '__main__':
     train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=32, shuffle=False, num_workers=4)
 
     val_dataset = SingleImgDataset(args.val_path, scale_aug=False, rot_aug=False, test_mode=True)
-    val_loader = torch.utils.data.DataLoader(val_dataset, batch_size=32, shuffle=False, num_workers=4)
+    val_loader = torch.utils.data.DataLoader(val_dataset, batch_size=32, shuffle=True, num_workers=4)
     print(f'num_train_files: {len(train_dataset.filepaths)}')
     print(f'num_val_files: {len(val_dataset.filepaths)}')
     trainer = ModelNetTrainer(cnet, train_loader, val_loader, optimizer, nn.CrossEntropyLoss(), 'svcnn', log_dir, num_views=1)
@@ -85,7 +85,7 @@ if __name__ == '__main__':
     train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=args.batchSize, shuffle=False, num_workers=4)
 
     val_dataset = MultiviewImgDataset(args.val_path, scale_aug=False, rot_aug=False, num_views=args.num_views)
-    val_loader = torch.utils.data.DataLoader(val_dataset, batch_size=args.batchSize, shuffle=False, num_workers=4)
+    val_loader = torch.utils.data.DataLoader(val_dataset, batch_size=args.batchSize, shuffle=True, num_workers=4)
     print(f'num_train_files: {len(train_dataset.filepaths)}')
     print(f'num_val_files: {len(val_dataset.filepaths)}')
     trainer = ModelNetTrainer(cnet_2, train_loader, val_loader, optimizer, nn.CrossEntropyLoss(), 'mvcnn', log_dir, num_views=args.num_views)
