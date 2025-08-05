@@ -18,7 +18,6 @@ class ModelStats:
 
     def get_size(self, p):
         coeffs = [496.7, -706.2, 276.9, 4.020]
-        
         return sum(c * p**i for i, c in enumerate(coeffs))
 
     def get_time(self, p, device_perf):
