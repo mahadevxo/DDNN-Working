@@ -11,14 +11,14 @@ import queue
 import threading
 
 class EvalCombinations:
-    def __init__(self):
+    def __init__(self, iters):
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.FEATURE_DIR = './cached-features'
         self.PRUNING_AMOUNTS = np.arange(0.0, 1.02, 0.02).tolist()
         self.NUM_VIEWS = 12
-        self.NUM_COMBOS = 4000
+        self.iters = iters
         self.LOG_CSV = 'test-log.csv'
-        self.P_MATRIX = np.random.choice(self.PRUNING_AMOUNTS, size=(self.NUM_COMBOS, self.NUM_VIEWS))
+        self.P_MATRIX = np.random.choice(self.PRUNING_AMOUNTS, size=(self.iters, self.NUM_VIEWS))
         self.MAX_WORKERS = 8
         self._prepare_model()
         self._cache_file_list()

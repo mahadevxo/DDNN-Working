@@ -61,7 +61,6 @@ class MultiViewProblem(Problem):
             ps = X[:, j]
             vals = np.zeros(pop_size)
             for k, p in enumerate(ps):
-                # Use global min accuracy for consistency
                 r = self.rewardfn.get_reward(p, GLOBAL_MIN_ACCURACY, MAX_MODEL_SIZES[j])
                 weighted_r = r * I[j]
                 vals[k] = -weighted_r  # minimize negative reward
