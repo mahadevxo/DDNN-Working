@@ -17,7 +17,7 @@ class EvalCombinations:
         self.NUM_COMBOS = 4000
         self.LOG_CSV = 'test-log.csv'
         self.P_MATRIX = np.random.choice(self.PRUNING_AMOUNTS, size=(self.NUM_COMBOS, self.NUM_VIEWS))
-        self.MAX_WORKERS = 64
+        self.MAX_WORKERS = 16
         self._prepare_model()
         self._cache_file_list()
         self._preload_labels()
@@ -83,20 +83,23 @@ class EvalCombinations:
             header = ','.join(f'prune_v{i}' for i in range(self.NUM_VIEWS)) + ',mean_class_acc\n'
             f.write(header)
 
-        # Process batches of combinations for efficient file I/O
         batch_size = 50
         results_buffer = []
-        
-        with tqdm(total=len(self.P_MATRIX), desc='Evaluating combos') as pbar:
-            for i in range(0, len(self.P_MATRIX), batch_size):
-                batch_combos = self.P_MATRIX[i:i+batch_size]
-                
-                for combo in batch_combos:
-                    wrong = np.zeros(33, int)
-                    count = np.zeros(33, int)
 
-                    # Parallel sample evaluation
-                    with ThreadPoolExecutor(max_workers=self.MAX_WORKERS) as executor:
+        # Use a reasonable number of workers
+        max_workers = min(8, os.cpu_count() or 1)
+
+        with tqdm(total=len(self.P_MATRIX), desc='Evaluating combos') as pbar:
+            # Create the executor ONCE
+            with ThreadPoolExecutor(max_workers=max_workers) as executor:
+                for i in range(0, len(self.P_MATRIX), batch_size):
+                    batch_combos = self.P_MATRIX[i:i+batch_size]
+
+                    for combo in batch_combos:
+                        wrong = np.zeros(33, int)
+                        count = np.zeros(33, int)
+
+                        # Submit all jobs for this combo
                         futures = {
                             executor.submit(self._process_sample, idx, combo): idx
                             for idx in self.sample_ids
@@ -107,11 +110,11 @@ class EvalCombinations:
                             if pred != true:
                                 wrong[true] += 1
 
-                    mean_acc = np.mean((count - wrong) / count)
-                    results_buffer.append(','.join(map(str, combo.tolist())) + f',{mean_acc}\n')
-                    pbar.update(1)
-                
-                # Batch write results to file
-                with open(self.LOG_CSV, 'a') as f:
-                    f.writelines(results_buffer)
-                results_buffer = []
+                        mean_acc = np.mean((count - wrong) / count)
+                        results_buffer.append(','.join(map(str, combo.tolist())) + f',{mean_acc}\n')
+                        pbar.update(1)
+
+                    # Batch write results to file
+                    with open(self.LOG_CSV, 'a') as f:
+                        f.writelines(results_buffer)
+                    results_buffer = []
