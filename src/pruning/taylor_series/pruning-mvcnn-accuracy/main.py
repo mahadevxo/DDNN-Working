@@ -11,11 +11,11 @@ def main():
     if skip_eval == 0:
         iters = int(input("Enter number of iterations for evaluation: "))
     
-    print("-"*150)
+    print("-"*100)
     print(f"Skip save model: {bool(skip_save_model)}, Skip cache features: {bool(skip_cache_features)}, Skip eval: {bool(skip_eval)}")
     input("Press Enter to continue...")
     
-    print("-"*150)
+    print("-"*100)
     
     if skip_save_model == 0:
         pruner = PruneSaveModel()
