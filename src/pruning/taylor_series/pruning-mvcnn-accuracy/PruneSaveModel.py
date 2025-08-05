@@ -11,7 +11,6 @@ class PruneSaveModel:
         self.PRUNING_AMOUNTS = np.arange(0.0, 1.02, 0.02).tolist()
         self.NUM_VIEWS = 12
         self.BATCH_SIZE = 1
-        self.VIEW_ORDER = [0, 1, 10, 11, 2, 3, 4, 5, 6, 7, 8, 9]
 
     def save_model(self, model, prune_amount):
         save_path = f'./pruned-models/pruned_mvcnn_{str(prune_amount)}.pth'

@@ -17,7 +17,7 @@ class EvalCombinations:
         self.LOG_CSV = 'test-log.csv'
         self.P_MATRIX = np.random.choice(self.PRUNING_AMOUNTS, size=(self.NUM_COMBOS, self.NUM_VIEWS))
 
-# Load original model net_2
+    # Load original model net_2
     def load_org_net2(self):
         base = MVCNN.SVCNN(name='svcnn', nclasses=33, cnn_name='vgg11')
         weights = torch.load('../../../MVCNN/MVCNN/MVCNN/model-00050.pth', map_location=self.device)
