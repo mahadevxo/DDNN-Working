@@ -19,7 +19,7 @@ class EvalCombinations:
         self.NUM_COMBOS = 4000
         self.LOG_CSV = 'test-log.csv'
         self.P_MATRIX = np.random.choice(self.PRUNING_AMOUNTS, size=(self.NUM_COMBOS, self.NUM_VIEWS))
-        self.MAX_WORKERS = 16
+        self.MAX_WORKERS = 8
         self._prepare_model()
         self._cache_file_list()
         self._preload_labels()
