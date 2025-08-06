@@ -262,7 +262,7 @@ def init():
     MAX_MODEL_SIZES = np.array(max_sizes)
     
     max_possible_acc = model_stats.get_model_accuracy(np.zeros(12))
-    GLOBAL_MIN_ACCURACY = np.round(np.random.default_rng().beta(8.0, 2.0, size=1)*max_possible_acc[0], 2)
+    GLOBAL_MIN_ACCURACY = np.round(np.random.default_rng().beta(9.0, 2.0, size=1)*max_possible_acc[0], 1)
 
     DEVICE_PERF = np.random.uniform(0.0, 0.99, size=12)  # Simulated device performance degradation
 
@@ -316,7 +316,7 @@ def init():
             feasible_X = res.X[feasible_indices]
             
             # Apply weights for decision making
-            weights = [0.8, 0.2]  # Inference time vs accuracy
+            weights = [0.33, 0.33, 0.34]  # Inference time vs accuracy
             dm = PseudoWeights(weights)
             
             # Apply decision making to feasible solutions only
