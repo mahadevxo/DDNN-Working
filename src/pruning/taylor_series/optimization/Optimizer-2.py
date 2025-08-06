@@ -93,6 +93,8 @@ class SmartSampling(Sampling):
             device_weights = self.device_perf / np.sum(self.device_perf)
             X[2] = self.min_pruning * (1 + device_weights * 0.2)
             X[2] = np.clip(X[2], self.min_pruning, 0.95)
+        if n_samples > 3:
+            X[3] = np.clip(self.smart_pruning * 1.5, self.min_pruning, 0.95)
         
         # Rest are importance-based random samples, but respect minimum pruning
         for i in range(3, n_samples):
@@ -130,7 +132,7 @@ class MultiViewProblem(Problem):
             size = model_stats.get_model_size(x)
             
             f1[i] = np.max(t)    # Max inference time
-            f2[i] = abs((acc*100)-(GLOBAL_MIN_ACCURACY[0]*1.01))*100 if acc>=GLOBAL_MIN_ACCURACY[0]*1.01 else abs((acc*100)-(GLOBAL_MIN_ACCURACY[0]*1.01))*300  # type: ignore
+            f2[i] = abs((acc*100)-(GLOBAL_MIN_ACCURACY[0]*1.01))*100 if acc>=GLOBAL_MIN_ACCURACY[0]*1.01 else abs((acc*100)-(GLOBAL_MIN_ACCURACY[0]*1.01))*150  # type: ignore
 
             g1[i] = GLOBAL_MIN_ACCURACY[0]*100 - acc*100  # type: ignore # Accuracy constraint
             g2[i] = max(size/MAX_MODEL_SIZES-1.0)         # type: ignore # Model size constraint
@@ -205,9 +207,12 @@ def init():
     max_possible_acc = model_stats.get_model_accuracy(np.zeros(12))
     
     # More aggressive accuracy requirement (higher alpha in beta distribution)
-    GLOBAL_MIN_ACCURACY = np.random.default_rng().beta(9.0, 0.8, size=1)*max_possible_acc[0]
-    
+    GLOBAL_MIN_ACCURACY = np.round(np.random.default_rng().beta(9.0, 0.8, size=1)*max_possible_acc[0], 2)
+
     DEVICE_PERF = np.random.uniform(0.0, 0.99, size=12)  # Simulated device performance degradation
+
+    if max(max_possible_acc) < GLOBAL_MIN_ACCURACY[0]:
+        raise ValueError(f"Maximum possible accuracy is lower than the global minimum accuracy requirement. Cannot optimize. Max possible acc: {max(max_possible_acc)*100:.2f}% Global min acc: {GLOBAL_MIN_ACCURACY[0]*100:.2f}%")
     
     # Calculate minimum pruning for each model to meet size constraints
     min_pruning = np.array([calculate_min_pruning_for_size(MAX_MODEL_SIZES[i]) for i in range(12)])
@@ -217,10 +222,7 @@ def init():
     print(f"Minimum pruning for size constraints would yield accuracy: {min_acc*100:.2f}%")
     print(f"Required minimum accuracy: {GLOBAL_MIN_ACCURACY[0]*100:.2f}%")
     
-    # Create smart initial distribution based on feature importances
     smart_pruning = distribute_pruning(min_pruning, I, DEVICE_PERF)
-    smart_acc = model_stats.get_model_accuracy(smart_pruning)[0]
-    print(f"Smart pruning distribution would yield accuracy: {smart_acc*100:.2f}%")
     
     # Use minimum pruning as lower bounds for optimization
     problem = MultiViewProblem(min_pruning)
@@ -252,7 +254,7 @@ def init():
         feasible_X = res.X[feasible_indices] # type: ignore
         
         # Apply weights for decision making
-        weights = [0.6, 0.4]  # Inference time vs accuracy
+        weights = [0.8, 0.2]  # Inference time vs accuracy
         dm = PseudoWeights(weights)
         
         # Apply decision making to feasible solutions only
@@ -284,7 +286,7 @@ def init():
     print(tabulate(
         table_data,
         headers=["View", "Pruning Amount", "Size of Model", "Max Size", "Inference Time", "Violated Model Size", "Device Performance"],
-        tablefmt="github"
+        tablefmt="csv"
     ))
     print("\n")
     print(f"Required minimum accuracy: {GLOBAL_MIN_ACCURACY[0]*100:.2f}%")
@@ -295,9 +297,9 @@ def init():
     else:
         print('Model meets minimum accuracy requirement.')
         
-    inf_time = np.max(t)
-    org_time = np.max(model_stats.get_inf_time(np.zeros(12), DEVICE_PERF))
-    
+    inf_time = np.max(model_stats.get_inf_time(min(P), min(DEVICE_PERF)))
+    org_time = np.max(model_stats.get_inf_time(np.zeros(12), min(DEVICE_PERF)))
+
     print(f"Original inference time: {org_time:.4f}ms")
     print(f"Optimized inference time: {inf_time:.4f}ms")
     print(f"{(org_time)/(inf_time):.2f}x speedup in inference time")
@@ -310,7 +312,9 @@ if __name__ == "__main__":
     iters = int(input("Enter number of iterations: "))
     failed = 0
     k=0
-    for i in range(iters):
+    i = 0
+    while i < iters:
+        print("-" * 50)
         print(f"\nIteration {i+1}/{iters}")
         try:
             a_v, s_v = init()
@@ -319,7 +323,9 @@ if __name__ == "__main__":
                 print(f"Iteration {i+1} failed. Total failures: {failed}")
             else:
                 print(f"Iteration {i+1} succeeded.")
+                i+=1
         except Exception as e:
             k += 1
             print(f"Iteration {i+1} failed with error: {e}")
             print(f"Total error failures: {k}")
+    print(f"\nTotal iterations: {iters}, Failed: {failed}, Errors: {k}")

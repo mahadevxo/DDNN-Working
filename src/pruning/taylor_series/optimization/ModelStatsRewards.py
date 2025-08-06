@@ -17,21 +17,14 @@ class ModelStats:
             return np.array([self.get_model_size(p_i) for p_i in p])
 
     def get_inf_time(self, p, device_perf):
-        
         p = p * 100  # Scale p to percentage
-        
         slope = 0.0003872
         y_intercept = -0.0003872 
         t_nominal = slope * p + y_intercept
-        t_scaled = t_nominal + (device_perf*10)
-        
-        # for i in range(len(t_scaled)):
-        #     if t_scaled[i] < 0:
-        #         t_scaled[i] = 0
-        
-        t_scaled = np.maximum(t_scaled, 0)  # Ensure no negative times
+        t_scaled = t_nominal + ((1-device_perf))
+        t_scaled = 1-np.maximum(t_scaled, 0)  # Ensure no negative times
 
-        return t_scaled
+        return t_scaled*1000
 
     def get_model_accuracy(self, p):
         accuracy = self.xgbmodel.predict([p])
