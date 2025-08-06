@@ -69,7 +69,7 @@ def calculate_min_pruning_newton_newton_newton(target_size):
     # Ensure the result is within the valid [0, 0.99] range
     return np.clip(p_current, 0.0, 0.99)
 
-def distribute_pruning(min_pruning, feature_importances, device_perf, extra_budget=0.1):
+def distribute_pruning(min_pruning, feature_importances, device_perf, extra_budget=0.05):
     """
     Intelligently distribute pruning across models based on importance and device performance.
     """
@@ -235,7 +235,7 @@ def fallback_GA_Optimization(min_pruning, feature_importances, device_perf):
     
     sizes = model_stats.get_model_size(best)
     headroom = (MAX_MODEL_SIZES - sizes)/MAX_MODEL_SIZES # type: ignore
-    extra_budget = np.sum(np.clip(headroom, 0, 1)) * 0.1
+    extra_budget = np.sum(np.clip(headroom, 0, 1)) * 0.05
     
     return distribute_pruning(best, feature_importances, device_perf, extra_budget=extra_budget) # type: ignore
 
