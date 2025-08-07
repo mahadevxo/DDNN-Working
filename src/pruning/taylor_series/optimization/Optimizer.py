@@ -20,7 +20,7 @@ X_TOL = 1e-6
 p_min = np.zeros(12)
 N_GENERATIONS = 200
 
-def calculate_min_pruning_newton_newton_newton(target_size):
+def calculate_min_pruning_newton(target_size):
     coeffs = [507.9, -8.516, 0.04994, -7.665e-5]
 
     def f(p):
@@ -66,7 +66,7 @@ def distribute_pruning(min_pruning, feature_importances, device_perf, extra_budg
 
     return pruning_distribution
 
-class SmartSampling(Sampling):
+class Sampler(Sampling):
     def __init__(self, importances, min_pruning, smart_pruning=None, device_perf=None):
         super().__init__()
 
@@ -171,7 +171,7 @@ def fallback_GA_Optimization(min_pruning, feature_importances, device_perf):
     fallback_problem = FallBackProblem(min_pruning=min_pruning)
     algorithm = GA(
         pop_size=POP_SIZE,
-        sampling=SmartSampling(
+        sampling=Sampler(
             importances=feature_importances,
             min_pruning=min_pruning,
             smart_pruning=None,
@@ -204,35 +204,9 @@ def fallback_GA_Optimization(min_pruning, feature_importances, device_perf):
 
     return distribute_pruning(best, feature_importances, device_perf, extra_budget=extra_budget)
 
-
-def init():
-    global MAX_MODEL_SIZES, GLOBAL_MIN_ACCURACY, DEVICE_PERF, p_min, model_stats, rewards
-
-    MAX_MODEL_SIZES = [100] * 12
-    GLOBAL_MIN_ACCURACY = 1.0
-    DEVICE_PERF = np.ones(12)
-    p_min = np.zeros(12)
-
-    model_stats = ModelStats()
-    rewards = Rewards()
-
-    uniform_sample = np.random.uniform(1.0, 4.5, 12)
-    MAX_MODEL_SIZES = np.array([MAX_MODEL_SIZES[i] * uniform_sample[i] for i in range(12)])
-
-    max_possible_acc = model_stats.get_model_accuracy(np.zeros(12))
-    GLOBAL_MIN_ACCURACY = float(np.round(
-        np.random.uniform(0.7, max_possible_acc), 3
-    ))
-
-    DEVICE_PERF = np.random.uniform(0.0, 0.99, size=12)
-
-    if np.round(max_possible_acc, 2) < np.round(GLOBAL_MIN_ACCURACY, 2):
-        raise ValueError(
-            "Maximum possible accuracy is lower than the global minimum accuracy requirement."
-        )
-
+def run():
     min_pruning = np.array([
-        calculate_min_pruning_newton_newton_newton(MAX_MODEL_SIZES[i]) for i in range(12)
+        calculate_min_pruning_newton(MAX_MODEL_SIZES[i]) for i in range(12)
     ])
 
     min_acc = model_stats.get_model_accuracy(min_pruning)[0]
@@ -243,7 +217,7 @@ def init():
     smart_pruning = distribute_pruning(min_pruning, I, DEVICE_PERF)
 
     problem = MultiViewProblem(min_pruning)
-    sampling = SmartSampling(I, min_pruning, smart_pruning, DEVICE_PERF)
+    sampling = Sampler(I, min_pruning, smart_pruning, DEVICE_PERF)
     algorithm = NSGA2(pop_size=POP_SIZE, sampling=sampling)
 
     res = minimize(
@@ -325,3 +299,32 @@ def init():
     )
 
     return (accuracy_violated, model_size_violated)
+
+
+def init():
+    global MAX_MODEL_SIZES, GLOBAL_MIN_ACCURACY, DEVICE_PERF, p_min, model_stats, rewards
+
+    MAX_MODEL_SIZES = [100] * 12
+    GLOBAL_MIN_ACCURACY = 1.0
+    DEVICE_PERF = np.ones(12)
+    p_min = np.zeros(12)
+
+    model_stats = ModelStats()
+    rewards = Rewards()
+
+    uniform_sample = np.random.uniform(1.0, 4.5, 12)
+    MAX_MODEL_SIZES = np.array([MAX_MODEL_SIZES[i] * uniform_sample[i] for i in range(12)])
+
+    max_possible_acc = model_stats.get_model_accuracy(np.zeros(12))
+    GLOBAL_MIN_ACCURACY = float(np.round(
+        np.random.uniform(0.7, max_possible_acc), 3
+    ))
+
+    DEVICE_PERF = np.random.uniform(0.0, 0.99, size=12)
+
+    if np.round(max_possible_acc, 2) < np.round(GLOBAL_MIN_ACCURACY, 2):
+        raise ValueError(
+            "Maximum possible accuracy is lower than the global minimum accuracy requirement."
+        )
+        
+    return run()
