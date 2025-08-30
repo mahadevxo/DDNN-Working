@@ -11,7 +11,7 @@ class ModelStats:
         if np.isscalar(p) or len(p) == 1:
             p_val = p if np.isscalar(p) else p[0] # type: ignore
             coeffs = [507.9, -8.516, 0.04994, -7.665*1e-005]
-            return sum(c * (p_val*100)**i for i, c in enumerate(coeffs)) # type: ignore
+            return sum(c * (p_val*100)**i for i, c in enumerate(coeffs))
         else:
             # Handle vector case - calculate size for each element
             return np.array([self.get_model_size(p_i) for p_i in p])
@@ -59,11 +59,11 @@ class Rewards:
         return 0
     
     def get_reward(self, p, min_accuracy, max_model_size, x=10, y=1, z=5):
-        accuracy = self.model_stats.get_model_accuracy(p)
+        accuracy = float(self.model_stats.get_model_accuracy(p)[0])
         times = [self.model_stats.get_inf_time(pv, device_perf=0) for pv in p]
         sizes = [self.model_stats.get_model_size(pv) for pv in p]
 
-        acc_reward = np.array(self._get_accuracy_reward(accuracy, min_accuracy))
+        acc_reward = self._get_accuracy_reward(accuracy, min_accuracy)
         
         size_reward = 0.0
         better_reward = 0.0
@@ -73,7 +73,7 @@ class Rewards:
             size_reward += self._get_model_size_reward(sizes[i], max_model_size[i])
             time_reward += self._get_comp_time_reward(times[i])
         
-        num_violators = sum(1 for size in sizes if size > max_model_size[0])
+        num_violators = sum(1 for i, size in enumerate(sizes) if size > max_model_size[i])
         if num_violators > 0:
             better_reward=0
         else:

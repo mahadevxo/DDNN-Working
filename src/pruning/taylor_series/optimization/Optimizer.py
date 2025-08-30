@@ -97,7 +97,7 @@ class Sampler(Sampling):
         for i in range(4, n_samples):
             for j in range(problem.n_var):
                 raw_val = np.random.beta(self.alpha[j], self.beta[j])
-                X[i, j] = max(self.min_pruning[j], raw_val)
+                X[i, j] = np.clip(max(self.min_pruning[j], raw_val), self.min_pruning[j], 0.99)
 
         return X
 
@@ -132,9 +132,9 @@ class MultiViewProblem(Problem):
             f1[i] = np.max(t) / baseline_time
             diff = acc - GLOBAL_MIN_ACCURACY
             if diff > 0:
-                f2[i] = diff * 100 * 10.0 
+                f2[i] = diff * 100 * 8.0 
             else:
-                f2[i] = abs(diff) * 100 * 8.0
+                f2[i] = abs(diff) * 100 * 10.0
             f3[i] = -1 * rewards.get_reward(x, GLOBAL_MIN_ACCURACY, MAX_MODEL_SIZES) / max_reward
             g1[i] = (GLOBAL_MIN_ACCURACY - acc) * 100
             g2[i] = np.max(size / MAX_MODEL_SIZES) - 1.0
@@ -260,23 +260,22 @@ def run():
     for i in range(len(P)):
         table_data.append([
             i,
-            f",{P[i]:.3f}",
-            f",{sizes[i]:.2f}MB",
-            f",{MAX_MODEL_SIZES[i]:.2f}MB",
-            f",{t[i]:.4f}ms",
-            ",VIOLATED" if np.round(sizes[i], 0) > np.round(MAX_MODEL_SIZES[i], 0) else ",No",
-            f",{DEVICE_PERF[i]:.2f}",
-            f",{I[i]:.3f}"
+            f"{P[i]:.3f}",
+            f"{sizes[i]:.2f}MB",
+            f"{MAX_MODEL_SIZES[i]:.2f}MB",
+            f"{t[i]:.4f}ms",
+            "VIOLATED" if np.round(sizes[i], 0) > np.round(MAX_MODEL_SIZES[i], 0) else "No",
+            f"{DEVICE_PERF[i]:.2f}",
+            f"{I[i]:.3f}"
         ])
 
     print("\nPer-view summary:")
     print(tabulate(
         table_data,
         headers=[
-            "View", "Pruning Amount", "Size of Model", "Max Size",
-            "Inference Time", "Violated Model Size", "Device Performance", "Importance"
+            "View", "Pruning_Amount", "Size_of_Model", "Max_Size",
+            "Inference_Time", "Violated_Model_Size", "Device_Performance", "Importance"
         ],
-        tablefmt="csv"
     ))
 
     print(f"\nRequired minimum accuracy: {np.round(GLOBAL_MIN_ACCURACY * 100, 0):.2f}%")
@@ -312,19 +311,48 @@ def init():
     model_stats = ModelStats()
     rewards = Rewards()
 
-    uniform_sample = np.random.uniform(1.0, 4.5, 12)
-    MAX_MODEL_SIZES = np.array([MAX_MODEL_SIZES[i] * uniform_sample[i] for i in range(12)])
+    # uniform_sample = np.random.uniform(1.0, 4.5, 12)
+    # MAX_MODEL_SIZES = np.array([MAX_MODEL_SIZES[i] * uniform_sample[i] for i in range(12)])
 
-    max_possible_acc = model_stats.get_model_accuracy(np.zeros(12))
+    max_possible_acc = float(model_stats.get_model_accuracy(np.zeros(12))[0])
     GLOBAL_MIN_ACCURACY = float(np.round(
-        np.random.uniform(0.7, max_possible_acc), 3
+        np.random.uniform(0.8, max_possible_acc), 3
     ))
 
-    DEVICE_PERF = np.random.uniform(0.0, 0.99, size=12)
+    # DEVICE_PERF = np.random.uniform(0.0, 0.99, size=12)
 
-    if np.round(max_possible_acc, 2) < np.round(GLOBAL_MIN_ACCURACY, 2):
-        raise ValueError(
-            "Maximum possible accuracy is lower than the global minimum accuracy requirement."
-        )
-        
+    # if np.round(max_possible_acc, 2) < np.round(GLOBAL_MIN_ACCURACY, 2):
+    #     raise ValueError(
+    #         "Maximum possible accuracy is lower than the global minimum accuracy requirement."
+    #     )
+    
+    '''
+    Raspberry Pi Model A (2013) 256 MB RAM 700 MHz
+    Raspberry Pi 2 Model B (2015) 1 GB RAM 900 MHz
+    Raspberry Pi 3 Model A+ (2018) 512 MB RAM 1400 MHz
+
+    Can use up to 50% of memory
+    options are: [128, 512, 256] MB
+    
+    '''
+    
+    all_memory_caps=[128, 512, 256]
+    
+    dPerfs = [700, 900, 1400]
+    dPerfs = dPerfs/np.sum(dPerfs)
+    
+    MAX_MODEL_SIZES = np.random.choice(all_memory_caps, size=12, replace=True)
+    
+    for i, size in enumerate(MAX_MODEL_SIZES):
+        i_mem_cap = all_memory_caps.index(size)
+        DEVICE_PERF[i] = dPerfs[i_mem_cap]
+    
+    DEVICE_PERF = DEVICE_PERF / np.sum(DEVICE_PERF)
+
+    # print(DEVICE_PERF)
+    # print(MAX_MODEL_SIZES)
+    # print(GLOBAL_MIN_ACCURACY)
+    
+    
+    
     return run()
