@@ -4,12 +4,14 @@
 
 ```text
 .
-├── initialise_remote_machine.sh
+├── algorithm.png
+├── init-remote-machine.sh
 ├── README.md
 └── src
-    ├── MVCNN       [1]
+    ├── MVCNN
     │   ├── convert_multi.py
     │   ├── convert.py
+    │   ├── ModelNet40-12View
     │   ├── models
     │   │   ├── Model.py
     │   │   └── MVCNN.py
@@ -23,18 +25,27 @@
     │   │   ├── ImgDataset.py
     │   │   └── Trainer.py
     │   └── train_mvcnn.py
-    └── pruning       [2]
-        ├── RL       [3]
+    └── pruning
+        ├── RL
         │   ├── ComprehensiveVGGPruner.py
         │   ├── diagrams.pu
         │   ├── GetAccuracy.py
         │   └── PPO.py
-        └── taylor_series     [4]
-            ├── incremental-pruning    [5]
+        └── taylor_series
+            ├── Experiments.prism
+            ├── incremental-pruning
             │   ├── FilterPruner.py
             │   ├── importance.py
             │   ├── main_mvcnn.py
             │   ├── main-general-cnns.py
+            │   ├── mvcnn-pruned
+            │   │   └── models
+            │   │       ├── mvcnn_pruned_0.00.pth
+            │   │       ├── mvcnn_pruned_0.10.pth
+            │   │       ├── mvcnn_pruned_0.30.pth
+            │   │       ├── mvcnn_pruned_0.50.pth
+            │   │       ├── mvcnn_pruned_0.70.pth
+            │   │       └── mvcnn_pruned_0.90.pth
             │   ├── PFT_MVCNN.py
             │   ├── PFT.py
             │   ├── Pruning.py
@@ -42,9 +53,30 @@
             │   ├── results
             │   │   ├── MVCNN Results.prism
             │   │   └── pruning-results-20250702-124835.csv
-            │   └── Rewards.py
+            │   ├── Rewards.py
+            │   └── testing.ipynb
             ├── intermediate-tests-results
             │   ├── computation_time_alexnet.ipynb
+            │   ├── intermediate-results
+            │   │   ├── alexnet_m4pro_cpu.csv
+            │   │   ├── AlexNet_results.csv
+            │   │   ├── Experiment Results.jpg
+            │   │   ├── Pruning Computation Time Model Size Step 0.5.numbers
+            │   │   ├── Pruning Computation Time Model Size.numbers
+            │   │   ├── pruning_results_1.csv
+            │   │   ├── pruning_results_1742997062.4153469.csv
+            │   │   ├── pruning_results_extra_steps.numbers
+            │   │   ├── pruning_results.csv
+            │   │   ├── pruning_vs_comp_time.csv
+            │   │   ├── pruning_vs_comp_time.py
+            │   │   ├── Sheet 1-VGG16_results_interpolated.csv
+            │   │   ├── Sheet 1-VGG16_results.csv
+            │   │   ├── VGG Models Average.csv
+            │   │   ├── VGG.numbers
+            │   │   ├── VGG11_results.csv
+            │   │   ├── VGG13_results.csv
+            │   │   ├── VGG16_results.csv
+            │   │   └── VGG19_results.csv
             │   ├── intermediate-tests
             │   │   ├── FilterPruner.py
             │   │   ├── main.py
@@ -83,14 +115,47 @@
             │   ├── pre_vs_post_finetune.ipynb
             │   ├── Rewards.ipynb
             │   └── VGG11_final_results.csv
-            ├── mvcnn-optimization    [6]
+            ├── mvcnn-optimization
             │   ├── flowchart.mmd
             │   ├── mvcnn-optimization-v1.ipynb
             │   ├── mvcnn-optimization-v2.ipynb
+            │   ├── python-files
+            │   │   ├── algo.mmd
+            │   │   ├── main.py
+            │   │   ├── Optimize.py
+            │   │   ├── results.csv
+            │   │   └── StatsRewards.py
             │   └── view-importance-calculator.ipynb
-            └── searching-algorithm-v1    [7]
+            ├── optimization
+            │   ├── experiment-results
+            │   │   ├── Exp 1.csv
+            │   │   ├── Exp 2.csv
+            │   │   ├── Exp 3.csv
+            │   │   ├── Exp 4.csv
+            │   │   ├── Exp 5.csv
+            │   │   ├── Exp 6.csv
+            │   │   └── Pruning Results.csv
+            │   ├── graphs-for-paper.ipynb
+            │   ├── main.py
+            │   ├── ModelStatsRewards.py
+            │   ├── optimizer.py
+            │   └── Untitled-1.ipynb
+            ├── pruning-mvcnn-accuracy
+            │   ├── CacheFeatures.py
+            │   ├── data-analysis.ipynb
+            │   ├── EvalCombinations.py
+            │   ├── FilterPruner.py
+            │   ├── main.py
+            │   ├── PFT_MVCNN.py
+            │   ├── PruneSaveModel.py
+            │   ├── Pruning.py
+            │   ├── test-log.csv
+            │   ├── test-log.numbers
+            │   └── xgboost_model.pkl
+            └── searching-algorithm-v1
                 ├── curve-finding.ipynb
                 ├── FilterPruner.py
+                ├── individual_rewards.png
                 ├── infogetter.py
                 ├── models
                 │   ├── Model.py
@@ -98,6 +163,8 @@
                 ├── PFT.py
                 ├── Pruning.py
                 ├── reorganise.py
+                ├── reward.ipynb
+                ├── rewards.png
                 ├── Rewards.py
                 ├── searchAlgo.py
                 ├── sorted_view_importance_scores.csv
@@ -106,8 +173,7 @@
                 │   └── Trainer.py
                 └── viewImportance.ipynb
 
-25 directories, 77 files
-
+19035 directories, 113526 files
 ```
 
 1. Original MVCNN implimentation [MVCNN PyTorch Implimentation](https://github.com/jongchyisu/mvcnn_pytorch)

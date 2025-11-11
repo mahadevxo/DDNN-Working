@@ -41,7 +41,7 @@ if __name__ == '__main__':
     create_folder(args.name)
     with open(os.path.join(log_dir, 'config.json'), 'w') as config_f:
         json.dump(vars(args), config_f)
-        
+
     print('*'*50, "Settings:", '*'*50)
     print(f"Name: {args.name}, Num Model: {args.num_models}")
     print(f"Learning Rate: {args.lr}, Weight Decay: {args.weight_decay}, Pretraining: {pretraining}")
